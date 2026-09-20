@@ -48,8 +48,9 @@ def _clean_text(text):
     text = re.sub(r"(\n\s*){3,}","\n\n",result)
     return text
 
-text = extract_pdf_text(r"C:\Users\dbtjd\Downloads\[WEB] 1. 웹프로그래밍개요.pdf")
-print("텍스트 추출 완료")
-result = analyze_content(text, [])
-print("분석 완료")
-print(result)
+if __name__ == "__main__":
+    text = extract_pdf_text(r"PDF")
+    print("텍스트 추출 완료")
+    result = analyze_content(text, [])
+    print("분석 완료")
+    print(result)
