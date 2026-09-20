@@ -1,0 +1,87 @@
+import anthropic
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CATEGORIES = ["개발", "AI", "디자인", "비즈니스", "마케팅", "데이터", "논문/학술", "기타"]
+
+SYSTEM_PROMPT = """당신은 웹 콘텐츠를 분석하고 분류하는 AI입니다.
+주어진 텍스트를 분석하여 반드시 아래 JSON 형식으로만 답하세요.
+다른 설명이나 텍스트는 절대 포함하지 마세요.
+
+category는 반드시 아래 목록 중 하나만 선택하세요:
+개발, AI, 디자인, 비즈니스, 마케팅, 데이터, 논문/학술, 기타
+
+tags는 아래 기존 태그 목록을 우선적으로 사용하세요.
+기존 태그 중 적합한 것이 있으면 반드시 그대로 사용하고,
+정말 새로운 개념일 때만 새 태그를 만드세요.
+태그는 3~5개 선택하세요.
+
+기존 태그 목록: {tag_pool}
+
+summary는 반드시 한국어로 작성하세요.
+
+{{
+  "summary": "3문장 이내 요약",
+  "category": "카테고리 하나",
+  "tags": ["태그1", "태그2", "태그3"]
+}}"""
+
+
+def validate_result(result: dict) -> bool:
+    if not all(key in result for key in ["summary", "category", "tags"]):
+        return False
+    if result["category"] not in CATEGORIES:
+        return False
+    if not isinstance(result["tags"], list):
+        return False
+    if not 3 <= len(result["tags"]) <= 5:  # 3~5로 복원
+        return False
+    if not all(isinstance(tag, str) and tag.strip() for tag in result["tags"]):  # 태그 타입 검사 추가
+        return False
+    if not isinstance(result["summary"], str) or not result["summary"].strip():
+        return False
+    return True
+
+
+def analyze_content(text: str, tag_pool: list[str]) -> dict:
+    client = anthropic.Anthropic()
+    system = SYSTEM_PROMPT.format(tag_pool=tag_pool)
+    raw = ""
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1000,
+            # temperature=0.1,
+            system=system,
+            messages=[{"role": "user", "content": text}],
+        )
+        raw = response.content[0].text
+        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+
+        result = json.loads(raw)
+
+        if not validate_result(result):
+            print(f"LLM 결과 형식 오류: {result}")
+            return {"summary": "", "category": None, "tags": [], "error": "검증 실패"}
+
+        return result
+
+    except json.JSONDecodeError as e:
+        print(f"JSON 파싱 실패: {e}\n원문: {raw}")
+        return {"summary": "", "category": None, "tags": [], "error": "JSON 파싱 실패"}
+
+    except Exception as e:
+        print(f"API 호출 실패: {e}")
+        return {"summary": "", "category": None, "tags": [], "error": str(e)}
+
+
+# 테스트
+if __name__ == "__main__":
+    sample_text = "여기에 분석할 텍스트를 넣으세요"
+    tag_pool = []
+
+    result = analyze_content(sample_text, tag_pool)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
