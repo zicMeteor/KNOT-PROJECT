@@ -90,7 +90,6 @@ def analyze_content(text: str, tag_pool: list[str]) -> dict:
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1000,
-            # temperature=0.1,
             system=system,
             messages=[{"role": "user", "content": text}],
         )

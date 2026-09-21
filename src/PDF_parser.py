@@ -3,6 +3,8 @@ import re
 
 from LLM_prompt import analyze_content
 
+MIN_LENGTH = 300
+
 def extract_pdf_text(pdf_path):
     doc = pymupdf.open(pdf_path)
     
@@ -20,32 +22,29 @@ def extract_pdf_text(pdf_path):
     
     # pages가 비어있으면: -> ValueError 발생
     if not pages:
-        raise ValueError("ValueError 발생") 
+        raise ValueError("PDF에서 텍스트를 추출할 수 없음") 
     
-    pages = "\n".join(pages)
-    return _clean_text(pages)
+    text = _clean_text("\n".join(pages))
+    
+    if len(text) < MIN_LENGTH:
+            raise ValueError(f"추출된 텍스트가 너무 짧습니다 ({len(text)}자)")
+    
+    return text
 
 def _clean_text(text):
     # 줄 단위로 쪼개기
-    text = text.splitlines()
-    seen = set()
+    lines = text.splitlines()
     result = []
+    prev = None
     
-    # 각 줄에 대해:
-    #     앞뒤 공백 제거
-    #     비어있지 않고 seen에 없으면:
-    #         seen에 추가
-    #         result에 추가
-    for line in text:
+    for line in lines:
         stripped = line.strip()
-        
-        if stripped and stripped not in seen:
-            seen.add(stripped)
+        if stripped and stripped != prev:
             result.append(stripped)
+            prev = stripped
     
-    # result를 줄바꿈으로 합치기
-    result = "\n".join(result)
-    text = re.sub(r"(\n\s*){3,}","\n\n",result)
+    text = "\n".join(result)
+    text = re.sub(r"(\n\s*){3,}", "\n\n", text)
     return text
 
 if __name__ == "__main__":
