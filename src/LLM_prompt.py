@@ -6,7 +6,7 @@ load_dotenv()
 
 CATEGORIES = ["학습", "참고", "연구", "아이디어", "도구", "기타"]
 
-"""당신은 웹 콘텐츠를 분석하고 분류하는 AI입니다.
+SYSTEM_PROMPT = """당신은 웹 콘텐츠를 분석하고 분류하는 AI입니다.
 주어진 텍스트를 분석하여 반드시 아래 JSON 형식으로만 답하세요.
 다른 설명이나 텍스트는 절대 포함하지 마세요.
 
@@ -50,24 +50,40 @@ summary는 콘텐츠의 핵심 내용을 한국어로 작성하세요.
 
 
 def validate_result(result: dict) -> bool:
-    if not all(key in result for key in ["summary", "category", "tags"]):
+    REQUIRED_KEYS = {"summary", "category", "tags"}
+    
+    if set(result.keys()) != REQUIRED_KEYS:
         return False
+    
     if result["category"] not in CATEGORIES:
         return False
+    
     if not isinstance(result["tags"], list):
         return False
+    
     if not 3 <= len(result["tags"]) <= 5:  # 3~5로 복원
         return False
+    
     if not all(isinstance(tag, str) and tag.strip() for tag in result["tags"]):  # 태그 타입 검사 추가
         return False
+    
+    if len(result["tags"]) != len(set(result["tags"])):
+        return False
+    
     if not isinstance(result["summary"], str) or not result["summary"].strip():
         return False
+    
+    if len(result["summary"]) > 300:
+        return False
+    
     return True
 
 
 def analyze_content(text: str, tag_pool: list[str]) -> dict:
     client = anthropic.Anthropic()
-    system = SYSTEM_PROMPT.format(tag_pool=tag_pool)
+    
+    tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
+    system = SYSTEM_PROMPT.format(tag_pool=tag_pool_str)
     raw = ""
 
     try:
@@ -80,22 +96,19 @@ def analyze_content(text: str, tag_pool: list[str]) -> dict:
         )
         raw = response.content[0].text
         raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-
         result = json.loads(raw)
 
-        if not validate_result(result):
-            print(f"LLM 결과 형식 오류: {result}")
-            return {"summary": "", "category": None, "tags": [], "error": "검증 실패"}
-
-        return result
-
     except json.JSONDecodeError as e:
-        print(f"JSON 파싱 실패: {e}\n원문: {raw}")
-        return {"summary": "", "category": None, "tags": [], "error": "JSON 파싱 실패"}
-
+        raise ValueError(f"JSON 파싱 실패: {e}\n원문: {raw}")
+    
     except Exception as e:
-        print(f"API 호출 실패: {e}")
-        return {"summary": "", "category": None, "tags": [], "error": str(e)}
+        raise RuntimeError(f"API 호출실패: {e}")
+    
+    if not validate_result(result):
+        raise ValueError(f"LLM 결과 형식 오류: {result}")
+
+    return result
+    
 
 
 # 테스트

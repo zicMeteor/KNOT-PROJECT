@@ -1,6 +1,8 @@
 import trafilatura
-from src.PDF_parser import _clean_text
+from PDF_parser import _clean_text
 from LLM_prompt import analyze_content
+
+MIN_LENGTH = 300
 
 def extract_url_text(url):
     html = trafilatura.fetch_url(url)
@@ -8,18 +10,20 @@ def extract_url_text(url):
     # html이 None이면:
     #     ValueError 발생 ("HTML 다운로드 실패")
     
-    if html == None:
+    if html is None:
         raise ValueError("HTML 다운로드 실패")
     
     text = trafilatura.extract(html)
     
-    # text가 None이면:
-    #     ValueError 발생 ("본문 추출 실패")
-    
-    if text == None:
+    if text is None:
         raise ValueError("본문 추출 실패")
     
-    return _clean_text(text)
+    text = _clean_text(text)
+    
+    if len(text) < MIN_LENGTH:
+        raise ValueError(f"추출된 텍스트가 너무 짧습니다 ({len(text)}자)")
+    
+    return text
 
 # print("1. URL 추출 시작")
 
