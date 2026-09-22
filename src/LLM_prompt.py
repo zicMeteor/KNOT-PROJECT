@@ -61,7 +61,7 @@ def validate_result(result: dict) -> bool:
     if not isinstance(result["tags"], list):
         return False
     
-    if not 3 <= len(result["tags"]) <= 5:  # 3~5로 복원
+    if not 1 <= len(result["tags"]) <= 5:  # 1~5로 복원
         return False
     
     if not all(isinstance(tag, str) and tag.strip() for tag in result["tags"]):  # 태그 타입 검사 추가
