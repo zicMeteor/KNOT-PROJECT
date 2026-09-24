@@ -1,7 +1,7 @@
 import pymupdf
 import re
 
-from LLM_prompt import analyze_content
+from pipeline.LLM_prompt import analyze_content
 
 MIN_LENGTH = 300
 

@@ -1,7 +1,7 @@
 import trafilatura
 from playwright.sync_api import sync_playwright
-from PDF_parser import _clean_text
-from LLM_prompt import analyze_content
+from pipeline.PDF_parser import _clean_text
+from pipeline.LLM_prompt import analyze_content
 
 MIN_LENGTH = 300
 
