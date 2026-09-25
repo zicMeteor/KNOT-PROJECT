@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from src.database.database import engine
+from database.database import engine
+from api.content import router
 
 app = FastAPI( )
 
@@ -14,3 +15,6 @@ def database():
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+app.include_router(router, prefix="/api")
+    
