@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from database.database import engine
 from api.content import router
+from api.graph import router as g_router
 
 app = FastAPI( )
 
@@ -17,4 +18,5 @@ def database():
         return {"status": "error", "message": str(e)}
 
 app.include_router(router, prefix="/api")
+app.include_router(g_router, prefix="/api")
     

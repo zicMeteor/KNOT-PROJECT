@@ -95,6 +95,7 @@ def analyze_content(text: str, tag_pool: list[str]) -> dict:
         )
         raw = response.content[0].text
         raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        # 문자열을 Python dict로 변환
         result = json.loads(raw)
 
     except json.JSONDecodeError as e:
