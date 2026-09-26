@@ -1,8 +1,10 @@
 from fastapi import FastAPI
-from database.database import engine
+from database.database import engine, Base
+from database.models import *
 from api.content import router
 from api.graph import router as g_router
 
+Base.metadata.create_all(bind=engine)
 app = FastAPI( )
 
 @app.get("/")

@@ -16,6 +16,8 @@ def create_content(request: Content_Request, db: Session = Depends(get_db)):
         return s_content(request.url, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/content")
 def get_contents(db: Session = Depends(get_db)):

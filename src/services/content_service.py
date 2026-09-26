@@ -16,38 +16,45 @@ def s_content(url, db):
         tag_pool.append(tag.Name)
         
     # LLM 분석
-    result = analyze_content(text, tag_pool)
+    try:
+        result = analyze_content(text, tag_pool)
+    except Exception as e:
+        raise RuntimeError(f"LLM 분석 실패: {str(e)}")
     
     # LLM 결과를 Content 테이블에 저장
-    content = content_class(
-        users_id = 1,
-        category = result["category"],
-        source = "url",
-        summary = result["summary"],
-        URL = url
-    )
-    db.add(content)
-    db.flush()
-    
-    for tag_name in result["tags"]:
-        existing_tag = db.query(tag_class).filter(
-            tag_class.Name_lower == tag_name.lower()
-        ).first()
-        
-        if existing_tag is None:
-            new_tag = tag_class(
-                Name = tag_name,
-                Name_lower = tag_name.lower()
-            )
-            db.add(new_tag)
-            db.flush()
-            existing_tag = new_tag
-                
-        content_tag = contenttag_class(
-        Content_id = content.Content_id,
-        Tag_id = existing_tag.Tag_id
+    try:
+        content = content_class(
+            users_id = 1,
+            category = result["category"],
+            source = "url",
+            summary = result["summary"],
+            URL = url
         )
+        db.add(content)
+        db.flush()
         
-        db.add(content_tag)
-    db.commit()
+        for tag_name in result["tags"]:
+            existing_tag = db.query(tag_class).filter(
+                tag_class.Name_lower == tag_name.lower()
+            ).first()
+            
+            if existing_tag is None:
+                new_tag = tag_class(
+                    Name = tag_name,
+                    Name_lower = tag_name.lower()
+                )
+                db.add(new_tag)
+                db.flush()
+                existing_tag = new_tag
+                    
+            content_tag = contenttag_class(
+            Content_id = content.Content_id,
+            Tag_id = existing_tag.Tag_id
+            )
+            
+            db.add(content_tag)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise RuntimeError(f"DB 저장 실패: {str(e)}")
     return result

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, Enum
 from sqlalchemy import ForeignKey
+from sqlalchemy.sql import func
 from database.database import Base
 
 class agenthistory_class(Base):
@@ -10,7 +11,7 @@ class agenthistory_class(Base):
     Action_Plan = Column(Text(65535))
     goal = Column(Text(65535))
     result = Column(Text(65535))
-    created_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now())
     
 class content_class(Base):
     __tablename__ = "content"
@@ -22,7 +23,7 @@ class content_class(Base):
     summary = Column(String(300))
     URL = Column(String(2083))
     memo = Column(Text(65535))
-    created_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now())
 
 class contenttag_class(Base):
     __tablename__ = "contenttag"
@@ -41,6 +42,6 @@ class users_class(Base):
     users_id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(255))
     google_id = Column(Text(65535))
-    created_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now())
     
     
