@@ -90,35 +90,32 @@ def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
     if len(result["actions"]) == 0:
         return False
 
+    # 중복 및 누락 검증
+    returned_ids = [action["content_id"] for action in result["actions"] 
+                    if isinstance(action, dict) and "content_id" in action]
+    
+    if len(returned_ids) != len(set(returned_ids)):  # 중복 확인
+        return False
+    
+    if set(returned_ids) != allowed_content_ids:  # 누락 확인
+        return False
+
     for action in result["actions"]:
 
-        # 필수 필드 존재 여부
-        required_fields = {
-            "content_id",
-            "change_needed",
-            "reason",
-            "category",
-            "tags"
-        }
-
+        required_fields = {"content_id", "change_needed", "reason", "category", "tags"}
         if not required_fields.issubset(action):
             return False
 
-        # content_id 검증
         if action["content_id"] not in allowed_content_ids:
             return False
 
-        # change_needed 검증
         if not isinstance(action["change_needed"], bool):
             return False
 
-        # reason 검증
         if not isinstance(action["reason"], str) or not action["reason"].strip():
             return False
 
-        # 변경이 필요한 경우
         if action["change_needed"]:
-
             if action["category"] not in CATEGORIES:
                 return False
 
@@ -128,25 +125,20 @@ def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
             if not 1 <= len(action["tags"]) <= 5:
                 return False
 
-            if not all(
-                isinstance(tag, str) and tag.strip()
-                for tag in action["tags"]
-            ):
+            if not all(isinstance(tag, str) and tag.strip() for tag in action["tags"]):
                 return False
 
             if len(action["tags"]) != len(set(action["tags"])):
                 return False
 
-        # 변경이 필요하지 않은 경우
         else:
-
             if action["category"] is not None:
                 return False
 
             if action["tags"] is not None:
                 return False
 
-    return True 
+    return True
             
 
 # purpose : 사용자 목적어 문장

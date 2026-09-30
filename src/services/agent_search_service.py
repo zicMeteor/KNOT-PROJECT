@@ -4,7 +4,7 @@ from database.models import content_class, contenttag_class, tag_class
 from pipeline.LLM_search import analyze_search_query
 from sqlalchemy import text
 
-def ContentTool(db, category: Optional[list[str]], tags: list[str]):
+def ContentTool(db, category: Optional[str], tags: list[str]):
     query = db.query(content_class)
     
     if category :
