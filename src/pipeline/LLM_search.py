@@ -38,11 +38,18 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
         raw_search = response.content[0].text
         raw_search = raw_search.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         result = json.loads(raw_search)
-    
+
     except json.JSONDecodeError as e:
         raise ValueError(f"JSON 파싱 실패: {e}\n원문: {raw_search}")
     
     except Exception as e:
         raise RuntimeError(f"API 호출실패: {e}")
     
+    # 검증 추가
+    if "category" not in result or "tags" not in result:
+        raise ValueError(f"LLM 결과 필드 누락: {result}")
+    
+    if not isinstance(result["tags"], list):
+        raise ValueError(f"tags 타입 오류: {result}")
+
     return result
