@@ -6,8 +6,12 @@ from database.models import tag_class, content_class, contenttag_class
 def s_content(url, db):
     #본문 텍스트 가져옴
     try:
-        text = extract_url_text(url)
+        result_url = extract_url_text(url)
+        text = result_url["text"]
+        title = result_url["title"]
+        
     except Exception as e:
+        print(f"URL 파싱 에러: {e}")
         raise ValueError(str(e))
     
     # 기존 캐그 목록 가져오기 -> LLM에 전달
@@ -25,6 +29,7 @@ def s_content(url, db):
     try:
         content = content_class(
             users_id = 1,
+            title=title,
             category = result["category"],
             source = "url",
             summary = result["summary"],
@@ -54,6 +59,7 @@ def s_content(url, db):
             
             db.add(content_tag)
         db.commit()
+        
     except Exception as e:
         db.rollback()
         raise RuntimeError(f"DB 저장 실패: {str(e)}")

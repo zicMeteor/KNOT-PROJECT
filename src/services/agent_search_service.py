@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import func
+# from sqlalchemy import func
 from database.models import content_class, contenttag_class, tag_class
 from pipeline.LLM_search import analyze_search_query
 from sqlalchemy import text

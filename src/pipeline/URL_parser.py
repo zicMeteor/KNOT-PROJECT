@@ -28,7 +28,10 @@ def extract_url_text(url):
     if len(text) < MIN_LENGTH:
         raise ValueError(f"추출된 텍스트가 너무 짧습니다 ({len(text)}자)")
     
-    return text
+    metadata = trafilatura.extract_metadata(html)
+    title = metadata.title if metadata and metadata.title else None
+    
+    return {"text": text, "title": title}
 
 # print("1. URL 추출 시작")
 
@@ -65,7 +68,7 @@ def extract_url_text_playwright(url):
             raise ValueError(f"추출된 텍스트가 너무 짧습니다 ({len(text)}자)")
         
         brower.close()
-    return text
+    return {"text": text, "title": None}
 
 
 ## extract_url_text

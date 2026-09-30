@@ -16,12 +16,23 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
     reclassify__results = query.all()
     results = []
     for sea_cont in reclassify__results:
+        
+        # 해당 콘텐츠의 태그 조회
+        tags = []
+        tag_rows = db.query(tag_class.Name)\
+            .join(contenttag_class, tag_class.Tag_id == contenttag_class.Tag_id)\
+            .filter(contenttag_class.Content_id == sea_cont.Content_id)\
+            .all()
+    
+        for tag_row in tag_rows:
+            tags.append(tag_row[0])
+            
         results.append({
             "content_id": sea_cont.Content_id,
             "title": sea_cont.title,
             "summary": sea_cont.summary,
             "category": sea_cont.category,
-            "tags": []  # 일단 빈 리스트
+            "tags": tags  # 일단 빈 리스트
         })
     return {"contents": results, "count": len(results)}
 
