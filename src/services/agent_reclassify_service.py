@@ -111,3 +111,33 @@ def ReclassifyAgent(db, allowed_categories: list[str], allowed_tags: list[str], 
             })        
     
     return {"results": results}
+
+def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str], purpose: str) -> dict:
+    scope_result = Scope_Tool(db, allowed_categories, allowed_tags)
+    content_in_scope = scope_result["contents"]
+    
+    if not content_in_scope:
+        return {"actions": []}
+    
+    tag_pool = []
+    for tag_row in db.query(tag_class.Name).all():
+        tag_pool.append(tag_row[0])
+    
+    action_plan = reclassify_content(content_in_scope, purpose, tag_pool)
+    
+    actions = []
+    for action in action_plan["actions"]:
+        original = next(c for c in content_in_scope if c["content_id"] == action["content_id"])
+        
+        actions.append({
+            "content_id": action["content_id"],
+            "title": original["title"],
+            "change_needed": action["change_needed"],
+            "reason": action["reason"],
+            "current_category": original["category"],
+            "current_tags": original["tags"],
+            "category": action["category"],
+            "tags": action["tags"]
+        })
+    
+    return {"actions": actions}

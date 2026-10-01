@@ -6,23 +6,26 @@ from database.models import tag_class, content_class, contenttag_class
 from services.content_service import s_content, analyze_content_preview
 from typing import Optional
 
-class Content_Request(BaseModel):
+class Analyze_Request(BaseModel):  # analyze용 — url + memo만
     url: str
     memo: Optional[str] = None
-    title: Optional[str] = None
-    category: Optional[str] = None
-    tags: Optional[list[str]] = None
-    summary: Optional[str] = None
 
+class Content_Request(BaseModel):  # 저장용 — 전부 필수
+    url: str
+    memo: Optional[str] = None
+    title: str
+    category: str
+    tags: list[str]
+    summary: str
 router = APIRouter()
 
 @router.post("/content")
 def create_content(request: Content_Request, db: Session = Depends(get_db)):
     try:
         return s_content(
-        request.url, db, request.memo,
-        request.title, request.category, request.tags, request.summary
-    )
+            request.url, db, request.memo,
+            request.title, request.category, request.tags, request.summary
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
@@ -58,7 +61,7 @@ def get_contents(db: Session = Depends(get_db)):
     return result
     
 @router.post("/content/analyze")
-def analyze_content_route(request: Content_Request, db: Session = Depends(get_db)):
+def analyze_content_route(request: Analyze_Request, db: Session = Depends(get_db)):
     try:
         return analyze_content_preview(request.url, db, request.memo)
     except ValueError as e:
