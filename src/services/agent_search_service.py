@@ -53,14 +53,21 @@ def AgentLoop(db, query: str):
     llm_result = analyze_search_query(query, tag_pool=loop_agent)
     cont_result = ContentTool(db, category=llm_result["category"],tags=llm_result["tags"])
     
-    if cont_result["count"] >= 3:
-        return cont_result
-    
-    if cont_result["count"] < 3:
-        if llm_result["tags"]:
-            tagtool_result = RelatedTagTool(db, tag_name=llm_result["tags"][0])
-            expanded_tags = llm_result["tags"] + tagtool_result["related_tags"]
-            expand_result = ContentTool(db,category=llm_result["category"],tags=expanded_tags)
-            return expand_result
+    if not llm_result["tags"]:
+        if llm_result["category"] == None:
+            return {"contents": [], "count": 0}
+        else:
+            return cont_result
+    else:
+        
+        if cont_result["count"] >= 3:
+            return cont_result
+        
+        if cont_result["count"] < 3:
+            if llm_result["tags"]:
+                tagtool_result = RelatedTagTool(db, tag_name=llm_result["tags"][0])
+                expanded_tags = llm_result["tags"] + tagtool_result["related_tags"]
+                expand_result = ContentTool(db,category=llm_result["category"],tags=expanded_tags)
+                return expand_result
         
     return cont_result

@@ -1,6 +1,7 @@
 from pipeline.URL_parser import extract_url_text
 from pipeline.LLM_prompt import analyze_content
 from database.models import tag_class, content_class, contenttag_class
+from pipeline.tag_utils import find_or_create_tag
 
 
 def s_content(url, db):
@@ -39,25 +40,14 @@ def s_content(url, db):
         db.flush()
         
         for tag_name in result["tags"]:
-            existing_tag = db.query(tag_class).filter(
-                tag_class.Name_lower == tag_name.lower()
-            ).first()
+            existing_tag = find_or_create_tag(db, tag_name)
             
-            if existing_tag is None:
-                new_tag = tag_class(
-                    Name = tag_name,
-                    Name_lower = tag_name.lower()
-                )
-                db.add(new_tag)
-                db.flush()
-                existing_tag = new_tag
-                    
             content_tag = contenttag_class(
-            Content_id = content.Content_id,
-            Tag_id = existing_tag.Tag_id
+                Content_id = content.Content_id,
+                Tag_id = existing_tag.Tag_id
             )
-            
             db.add(content_tag)
+
         db.commit()
         
     except Exception as e:

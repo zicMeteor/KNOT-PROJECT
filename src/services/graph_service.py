@@ -1,4 +1,4 @@
-from sqlalchemy import func
+from sqlalchemy import func, text
 from database.models import content_class, contenttag_class, tag_class
 from sqlalchemy.orm import aliased
 
@@ -44,10 +44,29 @@ def get_tags_category(db, category):
         tag_nodes = []
         for tag_n in gtaph_tag:
             tag_nodes.append({"id": tag_n[0], "name": tag_n[0], "val": tag_n[1]})
-        return {"tags": tag_nodes}
+
+        # co-occurrence 링크 추가
+        sql = text("""
+            SELECT t1.Name, t2.Name, COUNT(*) as weight
+            FROM contenttag ct1
+            JOIN tag t1 ON t1.Tag_id = ct1.Tag_id
+            JOIN contenttag ct2 ON ct2.Content_id = ct1.Content_id
+            JOIN tag t2 ON t2.Tag_id = ct2.Tag_id
+            JOIN content c ON c.Content_id = ct1.Content_id
+            WHERE c.category = :category
+            AND t1.Tag_id < t2.Tag_id
+            GROUP BY t1.Name, t2.Name
+        """)
+        link_rows = db.execute(sql, {"category": category}).fetchall()
+        
+        links = []
+        for row in link_rows:
+            links.append({"source": row[0], "target": row[1], "weight": row[2]})
+
+        return {"tags": tag_nodes, "links": links}
     except Exception as e:
         raise RuntimeError(f"태그 조회 실패: {str(e)}")
-
+    
 def get_contents_tag(db, tag_name):
     try:
         gtaph_content_graph = db.query(content_class.title, content_class.summary, 
