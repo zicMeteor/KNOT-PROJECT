@@ -64,5 +64,11 @@ def ReclassifyExecute(db, actions: list) -> dict:
                 "status": "failed",
                 "reason": str(e)
             })
+    success_count = len([r for r in results if r["status"] == "success"])
+    fail_count = len([r for r in results if r["status"] == "failed"])
     
-    return {"results": results}
+    return {
+        "success_count": success_count,
+        "fail_count": fail_count,
+        "results": results
+    }

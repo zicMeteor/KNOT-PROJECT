@@ -50,6 +50,7 @@ def get_contents(db: Session = Depends(get_db)):
             tag_names.append(tag.Name)
             
         result.append({
+            "title": content.title,
             "Content_id": content.Content_id,
             "category": content.category,
             "summary": content.summary,
