@@ -101,8 +101,11 @@ def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
         return False
 
     for action in result["actions"]:
-
+        if not isinstance(action, dict):
+            return False
+        
         required_fields = {"content_id", "change_needed", "reason", "category", "tags"}
+        
         if not required_fields.issubset(action):
             return False
 

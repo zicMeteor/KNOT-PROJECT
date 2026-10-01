@@ -11,7 +11,8 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
     if allowed_tags:
         query = query.join(contenttag_class, content_class.Content_id == contenttag_class.Content_id)\
         .join(tag_class, contenttag_class.Tag_id == tag_class.Tag_id)\
-        .filter(tag_class.Name.in_(allowed_tags))
+        .filter(tag_class.Name.in_(allowed_tags))\
+        .distinct()
         
     reclassify__results = query.all()
     results = []
