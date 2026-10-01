@@ -1,6 +1,7 @@
 # from sqlalchemy import func
 from database.models import content_class, contenttag_class, tag_class
 from pipeline.LLM_reclassify import reclassify_content
+from pipeline.tag_utils import find_or_create_tag
 
 def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
     query = db.query(content_class)
@@ -33,7 +34,8 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
             "title": sea_cont.title,
             "summary": sea_cont.summary,
             "category": sea_cont.category,
-            "tags": tags  # 일단 빈 리스트
+            "tags": tags,  # 일단 빈 리스트
+            "memo": sea_cont.memo
         })
     return {"contents": results, "count": len(results)}
 
@@ -49,13 +51,7 @@ def TagTool(db, content_id: int, new_tags: list[str]):
         .delete()
 
     for tag_name in new_tags:
-        tag = db.query(tag_class).filter(tag_class.Name == tag_name).first()
-
-        if not tag:
-            tag = tag_class(Name=tag_name)
-            db.add(tag)
-            db.flush()
-
+        tag = find_or_create_tag(db, tag_name)
         new_link = contenttag_class(Content_id=content_id, Tag_id=tag.Tag_id)
         db.add(new_link)
 
