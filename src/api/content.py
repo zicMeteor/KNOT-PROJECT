@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import tag_class, content_class, contenttag_class
-from services.content_service import s_content
+from services.content_service import s_content, analyze_content_preview
 from typing import Optional
 
 class Content_Request(BaseModel):
@@ -50,8 +50,14 @@ def get_contents(db: Session = Depends(get_db)):
     
     return result
     
-
-
+@router.post("/content/analyze")
+def analyze_content_route(request: Content_Request, db: Session = Depends(get_db)):
+    try:
+        return analyze_content_preview(request.url, db, request.memo)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
     

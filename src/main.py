@@ -5,6 +5,7 @@ from api.content import router
 from api.graph import router as g_router
 from api.agent import router as agent_router
 from api.reclassify import router as reclass_router
+from api.content import router as analyze
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI( )
@@ -25,4 +26,5 @@ app.include_router(router, prefix="/api")
 app.include_router(g_router, prefix="/api")
 app.include_router(agent_router, prefix="/api")
 app.include_router(reclass_router, prefix="/api")
+app.include_router(analyze, prefix="/api")
     

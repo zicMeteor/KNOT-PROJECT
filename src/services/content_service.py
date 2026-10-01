@@ -55,3 +55,38 @@ def s_content(url, db, memo=None):
         db.rollback()
         raise RuntimeError(f"DB 저장 실패: {str(e)}")
     return result
+
+
+def analyze_content_preview(url, db, memo=None):
+    try:
+        result_url = extract_url_text(url)
+        text = result_url["text"]
+        title = result_url["title"]
+        
+    except Exception as e:
+        print(f"URL 파싱 에러: {e}")
+        raise ValueError(str(e))
+    
+    tag_pool = []
+    for tag in db.query(tag_class).all():
+        tag_pool.append(tag.Name)
+        
+    try:
+        result = analyze_content(text, tag_pool)
+    except Exception as e:
+        raise RuntimeError(f"LLM 분석 실패: {str(e)}")
+    
+    tags = []
+    tag_pool_set = set(tag_pool)
+    for tag_name in result["tags"]:
+        is_new = tag_name not in tag_pool_set
+        tags.append({"name": tag_name, "is_new": is_new})
+    
+    return {
+        "title": title,
+        "category": result["category"],
+        "tags": tags,
+        "summary": result["summary"],
+        "char_count": len(text)
+    }
+    
