@@ -4,7 +4,7 @@ from database.models import tag_class, content_class, contenttag_class
 from pipeline.tag_utils import find_or_create_tag
 
 
-def s_content(url, db):
+def s_content(url, db, memo=None):
     #본문 텍스트 가져옴
     try:
         result_url = extract_url_text(url)
@@ -34,7 +34,8 @@ def s_content(url, db):
             category = result["category"],
             source = "url",
             summary = result["summary"],
-            URL = url
+            URL = url,
+            memo = memo
         )
         db.add(content)
         db.flush()

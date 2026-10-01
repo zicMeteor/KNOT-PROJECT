@@ -9,7 +9,6 @@ KNOT은 사용자가 저장한 웹 콘텐츠(URL)를 LLM(Claude)으로 분석해
 ## 실행
 
 - Python 3.13, 가상환경은 `.venv/` (Windows에서 생성된 venv → `.venv\Scripts\activate`)
-- `requirements.txt`가 없음. 주요 의존성: `fastapi`, `uvicorn`, `sqlalchemy`, `pymysql`, `python-dotenv`, `anthropic`, `trafilatura`, `playwright`, `pymupdf`
 - Playwright 폴백을 쓰려면 `playwright install chromium` 필요
 - **모든 import가 `src/` 기준 절대경로**(`from database.database import ...`)이므로 `src/`에서 실행해야 함:
 
