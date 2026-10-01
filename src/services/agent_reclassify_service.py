@@ -1,12 +1,11 @@
 # from sqlalchemy import func
 from database.models import content_class, contenttag_class, tag_class
-from pipeline.LLM_reclassify import reclassify_content
 from pipeline.tag_utils import find_or_create_tag
 
 def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
     query = db.query(content_class)
     
-    if allowed_categories :
+    if allowed_categories:
         query = query.filter(content_class.category.in_(allowed_categories))
         
     if allowed_tags:
@@ -19,7 +18,6 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
     results = []
     for sea_cont in reclassify__results:
         
-        # 해당 콘텐츠의 태그 조회
         tags = []
         tag_rows = db.query(tag_class.Name)\
             .join(contenttag_class, tag_class.Tag_id == contenttag_class.Tag_id)\
@@ -34,7 +32,7 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
             "title": sea_cont.title,
             "summary": sea_cont.summary,
             "category": sea_cont.category,
-            "tags": tags,  # 일단 빈 리스트
+            "tags": tags,
             "memo": sea_cont.memo
         })
     return {"contents": results, "count": len(results)}
@@ -54,90 +52,3 @@ def TagTool(db, content_id: int, new_tags: list[str]):
         tag = find_or_create_tag(db, tag_name)
         new_link = contenttag_class(Content_id=content_id, Tag_id=tag.Tag_id)
         db.add(new_link)
-
-def ReclassifyAgent(db, allowed_categories: list[str], allowed_tags: list[str], purpose: str) -> dict:
-    scope_result = Scope_Tool(db, allowed_categories, allowed_tags)
-    content_in_scope = scope_result["contents"]
-    
-    if not content_in_scope:
-        return {"results": []}
-    
-    tag_pool = []
-    for tag_row in db.query(tag_class.Name).all():
-        tag_pool.append(tag_row[0])
-    
-    action_plan = reclassify_content(content_in_scope, purpose, tag_pool)
-    
-    results = []
-    for action in action_plan["actions"]:
-        
-        if action["change_needed"] == False:
-            results.append({
-                "content_id": action["content_id"],
-                "status": "skipped",
-                "reason": action["reason"]
-            })
-            continue
-        
-        # change_needed == True인 경우
-        try:
-            original = next(c for c in content_in_scope if c["content_id"] == action["content_id"])
-
-            CategoryTool(db, action["content_id"], action["category"])
-            TagTool(db, action["content_id"], action["tags"])
-            db.commit()
-
-            results.append({
-                "content_id": action["content_id"],
-                "status": "success",
-                "reason": action["reason"],
-                "diff": {
-                    "category": {
-                        "before": original["category"],
-                        "after": action["category"]
-                    },
-                    "tags": {
-                        "added": action["tags"]
-                    }
-                }
-            })
-
-        except Exception as e:
-            db.rollback()
-            results.append({
-                "content_id": action["content_id"],
-                "status": "failed",
-                "reason": str(e)
-            })        
-    
-    return {"results": results}
-
-def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str], purpose: str) -> dict:
-    scope_result = Scope_Tool(db, allowed_categories, allowed_tags)
-    content_in_scope = scope_result["contents"]
-    
-    if not content_in_scope:
-        return {"actions": []}
-    
-    tag_pool = []
-    for tag_row in db.query(tag_class.Name).all():
-        tag_pool.append(tag_row[0])
-    
-    action_plan = reclassify_content(content_in_scope, purpose, tag_pool)
-    
-    actions = []
-    for action in action_plan["actions"]:
-        original = next(c for c in content_in_scope if c["content_id"] == action["content_id"])
-        
-        actions.append({
-            "content_id": action["content_id"],
-            "title": original["title"],
-            "change_needed": action["change_needed"],
-            "reason": action["reason"],
-            "current_category": original["category"],
-            "current_tags": original["tags"],
-            "category": action["category"],
-            "tags": action["tags"]
-        })
-    
-    return {"actions": actions}

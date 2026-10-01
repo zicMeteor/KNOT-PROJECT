@@ -13,7 +13,7 @@ class Analyze_Request(BaseModel):  # analyze용 — url + memo만
 class Content_Request(BaseModel):  # 저장용 — 전부 필수
     url: str
     memo: Optional[str] = None
-    title: str
+    title: Optional[str] = None
     category: str
     tags: list[str]
     summary: str
