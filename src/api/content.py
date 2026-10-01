@@ -8,14 +8,21 @@ from typing import Optional
 
 class Content_Request(BaseModel):
     url: str
-    memo : Optional[str] = None
+    memo: Optional[str] = None
+    title: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[list[str]] = None
+    summary: Optional[str] = None
 
 router = APIRouter()
 
 @router.post("/content")
 def create_content(request: Content_Request, db: Session = Depends(get_db)):
     try:
-        return s_content(request.url, db, request.memo)
+        return s_content(
+        request.url, db, request.memo,
+        request.title, request.category, request.tags, request.summary
+    )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
