@@ -63,14 +63,14 @@ def RelatedTagTool(db, tag_name: str):
         JOIN tag t1 ON t1.Tag_id = ct1.Tag_id
         JOIN contenttag ct2 ON ct2.Content_id = ct1.Content_id
         JOIN tag t2 ON t2.Tag_id = ct2.Tag_id
-        WHERE t1.Name = :tag_name
-        AND t2.Name != :tag_name
+        WHERE t1.Name_lower = :tag_name
+        AND t2.Tag_id != t1.Tag_id
         GROUP BY t2.Name
         ORDER BY co_count DESC
         LIMIT 3
     """)
     
-    results = db.execute(sql, {"tag_name": tag_name}).fetchall()
+    results = db.execute(sql, {"tag_name": tag_name.lower()}).fetchall()
     related_tags = [row[0] for row in results]
     return {"related_tags": related_tags}
 

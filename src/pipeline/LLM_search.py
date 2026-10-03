@@ -1,6 +1,7 @@
 import anthropic
 import json
 from dotenv import load_dotenv
+from pipeline.LLM_prompt import CATEGORIES
 from typing import Optional
 
 load_dotenv()
@@ -61,5 +62,17 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
     
     if not isinstance(result.get("keywords"), list):
         result["keywords"] = []
+    
+    # 에러 대신 잘못된 값만 걸러낸다
+    if result["category"] not in CATEGORIES:
+        result["category"] = None
+
+    result["tags"] = [
+        t.strip() for t in result["tags"] if isinstance(t, str) and t.strip()
+    ][:3]
+
+    result["keywords"] = [
+        k.strip() for k in result["keywords"] if isinstance(k, str) and len(k.strip()) >= 2
+    ][:3]
 
     return result
