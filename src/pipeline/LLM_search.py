@@ -5,21 +5,28 @@ from typing import Optional
 
 load_dotenv()
 
-SEARCH_PROMPT = """너는 사용자의 검색 목적을 분석해서 
-적절한 카테고리와 태그를 선택하는 AI다.
+SEARCH_PROMPT = """너는 사용자의 검색 질문을 분석해서
+카테고리, 태그, 핵심어를 뽑는 AI다.
 
 규칙:
-1. category는 아래 목록 중 하나만 선택. 없으면 null
+1. category는 아래 목록 중 하나만 선택.
    ["학습", "참고", "연구", "아이디어", "도구", "기타"]
-2. tags는 아래 태그 목록에서만 선택. 최대 3개
+   질문에서 카테고리를 알 수 없으면 null. null은 "필터 없음"이라는 뜻이다.
+   기타는 불확실할 때 쓰는 값이 아니다.
+2. tags는 아래 태그 목록에서만 선택. 최대 3개.
+   질문과 관련된 태그가 없으면 []. 비슷한 다른 태그로 채우지 마라.
    {tag_pool}
-3. 반드시 JSON만 반환. 다른 텍스트 없음
+3. keywords는 질문에서 뽑은 핵심어 1~3개.
+   태그 목록에 없어도 된다. 조사나 어미를 빼고 명사 형태로 쓴다.
+4. 반드시 JSON만 반환. 다른 텍스트 없음.
 
 반환 형식:
 {{
-  "category": "학습" or null,
-  "tags": ["태그1", "태그2"]
+  "category": "학습",
+  "tags": ["태그1", "태그2"],
+  "keywords": ["핵심어1", "핵심어2"]
 }}"""
+
 
 def analyze_search_query(query, tag_pool: list[str]) -> dict:
     client = anthropic.Anthropic()
@@ -31,7 +38,7 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
     try:
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=100,
+            max_tokens=400,
             system=system,
             messages=[{"role": "user", "content": query}],
         )
@@ -51,5 +58,8 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
     
     if not isinstance(result["tags"], list):
         raise ValueError(f"tags 타입 오류: {result}")
+    
+    if not isinstance(result.get("keywords"), list):
+        result["keywords"] = []
 
     return result

@@ -27,13 +27,16 @@ category는 반드시 아래 목록 중 하나만 선택하세요.
 - 기타는 다른 카테고리에 명확하게 해당하지 않을 때 선택.
 
 tags는 콘텐츠의 핵심 기술, 개념, 주제, 분야를 나타내는 태그를 선택하세요.
-아래 기존 태그 목록을 우선적으로 사용하세요.
-기존 태그 중 적합한 것이 있으면 반드시 그대로 사용하고,
-정말 새로운 개념일 때만 새 태그를 만드세요.
-콘텐츠와 직접 관련된 태그를 3~5개 선택하세요.
-콘텐츠 형식이나 출처를 나타내는 단어는 태그로 만들지 마세요.
+아래 기존 태그 목록에서, 콘텐츠의 핵심 주제와 의미가 정확히 일치하는 태그만 그대로 사용하세요.
+일치하는 태그가 없으면 기존 태그로 억지로 채우지 말고 새 태그를 만드세요.
+콘텐츠에 언급되지 않은 기술이나 언어는 태그로 선택하지 마세요.
+콘텐츠와 직접 관련된 태그를 1~5개 선택하세요. 개수를 채우려고 태그를 만들지 마세요.
+콘텐츠 형식이나 출처를 나타내는 단어는 기존 목록에 있어도 선택하지 말고, 새로 만들지도 마세요.
 (뉴스, 블로그, 문서, 강의, 튜토리얼 등은 태그로 부적절)
 의미 없는 일반적인 태그는 추가하지 마세요.
+
+기술명과 개념은 공식 표기를 사용하세요. 
+(예: React.js가 아니라 React, Fast API가 아니라 FastAPI)
 
 기존 태그 목록: {tag_pool}
 
@@ -43,13 +46,17 @@ summary는 콘텐츠의 핵심 내용을 한국어로 작성하세요.
 3문장 이내로 작성하세요.
 
 {{
-  "summary": "3문장 이내 요약",
+  "summary": "3문장 이내, 공백 포함 250자 이내로 작성하세요.",
   "category": "카테고리 하나",
   "tags": ["태그1", "태그2", "태그3"]
 }}"""
 
 
 def validate_result(result: dict) -> bool:
+    
+    if not isinstance(result, dict):
+        return False
+    
     REQUIRED_KEYS = {"summary", "category", "tags"}
     
     if set(result.keys()) != REQUIRED_KEYS:
@@ -104,9 +111,15 @@ def analyze_content(text: str, tag_pool: list[str]) -> dict:
     except Exception as e:
         raise RuntimeError(f"API 호출실패: {e}")
     
+    category_fallback = False
+    if isinstance(result, dict) and result.get("category") not in CATEGORIES:
+        result["category"] = "기타"
+        category_fallback = True
+    
     if not validate_result(result):
         raise ValueError(f"LLM 결과 형식 오류: {result}")
-
+    
+    result["category_fallback"] = category_fallback
     return result
     
 

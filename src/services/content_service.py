@@ -4,8 +4,18 @@ from database.models import tag_class, content_class, contenttag_class
 from pipeline.tag_utils import find_or_create_tag
 
 
+# URL 중복방지
+def find_duplicate_url(db, url: str):
+    base = url.strip().rstrip("/")
+    return db.query(content_class).filter(
+        content_class.URL.in_([base, base + "/"])
+    ).first()
+
 def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=None):
     # LLM 결과를 Content 테이블에 저장
+    if find_duplicate_url(db, url):
+        raise ValueError("이미 저장된 URL입니다.")
+    
     try:
         content = content_class(
             users_id=1,
@@ -42,6 +52,10 @@ def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=
 
 
 def analyze_content_preview(url, db, memo=None):
+    
+    if find_duplicate_url(db, url):
+        raise ValueError("이미 저장된 URL입니다.")
+    
     try:
         result_url = extract_url_text(url)
         text = result_url["text"]
@@ -61,9 +75,9 @@ def analyze_content_preview(url, db, memo=None):
         raise RuntimeError(f"LLM 분석 실패: {str(e)}")
     
     tags = []
-    tag_pool_set = set(tag_pool)
+    tag_pool_set = set(t.lower() for t in tag_pool)
     for tag_name in result["tags"]:
-        is_new = tag_name not in tag_pool_set
+        is_new = tag_name.strip().lower() not in tag_pool_set
         tags.append({"name": tag_name, "is_new": is_new})
     
     return {
@@ -71,6 +85,7 @@ def analyze_content_preview(url, db, memo=None):
         "category": result["category"],
         "tags": tags,
         "summary": result["summary"],
+        "category_fallback": result["category_fallback"],
         "char_count": len(text)
     }
     
