@@ -54,6 +54,10 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
         raise RuntimeError(f"API 호출실패: {e}")
     
     # 검증 추가
+        # 검증 추가
+    if not isinstance(result, dict):
+        raise ValueError(f"LLM 결과 형식 오류: {result}")
+    
     if "category" not in result or "tags" not in result:
         raise ValueError(f"LLM 결과 필드 누락: {result}")
     

@@ -1,6 +1,7 @@
 from sqlalchemy import func, text
 from database.models import content_class, contenttag_class, tag_class
 from sqlalchemy.orm import aliased
+from pipeline.tag_utils import get_tags_by_content
 
 def get_category_overview(db):
     try:
@@ -69,21 +70,33 @@ def get_tags_category(db, category):
     
 def get_contents_tag(db, tag_name):
     try:
-        gtaph_content_graph = db.query(content_class.title, content_class.summary, 
-             content_class.URL, content_class.memo, content_class.created_at)\
+        gtaph_content_graph = db.query(
+            content_class.Content_id,
+            content_class.title,
+            content_class.category,
+            content_class.summary, 
+            content_class.URL, 
+            content_class.memo, 
+            content_class.created_at
+        )\
         .join(contenttag_class, contenttag_class.Content_id == content_class.Content_id)\
         .join(tag_class, tag_class.Tag_id == contenttag_class.Tag_id)\
         .filter(tag_class.Name == tag_name)\
         .all()
         
+        tags_map = get_tags_by_content(db, [row.Content_id for row in gtaph_content_graph])
+        
         content_node = []
         for content_n in gtaph_content_graph:
             content_node.append({
-                "title": content_n[0],
-                "summary": content_n[1],
-                "URL": content_n[2],
-                "memo": content_n[3],
-                "created_at": content_n[4]
+                "content_id": content_n.Content_id,
+                "title": content_n.title,
+                "category": content_n.category,
+                "summary": content_n.summary,
+                "URL": content_n.URL,
+                "memo": content_n.memo,
+                "created_at": content_n.created_at,
+                "tags": tags_map.get(content_n.Content_id, [])
             })
         return {"contents": content_node}
     except Exception as e:

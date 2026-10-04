@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database.database import get_db
@@ -11,6 +11,11 @@ router = APIRouter()
 
 @router.post("/agent/search")
 def create_agent(request: Agent_Request, db: Session = Depends(get_db)):
-    return AgentLoop(db, request.query)
+    try:
+        return AgentLoop(db, request.query)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
