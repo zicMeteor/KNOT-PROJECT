@@ -1,10 +1,16 @@
 export const BASE = import.meta.env.VITE_API_URL
 
-export async function request(path, options) {
+const DEFAULT_FAILURE = "처리에 실패했습니다. 주소를 확인하고 다시 시도하세요"
+
+export async function request(
+  path,
+  options,
+  { showDetail = false, fallback = DEFAULT_FAILURE } = {}
+) {
   let res
   try {
     res = await fetch(BASE + path, options)
-  } catch (e){
+  } catch (e) {
     if (e.name === "AbortError") throw e
     throw new Error("서버에 연결할 수 없습니다")
   }
@@ -23,5 +29,8 @@ export async function request(path, options) {
     err.code = "duplicate"
     throw err
   }
-  throw new Error("처리에 실패했습니다. 주소를 확인하고 다시 시도하세요")
+  if (showDetail && res.status === 400 && typeof detail === "string") {
+    throw new Error(detail)
+  }
+  throw new Error(fallback)
 }

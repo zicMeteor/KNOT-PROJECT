@@ -91,9 +91,11 @@ function TagPanel({ tag, onClose }) {
           {selected.memo && (
             <p className={styles.block}>메모: {selected.memo}</p>
           )}
-          <a href={selected.url} target="_blank" rel="noopener noreferrer">
-            원문 열기
-          </a>
+          {selected.url && (
+            <a href={selected.url} target="_blank" rel="noopener noreferrer">
+              원문 열기
+            </a>
+          )}
         </div>
       )}
     </aside>
