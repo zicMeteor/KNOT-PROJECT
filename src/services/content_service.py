@@ -1,8 +1,10 @@
+import os
+import tempfile
 from pipeline.URL_parser import extract_url_text
 from pipeline.LLM_prompt import analyze_content
 from database.models import tag_class, content_class, contenttag_class
 from pipeline.tag_utils import find_or_create_tag
-
+from pipeline.PDF_parser import extract_pdf_text
 
 # URL 중복방지
 def find_duplicate_url(db, url: str):
@@ -86,4 +88,28 @@ def analyze_content_preview(url, db, memo=None):
         raise ValueError(str(e))
 
     return analyze_text(text, title, db)
-    
+
+def analyze_pdf_preview(filename, data, db):
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix="knot_", suffix=".pdf", delete=False
+        ) as tmp:
+            tmp.write(data)
+            tmp_path = tmp.name
+        # with 블록이 끝나 핸들이 닫힌 뒤에 pymupdf가 연다
+
+        try:
+            text = extract_pdf_text(tmp_path)
+        except Exception as e:
+            print(f"PDF 파싱 에러: {e}")
+            raise ValueError(f"PDF를 읽을 수 없습니다: {e}")
+    finally:
+        if tmp_path:
+            try:
+                os.remove(tmp_path)
+            except OSError as e:
+                print(f"임시 파일 삭제 실패: {e}")
+
+    title = os.path.splitext(os.path.basename(filename))[0]
+    return analyze_text(text, title, db)

@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import tag_class, content_class, contenttag_class
-from services.content_service import s_content, analyze_content_preview
+from services.content_service import s_content, analyze_content_preview, analyze_pdf_preview
 from typing import Optional
 
 class Analyze_Request(BaseModel):  # analyze용 — url + memo만
@@ -65,6 +65,27 @@ def get_contents(db: Session = Depends(get_db)):
 def analyze_content_route(request: Analyze_Request, db: Session = Depends(get_db)):
     try:
         return analyze_content_preview(request.url, db, request.memo)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/content/analyze-pdf")
+def analyze_pdf_route(
+    file: UploadFile = File(...),
+    memo: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    filename = file.filename or ""
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="PDF 파일만 업로드할 수 있습니다.")
+
+    data = file.file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="빈 파일입니다.")
+
+    try:
+        return analyze_pdf_preview(filename, data, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
