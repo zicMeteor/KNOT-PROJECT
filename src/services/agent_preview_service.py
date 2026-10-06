@@ -6,20 +6,22 @@ from services.agent_reclassify_service import Scope_Tool, CategoryTool, TagTool
 def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str], purpose: str) -> dict:
     scope_result = Scope_Tool(db, allowed_categories, allowed_tags)
     content_in_scope = scope_result["contents"]
-    
+    total = scope_result["total"]
+    reviewed = scope_result["count"]
+
     if not content_in_scope:
-        return {"actions": []}
-    
+        return {"actions": [], "total": total, "reviewed": reviewed}
+
     tag_pool = []
     for tag_row in db.query(tag_class.Name).all():
         tag_pool.append(tag_row[0])
-    
+
     action_plan = reclassify_content(content_in_scope, purpose, tag_pool)
-    
+
     actions = []
     for action in action_plan["actions"]:
         original = next(c for c in content_in_scope if c["content_id"] == action["content_id"])
-        
+
         actions.append({
             "content_id": action["content_id"],
             "title": original["title"],
@@ -30,8 +32,8 @@ def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str]
             "category": action["category"],
             "tags": action["tags"]
         })
-    
-    return {"actions": actions}
+
+    return {"actions": actions, "total": total, "reviewed": reviewed}
 
 
 def ReclassifyExecute(db, actions: list) -> dict:
