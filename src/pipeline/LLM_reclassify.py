@@ -78,7 +78,43 @@ change_needed가 false인 경우 category는 null로 설정하세요.
 - change_needed가 false인 경우 category와 tags가 null인가?
 - 불필요한 재분류를 하지 않았는가?"""
 
-#allowed_content_ids: set[int] -> content_id 집합
+REQUIRED_FIELDS = {"content_id", "change_needed", "reason", "category", "tags"}
+
+
+def validate_action(action):
+    """항목 하나가 규칙에 맞으면 None, 아니면 사유 문구를 돌려준다."""
+    if not isinstance(action, dict):
+        return "항목 형식 오류"
+
+    if not REQUIRED_FIELDS.issubset(action):
+        return "필수 항목 누락"
+
+    if not isinstance(action["change_needed"], bool):
+        return "change_needed는 true/false여야 합니다"
+
+    if not isinstance(action["reason"], str) or not action["reason"].strip():
+        return "reason이 비어 있습니다"
+
+    if action["change_needed"]:
+        if action["category"] not in CATEGORIES:
+            return "카테고리가 허용 목록에 없습니다"
+
+        tags = action["tags"]
+        if not isinstance(tags, list) or not 1 <= len(tags) <= 5:
+            return "태그는 1~5개여야 합니다"
+
+        if not all(isinstance(tag, str) and tag.strip() for tag in tags):
+            return "태그 형식 오류"
+
+        if len(tags) != len(set(tags)):
+            return "태그가 중복되었습니다"
+    else:
+        if action["category"] is not None or action["tags"] is not None:
+            return "변경 없음 항목의 category와 tags는 null이어야 합니다"
+
+    return None
+
+
 def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
 
     if "actions" not in result:
@@ -91,58 +127,23 @@ def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
         return False
 
     # 중복 및 누락 검증
-    returned_ids = [action["content_id"] for action in result["actions"] 
+    returned_ids = [action["content_id"] for action in result["actions"]
                     if isinstance(action, dict) and "content_id" in action]
-    
+
     if len(returned_ids) != len(set(returned_ids)):  # 중복 확인
         return False
-    
+
     if set(returned_ids) != allowed_content_ids:  # 누락 확인
         return False
 
     for action in result["actions"]:
-        if not isinstance(action, dict):
-            return False
-        
-        required_fields = {"content_id", "change_needed", "reason", "category", "tags"}
-        
-        if not required_fields.issubset(action):
+        if validate_action(action) is not None:
             return False
 
         if action["content_id"] not in allowed_content_ids:
             return False
 
-        if not isinstance(action["change_needed"], bool):
-            return False
-
-        if not isinstance(action["reason"], str) or not action["reason"].strip():
-            return False
-
-        if action["change_needed"]:
-            if action["category"] not in CATEGORIES:
-                return False
-
-            if not isinstance(action["tags"], list):
-                return False
-
-            if not 1 <= len(action["tags"]) <= 5:
-                return False
-
-            if not all(isinstance(tag, str) and tag.strip() for tag in action["tags"]):
-                return False
-
-            if len(action["tags"]) != len(set(action["tags"])):
-                return False
-
-        else:
-            if action["category"] is not None:
-                return False
-
-            if action["tags"] is not None:
-                return False
-
     return True
-            
 
 # purpose : 사용자 목적어 문장
 def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: list[str]) -> dict:
