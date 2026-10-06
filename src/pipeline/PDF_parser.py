@@ -7,18 +7,15 @@ MIN_LENGTH = 300
 
 def extract_pdf_text(pdf_path):
     doc = pymupdf.open(pdf_path)
-    
-    # 빈 리스트 pages 생성
-    pages = []
-    
-    for page in doc:
-        text = page.get_text()
-        
-        if text.strip():
-            pages.append(text)
-    
-    # 문서 닫기
-    doc.close()
+
+    try:
+        pages = []
+        for page in doc:
+            text = page.get_text()
+            if text.strip():
+                pages.append(text)
+    finally:
+        doc.close()
     
     # pages가 비어있으면: -> ValueError 발생
     if not pages:
