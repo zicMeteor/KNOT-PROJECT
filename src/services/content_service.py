@@ -13,34 +13,39 @@ def find_duplicate_url(db, url: str):
         content_class.URL.in_([base, base + "/"])
     ).first()
 
-def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=None):
+def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=None, source="url"):
     # LLM 결과를 Content 테이블에 저장
-    if find_duplicate_url(db, url):
-        raise ValueError("이미 저장된 URL입니다.")
-    
+    if source == "pdf":
+        url = None  # PDF는 URL 없이 저장, 중복 검사도 하지 않음
+    else:
+        if not url or not url.strip():
+            raise ValueError("URL이 필요합니다.")
+        if find_duplicate_url(db, url):
+            raise ValueError("이미 저장된 URL입니다.")
+
     try:
         content = content_class(
             users_id=1,
             title=title,
             category=category,
-            source="url",
+            source=source,
             summary=summary,
             URL=url,
             memo=memo
         )
         db.add(content)
         db.flush()
-        
+
         for tag_name in tags:
             existing_tag = find_or_create_tag(db, tag_name)
 
             content_tag = contenttag_class(
-                Content_id = content.Content_id,
-                Tag_id = existing_tag.Tag_id
+                Content_id=content.Content_id,
+                Tag_id=existing_tag.Tag_id
             )
             db.add(content_tag)
         db.commit()
-        
+
     except Exception as e:
         db.rollback()
         raise RuntimeError(f"DB 저장 실패: {str(e)}")

@@ -4,14 +4,15 @@ from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import tag_class, content_class, contenttag_class
 from services.content_service import s_content, analyze_content_preview, analyze_pdf_preview
-from typing import Optional
+from typing import Literal, Optional
 
 class Analyze_Request(BaseModel):  # analyze용 — url + memo만
     url: str
     memo: Optional[str] = None
 
-class Content_Request(BaseModel):  # 저장용 — 전부 필수
-    url: str
+class Content_Request(BaseModel):  # 저장용
+    url: Optional[str] = None  
+    source: Literal["url", "pdf"] = "url"
     memo: Optional[str] = None
     title: Optional[str] = None
     category: str
@@ -24,7 +25,8 @@ def create_content(request: Content_Request, db: Session = Depends(get_db)):
     try:
         return s_content(
             request.url, db, request.memo,
-            request.title, request.category, request.tags, request.summary
+            request.title, request.category, request.tags, request.summary,
+            request.source,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
