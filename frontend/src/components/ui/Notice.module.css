@@ -1,0 +1,21 @@
+/* src/components/ui/Notice.module.css */
+.notice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.success {
+  border-left-color: var(--color-success);
+}
+
+.warn {
+  border-left-color: var(--color-warn);
+}
+
+.error {
+  border-left-color: var(--color-danger);
+}

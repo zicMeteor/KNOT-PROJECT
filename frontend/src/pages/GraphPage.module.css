@@ -1,0 +1,8 @@
+.stage {
+  position: relative;
+}
+
+.canvas {
+  width: 100%;
+  height: 70vh;
+}
