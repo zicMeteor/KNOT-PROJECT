@@ -14,6 +14,7 @@ function App() {
 
   const [saving, setSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState(null)
+  const BASE = import.meta.env.VITE_API_URL
 
   async function load() {
     try {
@@ -31,37 +32,27 @@ function App() {
     load()
   }, [])
 
-  async function handleAnalyze() {
-    setFormError(null)
-    setSavedMessage(null)
-    setAnalysis(null)
-    setAnalyzing(true)
-    try {
-      const result = await analyzeUrl(url.trim(), memo)
-      setAnalysis({ ...result, url: url.trim(), memo: memo })
-    } catch (e) {
-      setFormError(e.message)
-    } finally {
-      setAnalyzing(false)
-    }
+async function handleAnalyze() {
+  const u = url.trim()
+  setFormError(null)
+  setSavedMessage(null)
+  setAnalysis(null)
+
+  if (!/^https?:\/\//i.test(u)) {
+    setFormError("http:// 또는 https://로 시작하는 주소를 입력하세요")
+    return
   }
 
-  async function handleSave() {
-    setFormError(null)
-    setSaving(true)
-    try {
-      await saveContent(analysis)
-      await load()
-      setAnalysis(null)
-      setUrl("")
-      setMemo("")
-      setSavedMessage("저장했습니다")
-    } catch (e) {
-      setFormError(e.message)
-    } finally {
-      setSaving(false)
-    }
+  setAnalyzing(true)
+  try {
+    const result = await analyzeUrl(u, memo)
+    setAnalysis({ ...result, url: u, memo: memo })
+  } catch (e) {
+    setFormError(e.message)
+  } finally {
+    setAnalyzing(false)
   }
+}
 
   function handleCancel() {
     setAnalysis(null)
