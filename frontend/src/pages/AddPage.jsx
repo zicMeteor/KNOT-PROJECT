@@ -108,7 +108,11 @@ function AddPage() {
     setNotice(null)
   }
 
-  const plusTip = file
+  const locked = analyzing || saving || !!analysis
+
+  const plusTip = analysis
+    ? "분석 결과를 저장하거나 취소하면 새로 추가할 수 있습니다"
+    : file
     ? "PDF가 이미 추가되어 있습니다. ×로 제거하세요"
     : url.trim()
     ? "URL 입력을 지우면 PDF를 추가할 수 있습니다"
@@ -127,7 +131,7 @@ function AddPage() {
               type="button"
               className={styles.plus}
               onClick={() => fileInputRef.current?.click()}
-              disabled={!!file || !!url.trim() || analyzing || saving}
+              disabled={!!file || !!url.trim() || locked}
               aria-label="PDF 추가"
               aria-describedby="plus-tip"
             >
@@ -160,7 +164,7 @@ function AddPage() {
                 type="button"
                 className={styles.chipRemove}
                 onClick={clearFile}
-                disabled={analyzing || saving}
+                disabled={locked}
                 aria-label="PDF 제거"
               >
                 ×
@@ -175,12 +179,13 @@ function AddPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                     e.preventDefault()
-                    if (url.trim() && !analyzing && !saving) handleAnalyze()
+                    if (url.trim() && !locked) handleAnalyze()
                   }
                 }}
+                disabled={locked}
                 placeholder="웹페이지 주소를 붙여넣으세요"
               />
-              {url.trim() && !analyzing && !saving && (
+              {url.trim() && !locked && (
                 <button
                   type="button"
                   className={styles.enterHint}
@@ -229,7 +234,7 @@ function AddPage() {
           <Button
             variant="primary"
             onClick={handleAnalyze}
-            disabled={analyzing || saving || (!file && !url.trim())}
+            disabled={locked || (!file && !url.trim())}
           >
             {analyzing ? "분석 중…" : "분석 시작"}
           </Button>

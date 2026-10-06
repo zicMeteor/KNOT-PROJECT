@@ -175,3 +175,8 @@
   color: var(--color-text);
   background: var(--color-surface-raised);
 }
+
+.urlInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
