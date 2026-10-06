@@ -50,42 +50,40 @@ def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=
         "summary": summary
     }
 
+def analyze_text(text, title, db):
+    tag_pool = [tag.Name for tag in db.query(tag_class).all()]
 
-def analyze_content_preview(url, db, memo=None):
-    
-    if find_duplicate_url(db, url):
-        raise ValueError("이미 저장된 URL입니다.")
-    
-    try:
-        result_url = extract_url_text(url)
-        text = result_url["text"]
-        title = result_url["title"]
-        
-    except Exception as e:
-        print(f"URL 파싱 에러: {e}")
-        raise ValueError(str(e))
-    
-    tag_pool = []
-    for tag in db.query(tag_class).all():
-        tag_pool.append(tag.Name)
-        
     try:
         result = analyze_content(text, tag_pool)
     except Exception as e:
         raise RuntimeError(f"LLM 분석 실패: {str(e)}")
-    
-    tags = []
+
     tag_pool_set = set(t.lower() for t in tag_pool)
+    tags = []
     for tag_name in result["tags"]:
         is_new = tag_name.strip().lower() not in tag_pool_set
         tags.append({"name": tag_name, "is_new": is_new})
-    
+
     return {
         "title": title,
         "category": result["category"],
         "tags": tags,
         "summary": result["summary"],
         "category_fallback": result["category_fallback"],
-        "char_count": len(text)
+        "char_count": len(text),
     }
+    
+def analyze_content_preview(url, db, memo=None):
+    if find_duplicate_url(db, url):
+        raise ValueError("이미 저장된 URL입니다.")
+
+    try:
+        result_url = extract_url_text(url)
+        text = result_url["text"]
+        title = result_url["title"]
+    except Exception as e:
+        print(f"URL 파싱 에러: {e}")
+        raise ValueError(str(e))
+
+    return analyze_text(text, title, db)
     
