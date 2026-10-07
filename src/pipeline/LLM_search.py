@@ -6,6 +6,9 @@ from typing import Optional
 
 load_dotenv()
 
+# 검색어가 아니라 표시 요청인 말 (임의로 고른 목록이라 새는 말이 있을 수 있음)
+META_WORDS = {"태그", "자료", "콘텐츠", "목록"}
+
 SEARCH_PROMPT = """너는 사용자의 검색 질문을 분석해서
 카테고리, 태그, 핵심어를 뽑는 AI다.
 
@@ -66,7 +69,6 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
     if not isinstance(result.get("keywords"), list):
         result["keywords"] = []
     
-    # 에러 대신 잘못된 값만 걸러낸다
     if result["category"] not in CATEGORIES:
         result["category"] = None
 
@@ -77,5 +79,14 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
     result["keywords"] = [
         k.strip() for k in result["keywords"] if isinstance(k, str) and len(k.strip()) >= 2
     ][:3]
+    
+    category_words = [k for k in result["keywords"] if k in CATEGORIES]
+    result["keywords"] = [
+        k for k in result["keywords"]
+        if k not in CATEGORIES and k not in META_WORDS
+    ]
+
+    if result["category"] is None and len(set(category_words)) == 1:
+        result["category"] = category_words[0]
 
     return result

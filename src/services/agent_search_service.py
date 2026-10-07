@@ -75,8 +75,34 @@ def RelatedTagTool(db, tag_name: str):
     related_tags = [row[0] for row in results]
     return {"related_tags": related_tags}
 
+def _merge(merged, seen_ids, result, match_type):
+    for item in result["contents"]:
+        if item["content_id"] not in seen_ids:
+            seen_ids.add(item["content_id"])
+            item["match_type"] = match_type
+            merged.append(item)
+            
+def _build_response(db, items, analysis):
+    # 항목별 태그를 쿼리 1번으로 가져온다 (N+1 방지)
+    ids = [item["content_id"] for item in items]
+    tags_by_id = {}
+    if ids:
+        rows = (
+            db.query(contenttag_class.Content_id, tag_class.Name)
+            .join(tag_class, contenttag_class.Tag_id == tag_class.Tag_id)
+            .filter(contenttag_class.Content_id.in_(ids))
+            .all()
+        )
+        for content_id, name in rows:
+            tags_by_id.setdefault(content_id, []).append(name)
+
+    for item in items:
+        item["tags"] = tags_by_id.get(item["content_id"], [])
+
+    return {"analysis": analysis, "contents": items, "count": len(items)}
+
 def AgentLoop(db, query: str):
-    
+
     tag_pool = []
     for tag_row in db.query(tag_class.Name).all():
         tag_pool.append(tag_row[0])
@@ -85,39 +111,34 @@ def AgentLoop(db, query: str):
     tags = llm_result["tags"]
     keywords = llm_result["keywords"]
     category = llm_result["category"]
+    analysis = {
+        "category": category,
+        "tags": tags,
+        "keywords": keywords,
+        "category_applied": False,
+    }
 
     if not tags and not keywords and not category:
-        return {"contents": [], "count": 0}
+        return _build_response(db, [], analysis)
 
     if not tags and not keywords:
-        return ContentTool(db, category, [])
+        analysis["category_applied"] = True
+        merged = []
+        _merge(merged, set(), ContentTool(db, category, []), "category")
+        return _build_response(db, merged, analysis)
 
-    # 태그 경로 + 키워드 경로를 합치고 content_id로 중복 제거
+    # content_id로 중복 제거
     merged = []
     seen_ids = set()
 
     if tags:
-        tag_result = ContentTool(db, None, tags)
-        for item in tag_result["contents"]:
-            if item["content_id"] not in seen_ids:
-                seen_ids.add(item["content_id"])
-                merged.append(item)
-
+        _merge(merged, seen_ids, ContentTool(db, None, tags), "tag")
     if keywords:
-        kw_result = KeywordTool(db, keywords)
-        for item in kw_result["contents"]:
-            if item["content_id"] not in seen_ids:
-                seen_ids.add(item["content_id"])
-                merged.append(item)
+        _merge(merged, seen_ids, KeywordTool(db, keywords), "keyword")
 
-    # 3건 미만이고 태그가 있으면 연관 태그로 확장 (결과 뒤에 추가)
     if len(merged) < 3 and tags:
         related = RelatedTagTool(db, tag_name=tags[0])
         expanded_tags = tags + related["related_tags"]
-        expand_result = ContentTool(db, None, expanded_tags)
-        for item in expand_result["contents"]:
-            if item["content_id"] not in seen_ids:
-                seen_ids.add(item["content_id"])
-                merged.append(item)
+        _merge(merged, seen_ids, ContentTool(db, None, expanded_tags), "expanded")
 
-    return {"contents": merged, "count": len(merged)}
+    return _build_response(db, merged, analysis)
