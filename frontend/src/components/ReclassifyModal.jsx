@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useReclassify } from "../hooks/useReclassify"
 import styles from "./ReclassifyModal.module.css"
 
@@ -7,6 +8,11 @@ const EXAMPLES = [
   "기타로 분류된 자료를 다시 검토해줘",
 ]
 
+const STATUS_TEXT = "자료를 목적에 맞게 검토하는 중"
+
+// 이 시간(초)이 지나면 "오래 걸리는 중" 문구를 보여준다
+const SLOW_AFTER = 45
+
 function ReclassifyModal({ onClose, onApplied }) {
   const {
     step,
@@ -15,11 +21,14 @@ function ReclassifyModal({ onClose, onApplied }) {
     error,
     plan,
     result,
+    elapsed,
     runPreview,
     cancelPreview,
     apply,
     backToInput,
   } = useReclassify({ onApplied, onClose })
+
+  const [detailOpen, setDetailOpen] = useState(false)
 
   const changes = plan ? plan.actions.filter((a) => a.change_needed) : []
   const keepCount = plan ? plan.actions.length - changes.length : 0
@@ -39,7 +48,7 @@ function ReclassifyModal({ onClose, onApplied }) {
       <div className={styles.modal} role="dialog" aria-modal="true">
         <h2 className={styles.title}>재분류</h2>
 
-        {(step === "input" || step === "loading") && (
+        {step === "input" && (
           <>
             <p className={styles.help}>
               목적을 적으면 최근 자료부터 일부를 검토해 변경안을 보여줍니다.
@@ -49,7 +58,6 @@ function ReclassifyModal({ onClose, onApplied }) {
               className={styles.textarea}
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
-              disabled={step === "loading"}
               rows={3}
               placeholder="재분류 목적을 입력하세요"
             />
@@ -59,7 +67,6 @@ function ReclassifyModal({ onClose, onApplied }) {
                   key={ex}
                   type="button"
                   className={styles.example}
-                  disabled={step === "loading"}
                   onClick={() => setPurpose(ex)}
                 >
                   {ex}
@@ -68,19 +75,60 @@ function ReclassifyModal({ onClose, onApplied }) {
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
             <div className={styles.footer}>
-              {step === "loading" ? (
-                <>
-                  <span className={styles.status}>검토 중…</span>
-                  <button type="button" onClick={cancelPreview}>취소</button>
-                </>
-              ) : (
-                <>
-                  <button type="button" onClick={handleClose}>닫기</button>
-                  <button type="button" onClick={runPreview}>미리보기</button>
-                </>
-              )}
+              <button type="button" onClick={handleClose}>닫기</button>
+              <button type="button" onClick={runPreview}>미리보기</button>
             </div>
           </>
+        )}
+
+        {step === "loading" && (
+          <div className={styles.loading}>
+            <div className={styles.progress}>
+              <button
+                type="button"
+                className={styles.progressRow}
+                onClick={() => setDetailOpen((open) => !open)}
+                aria-expanded={detailOpen}
+              >
+                <span className={styles.dots} aria-hidden="true">
+                  <span className={styles.dot} />
+                  <span className={styles.dot} />
+                  <span className={styles.dot} />
+                </span>
+                <span className={styles.progressText} role="status">
+                  {STATUS_TEXT}
+                </span>
+                <span className={styles.progressTime}>{elapsed}초</span>
+                <span
+                  className={`${styles.chevron} ${detailOpen ? styles.chevronOpen : ""}`}
+                  aria-hidden="true"
+                >
+                  ›
+                </span>
+              </button>
+
+              {detailOpen && (
+                <div className={styles.detail}>
+                  <p className={styles.detailHead}>{elapsed}초 동안 작업 중입니다</p>
+                  <p className={styles.detailBody}>
+                    저장된 자료 중 최근 일부를 AI가 목적에 맞게 다시 판단하고
+                    있습니다. 보통 15~30초 걸립니다. 이 단계에서는 자료가
+                    바뀌지 않으며, 결과를 확인하고 [적용]을 눌러야 반영됩니다.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {elapsed >= SLOW_AFTER && (
+              <p className={styles.slow}>
+                예상보다 오래 걸리고 있습니다. 계속 기다리거나 취소하고 다시 시도하세요.
+              </p>
+            )}
+            <p className={styles.purposeEcho}>목적: {purpose}</p>
+            <div className={styles.footer}>
+              <button type="button" onClick={cancelPreview}>취소</button>
+            </div>
+          </div>
         )}
 
         {(step === "review" || step === "applying") && plan && (

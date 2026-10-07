@@ -8,7 +8,7 @@
   background: rgba(0, 0, 0, 0.6);
 }
 
-/* 임시 값: tokens.css를 확인한 뒤 토큰 변수로 교체 */
+/* 임시 값: 모달 전체를 tokens.css 변수로 바꿀 때 교체 */
 .modal {
   --m-bg: #18181b;
   --m-border: #3f3f46;
@@ -36,10 +36,10 @@
 }
 
 .textarea {
-    width: 100%;
-    box-sizing: border-box;
-    resize: vertical;
-    font: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
 }
 
 .examples {
@@ -87,7 +87,119 @@
   margin-top: 16px;
 }
 
-.status {
-  margin-right: auto;
+/* 미리보기 로딩 화면 */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress {
+  width: 100%;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--m-text);
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--m-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.progressText {
+  flex: 1;
+  min-width: 0;
+}
+
+.progressTime {
   color: var(--m-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  color: var(--m-muted);
+  transition: transform 150ms;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--m-muted);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.detail {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--m-border);
+  border-radius: 8px;
+}
+
+.detailHead {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--m-border);
+  color: var(--m-muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.detailBody {
+  margin: 0;
+}
+
+.slow {
+  margin: 0;
+  color: var(--color-warn, #fbbf24);
+}
+
+.purposeEcho {
+  max-width: 100%;
+  margin: 0;
+  color: var(--m-muted);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
 }

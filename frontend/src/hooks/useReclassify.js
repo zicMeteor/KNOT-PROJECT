@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { previewReclassify, executeReclassify } from "../api/reclassify"
 
 // step: input | loading | review | applying | result
@@ -8,7 +8,17 @@ export function useReclassify({ onApplied, onClose }) {
   const [error, setError] = useState(null)
   const [plan, setPlan] = useState(null)
   const [result, setResult] = useState(null)
+  const [elapsed, setElapsed] = useState(0)
   const abortRef = useRef(null)
+
+  useEffect(() => {
+    if (step !== "loading") return
+    const startedAt = Date.now()
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [step])
 
   async function runPreview() {
     const text = purpose.trim()
@@ -19,6 +29,7 @@ export function useReclassify({ onApplied, onClose }) {
     const ctrl = new AbortController()
     abortRef.current = ctrl
     setError(null)
+    setElapsed(0)
     setStep("loading")
     try {
       const data = await previewReclassify(text, ctrl.signal)
@@ -67,6 +78,7 @@ export function useReclassify({ onApplied, onClose }) {
     error,
     plan,
     result,
+    elapsed,
     runPreview,
     cancelPreview,
     apply,
