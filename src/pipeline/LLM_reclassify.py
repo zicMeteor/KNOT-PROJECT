@@ -1,8 +1,10 @@
 import anthropic
 import json
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 CATEGORIES = ["학습", "참고", "연구", "아이디어", "도구", "기타"]
 
@@ -145,10 +147,38 @@ def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
 
     return True
 
+def sanitize_actions(result):
+    """항목 하나가 규칙을 어기면 그 항목만 '변경 없음'으로 내린다.
+    구조 자체가 깨진 경우(actions 없음, content_id 없음 등)는 건드리지 않고 그대로 둔다."""
+    if not isinstance(result, dict) or not isinstance(result.get("actions"), list):
+        return result
+
+    for action in result["actions"]:
+        if not isinstance(action, dict) or "content_id" not in action:
+            continue
+
+        error = validate_action(action)
+        if error is None:
+            continue
+
+        logger.warning("재분류 항목 제외 content_id=%s 사유=%s", action["content_id"], error)
+
+        reason = action.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            reason = "AI 응답 오류"
+
+        action["change_needed"] = False
+        action["reason"] = reason.strip() + " (AI 응답 오류로 변경 제외)"
+        action["category"] = None
+        action["tags"] = None
+
+    return result
+
+
 # purpose : 사용자 목적어 문장
 def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: list[str]) -> dict:
     client = anthropic.Anthropic()
-    
+
     tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
     system = RECLASSIFY_PROMPT.format(tag_pool=tag_pool_str)
     raw = ""
@@ -159,7 +189,7 @@ def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: li
             max_tokens=4000,
             system=system,
             messages=[{
-                "role": "user", 
+                "role": "user",
                 "content": f"목적: {purpose}\n\n검토 대상:\n{json.dumps(contents_in_scope, ensure_ascii=False)}"
             }],
         )
@@ -168,16 +198,20 @@ def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: li
         result = json.loads(raw)
 
     except json.JSONDecodeError as e:
-        raise ValueError(f"JSON 파싱 실패: {e}\n원문: {raw}")
-    
+        logger.error("재분류 JSON 파싱 실패: %s\n원문: %s", e, raw)
+        raise ValueError("AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.")
+
     except Exception as e:
         raise RuntimeError(f"API 호출실패: {e}")
-    
+
     allowed_content_ids = set()
     for c in contents_in_scope:
         allowed_content_ids.add(c["content_id"])
-    
+
+    result = sanitize_actions(result)
+
     if not validate_action_plan(result, allowed_content_ids):
-        raise ValueError(f"LLM 결과 형식 오류: {result}")
+        logger.error("재분류 결과 구조 오류: %s", result)
+        raise ValueError("AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.")
 
     return result
