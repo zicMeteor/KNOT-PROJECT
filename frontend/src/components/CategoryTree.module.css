@@ -1,0 +1,116 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.section {
+  margin: var(--space-4) 0 var(--space-1);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-faint);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+}
+
+.active,
+.active:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-text-faint);
+  outline-offset: -2px;
+}
+
+/* 태그 이름이 카테고리 이름과 같은 세로선에서 시작하도록 들여쓴다 */
+.child {
+  height: 32px;
+  padding-left: 52px;
+  font-size: 13px;
+}
+
+.icon {
+  display: inline-flex;
+  flex: 0 0 16px;
+}
+
+.chevron {
+  display: inline-flex;
+  flex: 0 0 14px;
+  color: var(--color-text-faint);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-faint);
+}
+
+.muted {
+  margin: 0;
+  padding: var(--space-2) 10px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .chevron {
+    transition: none;
+  }
+}

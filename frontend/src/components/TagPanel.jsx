@@ -8,7 +8,8 @@ function tagName(t) {
   return typeof t === "string" ? t : t.name
 }
 
-function TagPanel({ tag, onClose }) {
+// category가 있으면 그 카테고리 자료만 보여준다 (트리의 숫자와 맞추기 위해)
+function TagPanel({ tag, category }) {
   const [items, setItems] = useState(null)
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
@@ -20,7 +21,9 @@ function TagPanel({ tag, onClose }) {
     setSelected(null)
     fetchTagContents(tag)
       .then((list) => {
-        if (!cancelled) setItems(list)
+        if (!cancelled) {
+          setItems(category ? list.filter((c) => c.category === category) : list)
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e.message)
@@ -28,22 +31,17 @@ function TagPanel({ tag, onClose }) {
     return () => {
       cancelled = true
     }
-  }, [tag])
+  }, [tag, category])
 
   return (
-    <aside className={styles.panel}>
-      <div className={styles.header}>
-        {selected ? (
+    <div className={styles.panel}>
+      {selected && (
+        <div className={styles.header}>
           <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>
             ← 목록
           </Button>
-        ) : (
-          <h2 className={styles.title}>{tag}</h2>
-        )}
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          닫기
-        </Button>
-      </div>
+        </div>
+      )}
 
       {!items && !error && <p>불러오는 중…</p>}
       {error && <p>오류: {error}</p>}
@@ -78,7 +76,7 @@ function TagPanel({ tag, onClose }) {
       )}
 
       {selected && <ContentDetail content={selected} />}
-    </aside>
+    </div>
   )
 }
 

@@ -23,3 +23,15 @@
 .main {
   padding: var(--space-6);
 }
+
+.appFull {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.mainFull {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}

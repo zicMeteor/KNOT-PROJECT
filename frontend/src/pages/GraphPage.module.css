@@ -1,14 +1,144 @@
-.stage {
+.page {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-bg);
+}
+
+/* 경계선 없이 배경 밝기 차이로만 영역을 나눈다 */
+.left,
+.right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-surface);
+}
+
+.left {
+  flex: 0 0 256px;
+}
+
+.right {
+  flex: 0 0 360px;
+}
+
+/* 왼쪽·오른쪽 머리줄과 그래프 위 버튼 줄을 같은 52px로 맞춘다 */
+.sideHead {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 52px;
+  padding: 0 var(--space-3) 0 var(--space-4);
+}
+
+.right .sideHead {
+  justify-content: flex-start;
+  padding: 0 var(--space-4) 0 var(--space-3);
+}
+
+.sideTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sideBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--space-2) var(--space-4);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.iconBtn {
+  display: inline-flex;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--color-text-faint);
+  outline-offset: 2px;
+}
+
+/* 그래프 위에 떠 있는 버튼 */
+.floating {
+  background: rgba(19, 19, 22, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+}
+
+.center {
   position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
 }
 
-.canvas {
-  width: 100%;
-  height: 70vh;
-}
-
-.pathRow {
+/* 그래프 위 버튼 줄. 빈 곳은 그래프 조작이 통과되게 한다 */
+.toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
+  height: 52px;
+  padding: 0 var(--space-3);
+  pointer-events: none;
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: auto;
+}
+
+.status {
+  margin: 0;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: rgba(19, 19, 22, 0.72);
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(8px);
+}
+
+.placeholder {
+  margin: var(--space-2);
+  padding: var(--space-4);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
 }

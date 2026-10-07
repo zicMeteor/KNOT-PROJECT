@@ -1,14 +1,14 @@
-// 카테고리별 노드 색. 어두운 배경에서 구분되는 6색
+// 카테고리별 색. 어두운 배경(#09090b) 기준으로 명도·채도·색약 구분·대비 검증을 통과한 5색 + 기타(무채색)
 export const CATEGORY_COLORS = {
-  학습: "#60a5fa",
-  참고: "#34d399",
-  연구: "#a78bfa",
-  아이디어: "#f472b6",
-  도구: "#fb923c",
-  기타: "#94a3b8",
+  학습: "#2563eb",
+  참고: "#0d9488",
+  연구: "#a21caf",
+  아이디어: "#c2850c",
+  도구: "#e11d48",
+  기타: "#71717a",
 }
 
-const DEFAULT_COLOR = "#a1a1aa"
+const DEFAULT_COLOR = "#71717a"
 
 export function categoryColor(name) {
   return CATEGORY_COLORS[name] ?? DEFAULT_COLOR

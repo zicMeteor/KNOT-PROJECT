@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useLocation } from "react-router-dom"
 import styles from "./Layout.module.css"
 
 const MENU = [
@@ -8,9 +8,15 @@ const MENU = [
   { to: "/search", label: "검색" },
 ]
 
+// 여백 없이 화면 전체를 쓰는 페이지
+const FULL_PAGES = ["/graph"]
+
 function Layout() {
+  const { pathname } = useLocation()
+  const full = FULL_PAGES.includes(pathname)
+
   return (
-    <div>
+    <div className={full ? styles.appFull : undefined}>
       <nav className={styles.nav}>
         {MENU.map((m) => (
           <NavLink
@@ -25,7 +31,7 @@ function Layout() {
           </NavLink>
         ))}
       </nav>
-      <main className={styles.main}>
+      <main className={full ? styles.mainFull : styles.main}>
         <Outlet />
       </main>
     </div>
