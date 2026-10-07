@@ -136,7 +136,7 @@ def AgentLoop(db, query: str):
     if keywords:
         _merge(merged, seen_ids, KeywordTool(db, keywords), "keyword")
 
-    if len(merged) < 3 and tags:
+    if len(merged) == 0 and tags:
         related = RelatedTagTool(db, tag_name=tags[0])
         expanded_tags = tags + related["related_tags"]
         _merge(merged, seen_ids, ContentTool(db, None, expanded_tags), "expanded")
