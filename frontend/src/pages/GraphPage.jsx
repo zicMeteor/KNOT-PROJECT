@@ -5,6 +5,7 @@ import TagPanel from "../components/TagPanel"
 import ReclassifyModal from "../components/ReclassifyModal"
 import styles from "./GraphPage.module.css"
 import SpriteText from "three-spritetext"
+import { categoryColor } from "../constants/categories"
 
 const LABEL_OFFSET = -12
 
@@ -104,6 +105,7 @@ function GraphPage() {
                 height={size.h}
                 nodeLabel="name"
                 nodeVal="val"
+                nodeColor={(node) => categoryColor(category ?? node.name)}
                 onNodeClick={handleNodeClick}
                 linkWidth={2}
                 linkOpacity={0.6}
