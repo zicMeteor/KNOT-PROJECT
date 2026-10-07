@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react"
 import { fetchTagContents } from "../api/graph"
+import Button from "./ui/Button"
+import ContentDetail from "./ContentDetail"
 import styles from "./TagPanel.module.css"
-
-function formatDate(s) {
-  if (!s) return ""
-  const d = new Date(s)
-  return isNaN(d) ? s : d.toLocaleDateString("ko-KR")
-}
 
 function tagName(t) {
   return typeof t === "string" ? t : t.name
@@ -38,11 +34,15 @@ function TagPanel({ tag, onClose }) {
     <aside className={styles.panel}>
       <div className={styles.header}>
         {selected ? (
-          <button onClick={() => setSelected(null)}>← 목록</button>
+          <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>
+            ← 목록
+          </Button>
         ) : (
           <h2 className={styles.title}>{tag}</h2>
         )}
-        <button onClick={onClose}>닫기</button>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          닫기
+        </Button>
       </div>
 
       {!items && !error && <p>불러오는 중…</p>}
@@ -77,27 +77,7 @@ function TagPanel({ tag, onClose }) {
         </>
       )}
 
-      {selected && (
-        <div>
-          <h3>{selected.title ?? selected.url}</h3>
-          <p className={styles.muted}>
-            {selected.category}
-            {selected.createdAt && " · " + formatDate(selected.createdAt)}
-          </p>
-          <p className={styles.muted}>
-            태그: {selected.tags.map(tagName).join(", ")}
-          </p>
-          <p className={styles.block}>{selected.summary}</p>
-          {selected.memo && (
-            <p className={styles.block}>메모: {selected.memo}</p>
-          )}
-          {selected.url && (
-            <a href={selected.url} target="_blank" rel="noopener noreferrer">
-              원문 열기
-            </a>
-          )}
-        </div>
-      )}
+      {selected && <ContentDetail content={selected} />}
     </aside>
   )
 }

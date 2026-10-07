@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useReclassify } from "../hooks/useReclassify"
+import Button from "./ui/Button"
 import styles from "./ReclassifyModal.module.css"
 
 const EXAMPLES = [
@@ -12,6 +13,13 @@ const STATUS_TEXT = "자료를 목적에 맞게 검토하는 중"
 
 // 이 시간(초)이 지나면 "오래 걸리는 중" 문구를 보여준다
 const SLOW_AFTER = 45
+
+// 순서와 무관하게 같은 태그 묶음인지
+function sameTags(a, b) {
+  const x = [...(a ?? [])].sort().join("\u0000")
+  const y = [...(b ?? [])].sort().join("\u0000")
+  return x === y
+}
 
 function ReclassifyModal({ onClose, onApplied }) {
   const {
@@ -75,8 +83,12 @@ function ReclassifyModal({ onClose, onApplied }) {
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
             <div className={styles.footer}>
-              <button type="button" onClick={handleClose}>닫기</button>
-              <button type="button" onClick={runPreview}>미리보기</button>
+              <Button variant="ghost" onClick={handleClose}>
+                닫기
+              </Button>
+              <Button variant="primary" onClick={runPreview}>
+                미리보기
+              </Button>
             </div>
           </>
         )}
@@ -109,7 +121,7 @@ function ReclassifyModal({ onClose, onApplied }) {
 
               {detailOpen && (
                 <div className={styles.detail}>
-                  <p className={styles.detailHead}>{elapsed}초 동안 작업 중입니다</p>
+                  <p className={styles.detailHead}>진행 안내</p>
                   <p className={styles.detailBody}>
                     저장된 자료 중 최근 일부를 AI가 목적에 맞게 다시 판단하고
                     있습니다. 보통 15~30초 걸립니다. 이 단계에서는 자료가
@@ -126,7 +138,9 @@ function ReclassifyModal({ onClose, onApplied }) {
             )}
             <p className={styles.purposeEcho}>목적: {purpose}</p>
             <div className={styles.footer}>
-              <button type="button" onClick={cancelPreview}>취소</button>
+              <Button variant="secondary" onClick={cancelPreview}>
+                취소
+              </Button>
             </div>
           </div>
         )}
@@ -139,33 +153,49 @@ function ReclassifyModal({ onClose, onApplied }) {
             </p>
             {changes.length === 0 && <p>변경할 항목이 없습니다.</p>}
             <ul className={styles.list}>
-              {changes.map((a) => (
-                <li key={a.content_id} className={styles.item}>
-                  <strong>{a.title}</strong>
-                  <div>{a.current_category} → {a.category}</div>
-                  <div className={styles.tags}>
-                    {(a.current_tags ?? []).join(", ")} →{" "}
-                    {(a.tags ?? []).join(", ")}
-                  </div>
-                  <div className={styles.reason}>{a.reason}</div>
-                </li>
-              ))}
+              {changes.map((a) => {
+                const categoryChanged = a.category && a.category !== a.current_category
+                const tagsChanged = a.tags && !sameTags(a.current_tags, a.tags)
+                return (
+                  <li key={a.content_id} className={styles.item}>
+                    <strong>{a.title}</strong>
+                    {categoryChanged && (
+                      <div>{a.current_category} → {a.category}</div>
+                    )}
+                    {tagsChanged && (
+                      <div className={styles.tags}>
+                        {(a.current_tags ?? []).join(", ")} →{" "}
+                        {a.tags.join(", ")}
+                      </div>
+                    )}
+                    <div className={styles.reason}>{a.reason}</div>
+                  </li>
+                )
+              })}
             </ul>
             {error && <p className={styles.error} role="alert">{error}</p>}
             <div className={styles.footer}>
-              <button type="button" onClick={backToInput} disabled={step === "applying"}>
+              <Button
+                variant="ghost"
+                onClick={backToInput}
+                disabled={step === "applying"}
+              >
                 다시 입력
-              </button>
-              <button type="button" onClick={handleClose} disabled={step === "applying"}>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleClose}
+                disabled={step === "applying"}
+              >
                 취소
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
                 onClick={apply}
                 disabled={step === "applying" || changes.length === 0}
               >
                 {step === "applying" ? "적용 중…" : "적용"}
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -186,7 +216,9 @@ function ReclassifyModal({ onClose, onApplied }) {
                 ))}
             </ul>
             <div className={styles.footer}>
-              <button type="button" onClick={onClose}>닫기</button>
+              <Button variant="primary" onClick={onClose}>
+                닫기
+              </Button>
             </div>
           </>
         )}
