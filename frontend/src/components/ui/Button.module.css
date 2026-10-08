@@ -43,7 +43,7 @@
 
 .ghost {
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
 .ghost:hover:not(:disabled) {
