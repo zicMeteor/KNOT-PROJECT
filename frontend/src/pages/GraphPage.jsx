@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useGraphData } from "../hooks/useGraphData"
 import Button from "../components/ui/Button"
 import SidebarIcon from "../components/ui/SidebarIcon"
@@ -9,7 +9,7 @@ import ReclassifyModal from "../components/ReclassifyModal"
 import styles from "./GraphPage.module.css"
 
 function GraphPage() {
-  const [category, setCategory] = useState(null) // null이면 카테고리(전체) 그래프
+  const [category, setCategory] = useState(null) // 선택한 카테고리. null이면 전체 그래프
   const [tag, setTag] = useState(null) // 오른쪽 사이드바에 열린 태그
   const [reloadKey, setReloadKey] = useState(0) // 재분류 후 다시 불러오기용
   const [modalOpen, setModalOpen] = useState(false)
@@ -17,7 +17,15 @@ function GraphPage() {
   const [leftOpen, setLeftOpen] = useState(true)
   const [rightOpen, setRightOpen] = useState(false)
 
-  const { data, error } = useGraphData(category, reloadKey)
+  // dataCategory: 지금 화면에 보이는 데이터의 카테고리 (불러오는 동안은 category와 다를 수 있다)
+  const { data, dataCategory, loading, error } = useGraphData(category, reloadKey)
+
+  // 재분류 완료 문구는 4초 뒤 사라진다
+  useEffect(() => {
+    if (!notice) return
+    const id = setTimeout(() => setNotice(null), 4000)
+    return () => clearTimeout(id)
+  }, [notice])
 
   function goAll() {
     setCategory(null)
@@ -35,9 +43,10 @@ function GraphPage() {
     setRightOpen(true)
   }
 
+  // 화면에 보이는 노드 기준으로 판단해야 불러오는 중에 눌러도 어긋나지 않는다
   function handleNodeClick(node) {
-    if (!category) selectCategory(node.name)
-    else selectTag(category, node.name)
+    if (!dataCategory) selectCategory(node.name)
+    else selectTag(dataCategory, node.name)
   }
 
   function handleApplied(count) {
@@ -47,10 +56,18 @@ function GraphPage() {
   }
 
   let status = null
-  if (error) status = "오류: " + error
-  else if (!data) status = "불러오는 중…"
-  else if (data.nodes.length === 0) status = "첫 자료를 추가해 보세요"
-  else if (notice) status = notice
+
+  if (error) 
+    status = "오류: " + error
+  
+  else if (loading) 
+    status = "불러오는 중…"
+  
+  else if (data && data.nodes.length === 0)
+    status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
+  
+  else if (notice) 
+    status = notice
 
   return (
     <div className={styles.page}>
@@ -115,7 +132,11 @@ function GraphPage() {
           </div>
         </div>
 
-        <KnowledgeGraph data={data} category={category} onNodeClick={handleNodeClick} />
+        <KnowledgeGraph
+          data={data}
+          category={dataCategory}
+          onNodeClick={handleNodeClick}
+        />
       </section>
 
       {rightOpen && (

@@ -14,6 +14,9 @@ const LINK_LIT = "#e4e4e7" // 강조된 실과 입자
 // 전체(카테고리 6개, 고정)와 카테고리(태그, 계속 늘어남)는 반발 거리를 따로 둔다
 const CHARGE_RANGE = { all: 60, category: 90 }
 
+// 태그 노드를 눌렀을 때 카메라가 노드에서 떨어지는 거리
+const FOCUS_DISTANCE = 80
+
 // 노드가 적으면 여백을 크게 줘서 과하게 확대되지 않게 한다
 function fitPadding(nodeCount) {
   return nodeCount < 8 ? 120 : 40
@@ -24,18 +27,19 @@ function endId(end) {
   return typeof end === "object" ? end.id : end
 }
 
-// data: { nodes, links } / category: null이면 전체 그래프
+// data: { nodes, links } / category: 화면에 보이는 데이터의 카테고리, null이면 전체 그래프
 function KnowledgeGraph({ data, category, onNodeClick }) {
   const boxRef = useRef(null)
   const fgRef = useRef(null)
   const fittedRef = useRef(false) // 데이터마다 화면 맞춤은 한 번만
+  const draggingRef = useRef(false) // 드래그 중에는 마우스 강조가 다른 노드로 바뀌지 않게
   const labelsRef = useRef(new Map()) // 노드 id → 글자 객체 (흐리게 만들 때 사용)
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [hoverId, setHoverId] = useState(null)
 
   const nodeCount = data?.nodes.length ?? 0
 
-  // 사이드바를 열고 닫아 캔버스 크기가 바뀌면 그래프도 따라간다
+  // 사이드바를 열고 닫아 캔버스 크기가 바뀌면 그래프 크기도 따라간다 (배율은 유지)
   useEffect(() => {
     const el = boxRef.current
     const ro = new ResizeObserver(([entry]) => {
@@ -48,13 +52,9 @@ function KnowledgeGraph({ data, category, onNodeClick }) {
   // 새 데이터를 받으면 화면 맞춤과 강조를 초기화
   useEffect(() => {
     fittedRef.current = false
+    draggingRef.current = false
     setHoverId(null)
   }, [data])
-
-  // 캔버스 크기가 바뀌면 다시 맞춘다
-  useEffect(() => {
-    if (fittedRef.current) fgRef.current?.zoomToFit(300, fitPadding(nodeCount))
-  }, [size.w, size.h, nodeCount])
 
   // 연결 없는 노드가 멀리 밀려나지 않게 반발력이 미치는 거리를 제한한다
   useEffect(() => {
@@ -119,8 +119,36 @@ function KnowledgeGraph({ data, category, onNodeClick }) {
   }, [])
 
   function handleNodeHover(node) {
+    if (draggingRef.current) return
     setHoverId(node ? node.id : null)
     if (boxRef.current) boxRef.current.style.cursor = node ? "pointer" : ""
+  }
+
+  // 드래그하는 동안 그 노드와 연결된 선을 밝게 보여준다
+  function handleNodeDrag(node) {
+    if (draggingRef.current) return
+    draggingRef.current = true
+    setHoverId(node.id)
+  }
+
+  function handleNodeDragEnd() {
+    draggingRef.current = false
+    setHoverId(null)
+  }
+
+  // 카테고리 그래프에서 태그를 누르면 카메라가 그 노드 쪽으로 다가간다 (공식 click-to-focus 예제 방식)
+  function handleNodeClick(node) {
+    const fg = fgRef.current
+    if (category && fg) {
+      const len = Math.hypot(node.x, node.y, node.z) || 1
+      const ratio = 1 + FOCUS_DISTANCE / len
+      fg.cameraPosition(
+        { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio },
+        node,
+        800
+      )
+    }
+    onNodeClick(node)
   }
 
   return (
@@ -146,7 +174,9 @@ function KnowledgeGraph({ data, category, onNodeClick }) {
           nodeThreeObject={makeLabel}
           nodeThreeObjectExtend={true}
           onNodeHover={handleNodeHover}
-          onNodeClick={onNodeClick}
+          onNodeClick={handleNodeClick}
+          onNodeDrag={handleNodeDrag}
+          onNodeDragEnd={handleNodeDragEnd}
           linkCurvature={0.12}
           linkOpacity={0.7}
           linkWidth={(l) => (isLinkLit(l) ? 1.2 : 0)}
