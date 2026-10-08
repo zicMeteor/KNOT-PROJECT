@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
-import { searchContents } from "../api/search"
+import { aiSearch } from "../api/aiSearch"
 
-// status: idle | loading | done | error
-export function useSearch() {
+// AI 검색 상태. status: idle | loading | done | error
+export function useAiSearch() {
   const [status, setStatus] = useState("idle")
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -21,7 +21,7 @@ export function useSearch() {
     setError(null)
     setStatus("loading")
     try {
-      const data = await searchContents(text, ctrl.signal)
+      const data = await aiSearch(text, ctrl.signal)
       setResult({ ...data, query: text })
       setStatus("done")
     } catch (e) {

@@ -1,8 +1,9 @@
 import { request } from "./client"
 
-const SEARCH_FAILURE = "검색에 실패했습니다. 잠시 후 다시 시도하세요"
+const AI_SEARCH_FAILURE = "검색에 실패했습니다. 잠시 후 다시 시도하세요"
 
-export async function searchContents(query, signal) {
+// AI 검색: 질문을 LLM이 해석해 태그·키워드로 저장한 자료를 찾는다 (/api/agent/search)
+export async function aiSearch(query, signal) {
   const res = await request(
     "/api/agent/search",
     {
@@ -11,7 +12,7 @@ export async function searchContents(query, signal) {
       body: JSON.stringify({ query }),
       signal,
     },
-    { fallback: SEARCH_FAILURE }
+    { fallback: AI_SEARCH_FAILURE }
   )
   const data = await res.json()
   return {

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useSearch } from "../hooks/useSearch"
+import { useAiSearch } from "../hooks/useAiSearch"
 import Button from "../components/ui/Button"
 import Notice from "../components/ui/Notice"
 import SearchResultItem from "../components/SearchResultItem"
@@ -7,7 +7,7 @@ import styles from "./SearchPage.module.css"
 
 function SearchPage() {
   const [input, setInput] = useState("")
-  const { status, result, error, run, cancel } = useSearch()
+  const { status, result, error, run, cancel } = useAiSearch()
   const loading = status === "loading"
 
   function handleSubmit(e) {
