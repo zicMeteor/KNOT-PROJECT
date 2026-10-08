@@ -3,7 +3,6 @@ import Layout from "./components/Layout"
 import HomePage from "./pages/HomePage"
 import AddPage from "./pages/AddPage"
 import GraphPage from "./pages/GraphPage"
-import SearchPage from "./pages/SearchPage"
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/add" element={<AddPage />} />
           <Route path="/graph" element={<GraphPage />} />
-          <Route path="/search" element={<SearchPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

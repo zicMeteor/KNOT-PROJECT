@@ -5,7 +5,6 @@ const MENU = [
   { to: "/", label: "홈" },
   { to: "/add", label: "자료 추가" },
   { to: "/graph", label: "지식 그래프" },
-  { to: "/search", label: "검색" },
 ]
 
 // 여백 없이 화면 전체를 쓰는 페이지
