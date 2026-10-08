@@ -28,7 +28,8 @@ function endId(end) {
 }
 
 // data: { nodes, links } / category: 화면에 보이는 데이터의 카테고리, null이면 전체 그래프
-function KnowledgeGraph({ data, category, onNodeClick }) {
+// fitKey: 값이 바뀌면 전체가 보이게 다시 맞춘다 (사이드바를 닫을 때)
+function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0 }) {
   const boxRef = useRef(null)
   const fgRef = useRef(null)
   const fittedRef = useRef(false) // 데이터마다 화면 맞춤은 한 번만
@@ -63,6 +64,17 @@ function KnowledgeGraph({ data, category, onNodeClick }) {
     fg.d3Force("charge")?.distanceMax(category ? CHARGE_RANGE.category : CHARGE_RANGE.all)
     fg.d3ReheatSimulation()
   }, [data, category])
+
+  // fitKey가 바뀌면 (사이드바를 닫을 때) 전체가 보이게 다시 맞춘다
+  // 캔버스 크기가 먼저 바뀌도록 조금 늦게 실행한다
+  // nodeCount를 의존성에서 일부러 뺐다. 넣으면 데이터가 바뀔 때마다 실행되어 onEngineStop과 겹친다
+  useEffect(() => {
+    if (fitKey === 0) return
+    const id = setTimeout(() => {
+      fgRef.current?.zoomToFit(600, fitPadding(nodeCount))
+    }, 100)
+    return () => clearTimeout(id)
+  }, [fitKey])
 
   function handleEngineStop() {
     if (fittedRef.current) return

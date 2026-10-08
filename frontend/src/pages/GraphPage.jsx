@@ -16,6 +16,7 @@ function GraphPage() {
   const [notice, setNotice] = useState(null)
   const [leftOpen, setLeftOpen] = useState(true)
   const [rightOpen, setRightOpen] = useState(false)
+  const [fitKey, setFitKey] = useState(0) // 사이드바를 닫을 때 그래프를 다시 맞추는 신호
 
   // dataCategory: 지금 화면에 보이는 데이터의 카테고리 (불러오는 동안은 category와 다를 수 있다)
   const { data, dataCategory, loading, error } = useGraphData(category, reloadKey)
@@ -37,6 +38,16 @@ function GraphPage() {
     setTag(null)
   }
 
+  function closeLeft() {
+    setLeftOpen(false)
+    setFitKey((k) => k + 1)
+  }
+
+  function closeRight() {
+    setRightOpen(false)
+    setFitKey((k) => k + 1)
+  }
+
   function selectTag(cat, t) {
     setCategory(cat)
     setTag(t)
@@ -56,18 +67,11 @@ function GraphPage() {
   }
 
   let status = null
-
-  if (error) 
-    status = "오류: " + error
-  
-  else if (loading) 
-    status = "불러오는 중…"
-  
+  if (error) status = "오류: " + error
+  else if (loading) status = "불러오는 중…"
   else if (data && data.nodes.length === 0)
     status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
-  
-  else if (notice) 
-    status = notice
+  else if (notice) status = notice
 
   return (
     <div className={styles.page}>
@@ -78,7 +82,7 @@ function GraphPage() {
             <button
               type="button"
               className={styles.iconBtn}
-              onClick={() => setLeftOpen(false)}
+              onClick={closeLeft}
               aria-label="왼쪽 사이드바 닫기"
               title="사이드바 닫기"
             >
@@ -136,6 +140,7 @@ function GraphPage() {
           data={data}
           category={dataCategory}
           onNodeClick={handleNodeClick}
+          fitKey={fitKey}
         />
       </section>
 
@@ -145,7 +150,7 @@ function GraphPage() {
             <button
               type="button"
               className={styles.iconBtn}
-              onClick={() => setRightOpen(false)}
+              onClick={closeRight}
               aria-label="오른쪽 사이드바 닫기"
               title="사이드바 닫기"
             >
