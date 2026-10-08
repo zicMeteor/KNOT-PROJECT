@@ -1,12 +1,24 @@
 import anthropic
 import json
 import logging
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 CATEGORIES = ["학습", "참고", "연구", "아이디어", "도구", "기타"]
+
+# 재분류 모델 설정 (10/8 비교 테스트로 결정)
+# - Sonnet 4.6: 평균 16.6초, 형식 오류 0건
+# - Haiku 5.5 생각 켬: 평균 8.6초, 형식 오류 0건, 시연 목적에서 Sonnet과 같은 결과 → 채택
+# - Haiku 5.5 생각 끔: 평균 5.2초지만 3회 중 1회 핵심 항목(8번)이 형식 오류로 제외 → 제외
+# 결과가 이상하면 RECLASSIFY_MODEL만 "claude-sonnet-4-6"으로 바꾸면 된다
+RECLASSIFY_MODEL = "claude-haiku-5-5"
+# 생각(thinking) 설정. None이면 모델 기본값 (Haiku 5.5는 켜짐, Sonnet 4.6은 꺼짐)
+RECLASSIFY_THINKING = None
+# effort 설정. None이면 모델 기본값 (Haiku 5.5는 medium)
+RECLASSIFY_EFFORT = None
 
 RECLASSIFY_PROMPT = """당신은 콘텐츠 재분류를 수행하는 AI입니다.
 사용자가 제시한 목적과 검토 대상 콘텐츠를 분석하여,
@@ -147,6 +159,7 @@ def validate_action_plan(result: dict, allowed_content_ids: set[int]) -> bool:
 
     return True
 
+
 def sanitize_actions(result):
     """항목 하나가 규칙을 어기면 그 항목만 '변경 없음'으로 내린다.
     구조 자체가 깨진 경우(actions 없음, content_id 없음 등)는 건드리지 않고 그대로 둔다."""
@@ -175,38 +188,77 @@ def sanitize_actions(result):
     return result
 
 
+def _model_options():
+    """생각·effort 설정을 요청 본문에 붙일 형태로 만든다.
+    SDK 버전에 따라 이 인자들을 직접 받지 못할 수 있어 extra_body로 넘긴다."""
+    options = {}
+    if RECLASSIFY_THINKING:
+        options["thinking"] = {"type": RECLASSIFY_THINKING}
+    if RECLASSIFY_EFFORT:
+        options["output_config"] = {"effort": RECLASSIFY_EFFORT}
+    return options
+
+
 # purpose : 사용자 목적어 문장
 def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: list[str]) -> dict:
     client = anthropic.Anthropic()
 
     tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
     system = RECLASSIFY_PROMPT.format(tag_pool=tag_pool_str)
-    raw = ""
 
+    started = time.perf_counter()
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4000,
+            model=RECLASSIFY_MODEL,
+            max_tokens=6000,
             system=system,
             messages=[{
                 "role": "user",
                 "content": f"목적: {purpose}\n\n검토 대상:\n{json.dumps(contents_in_scope, ensure_ascii=False)}"
             }],
+            extra_body=_model_options(),
         )
-        
-        if response.stop_reason == "max_tokens":
-            logger.warning("재분류 응답이 max_tokens에서 잘렸습니다")
-        
-        raw = response.content[0].text
-        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-        result = json.loads(raw)
+    except Exception as e:
+        logger.exception("재분류 API 호출 실패")
+        raise RuntimeError(f"API 호출실패: {e}") from e
+    elapsed = time.perf_counter() - started
 
-    except json.JSONDecodeError as e:
-        logger.error("재분류 JSON 파싱 실패: %s\n원문: %s", e, raw)
+    # [측정] 모델 비교용. 비교가 끝나면 지워도 된다
+    # 시연 중 문제가 생기면 원인을 추적할 수 있게 매 호출의 시간과 토큰을 남긴다
+    logger.warning(
+        "[재분류] model=%s 검토=%d건 시간=%.1f초 입력토큰=%d 출력토큰=%d stop=%s 블록=%s",
+        RECLASSIFY_MODEL,
+        len(contents_in_scope),
+        elapsed,
+        response.usage.input_tokens,
+        response.usage.output_tokens,
+        response.stop_reason,
+        [b.type for b in response.content],
+    )
+
+    # 응답이 길이 제한에서 끊기면 JSON이 깨진다. 같은 범위로 다시 보내도 또 끊기므로 원인을 그대로 알린다
+    # (생각 토큰도 max_tokens에 포함된다)
+    if response.stop_reason == "max_tokens":
+        logger.warning("재분류 응답이 max_tokens에서 잘렸습니다 (검토 %d건)", len(contents_in_scope))
+        raise ValueError("AI 응답이 길이 제한에 걸려 중간에 끊겼습니다.")
+
+    # 생각(thinking) 블록이 text 블록보다 먼저 오므로, 첫 번째 text 블록을 찾는다
+    text = next((b.text for b in response.content if b.type == "text"), None)
+    if not text:
+        logger.error(
+            "재분류 응답에 텍스트가 없습니다 stop_reason=%s 블록=%s",
+            response.stop_reason,
+            [b.type for b in response.content],
+        )
         raise ValueError("AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.")
 
-    except Exception as e:
-        raise RuntimeError(f"API 호출실패: {e}")
+    raw = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as e:
+        logger.error("재분류 JSON 파싱 실패: %s\n원문: %s", e, raw)
+        raise ValueError("AI 응답 형식이 올바르지 않습니다. 다시 시도해 주세요.") from e
 
     allowed_content_ids = set()
     for c in contents_in_scope:
