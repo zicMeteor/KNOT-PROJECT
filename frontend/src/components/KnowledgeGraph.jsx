@@ -4,22 +4,35 @@ import SpriteText from "three-spritetext"
 import { categoryColor } from "../constants/categories"
 import styles from "./KnowledgeGraph.module.css"
 
-const LABEL_OFFSET = -9
 const LABEL_COLOR = "#d4d4d8"
 const NODE_DIM = "#3f3f46" // 강조 중일 때 관련 없는 노드
 const LINK_BASE = "#52525b" // 평소 실
 const LINK_DIM = "#27272a" // 강조 중일 때 관련 없는 실
 const LINK_LIT = "#e4e4e7" // 강조된 실과 입자
 
+// AI 검색으로 찾은 노드 전용 색. 카테고리 팔레트 어느 색과도 겹치지 않고 훨씬 밝다
+const HIT_COLOR = "#a3e635"
+const HIT_DIM = "#3f5a14" // 마우스 강조 중에도 찾은 노드인 건 알아보게 어두운 라임
+const HIT_VAL_SCALE = 3 // 노드 반지름은 val의 세제곱근에 비례 → 약 1.44배
+const HIT_LABEL_COLOR = "#fafafa" // 찾은 노드 글자. 라임 공 위에 라임 글자는 안 읽혀서 흰색
+const NODE_REL_SIZE = 3 // 반지름 = val의 세제곱근 × 이 값 (ForceGraph3D nodeRelSize와 같아야 함)
+const LABEL_GAP = 7 // 공 아래쪽 끝과 글자 중심 사이 거리
+
 // 전체(카테고리 6개, 고정)와 카테고리(태그, 계속 늘어남)는 반발 거리를 따로 둔다
 const CHARGE_RANGE = { all: 60, category: 90 }
 
 // 태그 노드를 눌렀을 때 카메라가 노드에서 떨어지는 거리
-const FOCUS_DISTANCE = 80
+const FOCUS_DISTANCE = 120
 
 // 노드가 적으면 여백을 크게 줘서 과하게 확대되지 않게 한다
 function fitPadding(nodeCount) {
   return nodeCount < 8 ? 120 : 40
+}
+
+// 글자 위치: 공 반지름만큼 내려서 공과 겹치지 않게 한다
+function labelY(baseRadius, hit) {
+  const r = hit ? baseRadius * Math.cbrt(HIT_VAL_SCALE) : baseRadius
+  return -(r + LABEL_GAP)
 }
 
 // 시뮬레이션이 시작되면 link.source/target이 id에서 노드 객체로 바뀐다
@@ -29,7 +42,8 @@ function endId(end) {
 
 // data: { nodes, links } / category: 화면에 보이는 데이터의 카테고리, null이면 전체 그래프
 // fitKey: 값이 바뀌면 전체가 보이게 다시 맞춘다 (사이드바를 닫을 때)
-function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0 }) {
+// highlightNames: 찾은 노드 이름(소문자) Set. AI 검색 결과에서 온다. 없으면 null
+function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0, highlightNames = null }) {
   const boxRef = useRef(null)
   const fgRef = useRef(null)
   const fittedRef = useRef(false) // 데이터마다 화면 맞춤은 한 번만
@@ -96,25 +110,60 @@ function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0 }) {
     return map
   }, [data])
 
-  // 강조 중이 아니면 모두 밝게, 강조 중이면 자신과 이웃만 밝게
+  // 검색 강조: 이름이 맞는 노드 id 집합. 지금 그래프에 맞는 노드가 하나도 없으면 강조하지 않는다
+  // (모든 노드가 흐려져 고장 난 것처럼 보이는 것을 막는다)
+  const highlightIds = useMemo(() => {
+    if (!highlightNames || highlightNames.size === 0 || !data) return null
+    const ids = new Set()
+    for (const n of data.nodes) {
+      if (highlightNames.has(String(n.name).toLowerCase())) ids.add(n.id)
+    }
+    return ids.size > 0 ? ids : null
+  }, [highlightNames, data])
+
+  const isHit = useCallback((id) => highlightIds?.has(id) ?? false, [highlightIds])
+
+  // 밝기: 마우스 강조가 우선, 그다음 검색 강조, 둘 다 없으면 모두 밝게
+  // 색: 찾은 노드는 마우스 강조 중에도 라임 계열을 유지한다
   const isLit = useCallback(
-    (id) => hoverId == null || id === hoverId || neighbors.get(hoverId)?.has(id),
-    [hoverId, neighbors]
+    (id) => {
+      if (hoverId != null) return id === hoverId || neighbors.get(hoverId)?.has(id)
+      if (highlightIds) return highlightIds.has(id)
+      return true
+    },
+    [hoverId, neighbors, highlightIds]
   )
 
   const isLinkLit = useCallback(
-    (l) =>
-      hoverId != null &&
-      (endId(l.source) === hoverId || endId(l.target) === hoverId),
-    [hoverId]
+    (l) => {
+      const a = endId(l.source)
+      const b = endId(l.target)
+      if (hoverId != null) return a === hoverId || b === hoverId
+      if (highlightIds) return highlightIds.has(a) && highlightIds.has(b)
+      return false
+    },
+    [hoverId, highlightIds]
   )
 
-  // 글자는 three.js 객체라 색 함수로 못 바꾸므로 직접 투명도를 조절한다
+  const focusing = hoverId != null || highlightIds != null
+
+  function nodeColorOf(node) {
+    const lit = isLit(node.id)
+    if (isHit(node.id)) return lit ? HIT_COLOR : HIT_DIM
+    return lit ? categoryColor(category ?? node.name) : NODE_DIM
+  }
+
+  // 글자는 three.js 객체라 색 함수로 못 바꾸므로 직접 바꾼다
+  // 색은 바뀔 때만 넣는다 (SpriteText는 색을 넣을 때마다 글자 그림을 다시 그린다)
   useEffect(() => {
     for (const [id, sprite] of labelsRef.current) {
+      const hit = isHit(id)
+      const color = hit ? HIT_LABEL_COLOR : LABEL_COLOR
+      if (sprite.color !== color) sprite.color = color
+      sprite.position.y = labelY(sprite.userData.baseRadius, hit)
       sprite.material.opacity = isLit(id) ? 1 : 0.15
     }
-  }, [isLit])
+  }, [isLit, isHit])
 
   // 의존성이 없어야 강조할 때 글자 객체가 다시 만들어지지 않는다
   const makeLabel = useCallback((node) => {
@@ -124,7 +173,8 @@ function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0 }) {
     sprite.fontFace = "Pretendard, system-ui, sans-serif"
     sprite.fontWeight = "600"
     sprite.fontSize = 120
-    sprite.position.y = LABEL_OFFSET
+    sprite.userData.baseRadius = Math.cbrt(node.val || 1) * NODE_REL_SIZE
+    sprite.position.y = labelY(sprite.userData.baseRadius, false)
     sprite.material.depthWrite = false
     labelsRef.current.set(node.id, sprite)
     return sprite
@@ -176,13 +226,11 @@ function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0 }) {
           backgroundColor="#09090b"
           showNavInfo={false}
           nodeLabel={() => ""}
-          nodeVal="val"
-          nodeRelSize={3}
+          nodeVal={(node) => (node.val || 1) * (isHit(node.id) ? HIT_VAL_SCALE : 1)}
+          nodeRelSize={NODE_REL_SIZE}
           nodeResolution={24}
           nodeOpacity={0.95}
-          nodeColor={(node) =>
-            isLit(node.id) ? categoryColor(category ?? node.name) : NODE_DIM
-          }
+          nodeColor={nodeColorOf}
           nodeThreeObject={makeLabel}
           nodeThreeObjectExtend={true}
           onNodeHover={handleNodeHover}
@@ -192,9 +240,7 @@ function KnowledgeGraph({ data, category, onNodeClick, fitKey = 0 }) {
           linkCurvature={0.12}
           linkOpacity={0.7}
           linkWidth={(l) => (isLinkLit(l) ? 1.2 : 0)}
-          linkColor={(l) =>
-            hoverId == null ? LINK_BASE : isLinkLit(l) ? LINK_LIT : LINK_DIM
-          }
+          linkColor={(l) => (!focusing ? LINK_BASE : isLinkLit(l) ? LINK_LIT : LINK_DIM)}
           linkDirectionalParticles={(l) => (isLinkLit(l) ? 2 : 0)}
           linkDirectionalParticleWidth={1.6}
           linkDirectionalParticleSpeed={0.006}

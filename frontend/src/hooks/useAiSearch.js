@@ -36,5 +36,13 @@ export function useAiSearch() {
     setStatus(result ? "done" : "idle")
   }
 
-  return { status, result, error, run, cancel }
+  // 진행 중인 검색을 멈추고 결과까지 지운다 (그래프 강조도 함께 사라진다)
+  function reset() {
+    abortRef.current?.abort()
+    setResult(null)
+    setError(null)
+    setStatus("idle")
+  }
+
+  return { status, result, error, run, cancel, reset }
 }
