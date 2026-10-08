@@ -193,6 +193,10 @@ def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: li
                 "content": f"목적: {purpose}\n\n검토 대상:\n{json.dumps(contents_in_scope, ensure_ascii=False)}"
             }],
         )
+        
+        if response.stop_reason == "max_tokens":
+            logger.warning("재분류 응답이 max_tokens에서 잘렸습니다")
+        
         raw = response.content[0].text
         raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         result = json.loads(raw)
