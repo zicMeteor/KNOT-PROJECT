@@ -103,6 +103,13 @@ function GraphPage() {
     else selectTag(dataCategory, node.name)
   }
 
+  // 빈 공간을 누르면 태그 선택을 푼다. 검색 결과가 있으면 검색 패널로 돌아간다
+  function handleBackgroundClick() {
+    if (!tag) return
+    setTag(null)
+    if (search.status !== "idle") setRightMode("search")
+  }
+
   function handleSearch(query) {
     setRightMode("search")
     setRightOpen(true)
@@ -133,6 +140,13 @@ function GraphPage() {
   let searchTabLabel = "AI 검색"
   if (search.status === "loading") searchTabLabel += " · 검색 중"
   else if (search.status === "done" && search.result) searchTabLabel += " · " + search.result.contents.length + "건"
+
+  // 그래프에서 계속 강조할 태그: 오른쪽 패널이 열려 태그 자료를 보고 있고,
+  // 화면의 그래프가 그 태그의 카테고리일 때만 (패널을 닫으면 강조도 꺼진다)
+  const selectedName =
+    rightOpen && rightMode === "tag" && tag && dataCategory && dataCategory === category
+      ? tag
+      : null
 
   const rightTitle = rightMode === "search" ? "AI 검색" : tag ?? "자료"
 
@@ -203,8 +217,10 @@ function GraphPage() {
           data={data}
           category={dataCategory}
           onNodeClick={handleNodeClick}
+          onBackgroundClick={handleBackgroundClick}
           fitKey={fitKey}
           highlightNames={highlightNames}
+          selectedName={selectedName}
         />
 
         <AiSearchBar
