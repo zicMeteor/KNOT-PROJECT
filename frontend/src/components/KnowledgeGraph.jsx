@@ -258,10 +258,12 @@ function KnowledgeGraph({
   // 연출을 처음부터 다시 하지 않는다 (Set 객체가 새로 만들어져도 내용으로 비교)
   const hitKey = highlightIds ? `${category ?? ""}|${hitOrder.join(",")}` : null
 
-  // 지금까지 켜진 찾은 노드. 새 검색 결과로 바뀐 직후에는 연출이 시작되기 전이라 비어 있다
+  // 지금까지 켜진 찾은 노드
+  // 연출이 시작되기 전(카테고리 이동 후 그래프가 자리 잡는 동안)에는 null → 평소처럼 모두 밝게 둔다
+  // (빈 Set을 주면 그동안 그래프 전체가 어두워져 멈춘 것처럼 보인다)
+  // 연출이 시작되면(startReveal이 key를 맞추면) 빈 Set부터 하나씩 켜진다
   const revealedIds = useMemo(() => {
-    if (!highlightIds) return null
-    if (reveal.key !== hitKey) return new Set()
+    if (!highlightIds || reveal.key !== hitKey) return null
     return new Set(hitOrder.slice(0, reveal.count))
   }, [highlightIds, hitKey, hitOrder, reveal])
 
@@ -385,7 +387,7 @@ function KnowledgeGraph({
   // 입자: 밝은 실에 흐른다. 검색 연출 중에는 검색 실만 끈다 (마우스 올림·선택 실은 평소처럼)
   const particlesOn = !revealing || focusId != null
 
-  const focusing = focusId != null || highlightIds != null
+  const focusing = focusId != null || revealedIds != null
 
   // 색: 찾은 노드는 어떤 강조 중에도 라임 계열을 유지한다
   function nodeColorOf(node) {
