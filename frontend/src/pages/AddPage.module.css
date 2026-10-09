@@ -231,3 +231,30 @@
   font-size: var(--text-sm);
   color: var(--color-danger);
 }
+
+/* 메모 칸: URL이나 PDF를 넣으면 나타난다 */
+.memo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  animation: memoIn var(--dur-base) var(--ease-out);
+}
+
+@keyframes memoIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memo {
+    animation: none;
+  }
+}
+
+/* 분석 중이거나 결과가 떠 있을 때 잠긴 메모 */
+.input:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}

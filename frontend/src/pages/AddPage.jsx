@@ -229,14 +229,25 @@ function AddPage() {
           )}
         </div>
 
-        <textarea
-          className={styles.input}
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          placeholder="메모 (선택)"
-          rows={3}
-        />
-        <p className={styles.hint}>메모는 나중에 재분류할 때 참고합니다</p>
+        {/* 메모는 URL이나 PDF를 넣은 뒤에만 보인다 */}
+        {/* URL을 지웠다가 다시 쓰는 경우를 위해, 숨겨져도 적어 둔 내용은 지우지 않는다 */}
+        {/* 분석이 시작되면 잠근다 (분석 뒤에 고쳐도 저장에는 분석할 때의 메모가 들어가기 때문) */}
+        {(file || url.trim()) && (
+          <div className={styles.memo}>
+            <textarea
+              className={styles.input}
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              disabled={locked}
+              placeholder="메모 (선택)"
+              rows={3}
+              aria-describedby="memo-hint"
+            />
+            <p id="memo-hint" className={styles.hint}>
+              메모는 나중에 재분류할 때 참고합니다
+            </p>
+          </div>
+        )}
 
         <div className={styles.actions}>
           <Button
