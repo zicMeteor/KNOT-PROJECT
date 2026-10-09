@@ -110,7 +110,9 @@ function HomeHero({ contents, graph, loading, error }) {
       graphRef.current = create(canvasRef.current, {
         data: graph,
         // 카드 더미 위쪽 빈 곳에 작게 모은다. 카드 뒤로 숨는 태그가 적어야 앞 카드의 태그 이름이 보인다
-        scale: narrow ? 0.2 : 0.23,
+        scale: narrow ? 0.2 : 0.3,
+        // 노드 크기는 유지하고 가로 방향으로만 조금 더 펼친다
+        spreadX: narrow ? 1 : 1.55,
         cx: narrow ? 0.8 : 0.7,
         cy: narrow ? 0.09 : 0.22,
         // 앞 카드의 태그에만 이름을 단다. 글과 카드에 걸리는 이름은 비키거나 뺀다

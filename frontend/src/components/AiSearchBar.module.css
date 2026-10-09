@@ -18,6 +18,12 @@
   transition: border-color var(--dur-fast) var(--ease-out);
 }
 
+/* 패널이 그래프 위에 열리면 검색창을 남은 그래프 영역의 가운데로 옮긴다 */
+.barPanelOpen {
+  left: calc((100% - var(--panel-width, 384px)) / 2);
+  width: min(560px, calc(100% - var(--panel-width, 384px) - 32px));
+}
+
 .bar:focus-within {
   border-color: var(--color-text-faint);
 }

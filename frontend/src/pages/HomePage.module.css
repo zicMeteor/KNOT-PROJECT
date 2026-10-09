@@ -2,6 +2,69 @@
   background: #000;
 }
 
+.empty {
+  position: relative;
+  width: min(720px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse at 85% 10%, rgba(104, 130, 255, 0.1), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: var(--color-text-faint);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.empty h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
+.emptyCopy {
+  max-width: 460px;
+  margin: 16px 0 26px;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.emptyAction {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: #f2f2f0;
+  color: #101012;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.emptyAction:hover {
+  transform: translateY(-1px);
+  background: #fff;
+}
+
+.emptyAction:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
 /* 맨 아래: 윤곽선만 있는 큰 이름 */
 .end {
   padding: 72px clamp(24px, 5vw, 72px) 48px;

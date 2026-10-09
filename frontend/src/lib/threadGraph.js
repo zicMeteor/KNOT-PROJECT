@@ -154,7 +154,7 @@ function easeOut(t) {
 }
 
 /* 그래프 하나를 canvas에 붙인다
-   opts: data {nodes, links}, scale(반지름 비율), speed(회전), labels('all'|'big'|'lit'|'none'),
+   opts: data {nodes, links}, scale(반지름 비율), spreadX(가로 퍼짐 배율), speed(회전), labels('all'|'big'|'lit'|'none'),
          ('lit': 강조한 태그와 마우스를 올린 태그에만 이름을 단다)
          avoid(): 이름을 피해서 달 영역 [{l,r,t,b}] (canvas 기준 px). 노드 오른쪽이 막히면 왼쪽에, 둘 다 막히면 뺀다
          labelTint: 강조한 태그 이름을 카테고리 색으로
@@ -248,7 +248,7 @@ export function create(canvas, opts) {
       f = 2.6,
       s = f / (f + Math.max(-1.6, z2))
     return {
-      x: W * (opts.cx || 0.5) + x1 * R * s + tiltY * 18,
+      x: W * (opts.cx || 0.5) + x1 * R * s * (opts.spreadX || 1) + tiltY * 18,
       y: H * (opts.cy || 0.5) + y1 * R * s,
       s: s,
       z: z2,

@@ -145,7 +145,6 @@ function GraphPage() {
 
   function closeRight() {
     setRightOpen(false)
-    setFitKey((k) => k + 1)
   }
 
   function selectTag(cat, t) {
@@ -280,7 +279,7 @@ function GraphPage() {
         </aside>
       )}
 
-      <section className={styles.center}>
+      <section className={`${styles.center} ${rightOpen ? styles.centerPanelOpen : ""}`}>
         <div className={styles.toolbar}>
           <div className={styles.toolbarGroup}>
             {!leftOpen && (
@@ -351,71 +350,72 @@ function GraphPage() {
           onSubmit={handleSearch}
           onClear={handleClearSearch}
           initialText={initialQuery}
+          panelOpen={rightOpen}
         />
-      </section>
 
-      {rightOpen && (
-        <aside className={styles.right}>
-          <div className={styles.sideHead}>
-            <button
-              type="button"
-              className={styles.iconBtn}
-              onClick={closeRight}
-              aria-label="오른쪽 사이드바 닫기"
-              title="사이드바 닫기"
-            >
-              <SidebarIcon side="right" />
-            </button>
-            {showTabs ? (
-              <div className={styles.tabs} role="tablist">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={rightMode === "search"}
-                  className={`${styles.tab} ${rightMode === "search" ? styles.tabActive : ""}`}
-                  onClick={() => setRightMode("search")}
-                >
-                  {searchTabLabel}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={rightMode === "tag"}
-                  className={`${styles.tab} ${rightMode === "tag" ? styles.tabActive : ""}`}
-                  onClick={() => setRightMode("tag")}
-                  title={tag}
-                >
-                  #{tag}
-                </button>
-              </div>
-            ) : (
-              <span className={styles.sideTitle}>{rightTitle}</span>
-            )}
-          </div>
-          <div className={styles.sideBody}>
-            {rightMode === "search" ? (
-              <AiSearchPanel
-                status={search.status}
-                result={search.result}
-                error={search.error}
-              />
-            ) : rightMode === "pair" && pair ? (
-              <PairPanel
-                a={pair.a}
-                b={pair.b}
-                category={dataCategory}
-                onPickTag={(t) => selectTag(dataCategory, t)}
-              />
-            ) : tag ? (
-              <TagPanel tag={tag} category={category} />
-            ) : (
-              <p className={styles.placeholder}>
-                왼쪽 트리나 그래프에서 태그를 선택하면 관련 자료가 여기에 나옵니다.
-              </p>
-            )}
-          </div>
-        </aside>
-      )}
+        {rightOpen && (
+          <aside className={styles.right}>
+            <div className={styles.sideHead}>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                onClick={closeRight}
+                aria-label="오른쪽 사이드바 닫기"
+                title="사이드바 닫기"
+              >
+                <SidebarIcon side="right" />
+              </button>
+              {showTabs ? (
+                <div className={styles.tabs} role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={rightMode === "search"}
+                    className={`${styles.tab} ${rightMode === "search" ? styles.tabActive : ""}`}
+                    onClick={() => setRightMode("search")}
+                  >
+                    {searchTabLabel}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={rightMode === "tag"}
+                    className={`${styles.tab} ${rightMode === "tag" ? styles.tabActive : ""}`}
+                    onClick={() => setRightMode("tag")}
+                    title={tag}
+                  >
+                    #{tag}
+                  </button>
+                </div>
+              ) : (
+                <span className={styles.sideTitle}>{rightTitle}</span>
+              )}
+            </div>
+            <div className={styles.sideBody}>
+              {rightMode === "search" ? (
+                <AiSearchPanel
+                  status={search.status}
+                  result={search.result}
+                  error={search.error}
+                />
+              ) : rightMode === "pair" && pair ? (
+                <PairPanel
+                  a={pair.a}
+                  b={pair.b}
+                  category={dataCategory}
+                  onPickTag={(t) => selectTag(dataCategory, t)}
+                />
+              ) : tag ? (
+                <TagPanel tag={tag} category={category} />
+              ) : (
+                <p className={styles.placeholder}>
+                  왼쪽 트리나 그래프에서 태그를 선택하면 관련 자료가 여기에 나옵니다.
+                </p>
+              )}
+            </div>
+          </aside>
+        )}
+      </section>
 
       {modalOpen && (
         <ReclassifyModal

@@ -34,7 +34,7 @@ function EnterIcon() {
 // loading: 찾는 중 / hasResult: 지울 결과(성공 또는 오류)가 있으면 true. 지우기 버튼을 보여준다
 // onSubmit(query): 검색 실행 / onClear(): 결과와 강조 지우기
 // initialText: 처음 입력칸에 넣어 둘 질문 (홈에서 넘겨받은 질문)
-function AiSearchBar({ loading, hasResult, onSubmit, onClear, initialText = "" }) {
+function AiSearchBar({ loading, hasResult, onSubmit, onClear, initialText = "", panelOpen = false }) {
   const [text, setText] = useState(initialText)
   const inputRef = useRef(null)
   const clearTimerRef = useRef(null) // 글자를 다 지웠을 때 결과를 지우는 타이머
@@ -121,7 +121,7 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear, initialText = "" }
   }
 
   return (
-    <form className={styles.bar} onSubmit={handleSubmit} role="search">
+    <form className={`${styles.bar} ${panelOpen ? styles.barPanelOpen : ""}`} onSubmit={handleSubmit} role="search">
       <span className={styles.icon}>
         <SearchIcon />
       </span>

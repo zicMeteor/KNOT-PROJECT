@@ -32,10 +32,10 @@ const HIT_VAL_SCALE = 3 // 찾은 노드 → 약 1.44배
 const SELECTED_VAL_SCALE = 4 // 선택한 노드 → 약 1.59배 (찾은 노드보다 크게 해서 무엇을 골랐는지 보이게)
 
 const NODE_REL_SIZE = 3 // 반지름 = val의 세제곱근 × 이 값 (ForceGraph3D nodeRelSize와 같아야 함)
-const LABEL_GAP = 7 // 공 아래쪽 끝과 글자 중심 사이 거리
+const LABEL_GAP = 9 // 공 아래쪽 끝과 글자 중심 사이 거리
 
 // 연결 없는 노드가 멀리 밀려나지 않게 반발력이 미치는 거리를 제한한다
-const CHARGE_RANGE = 90
+const CHARGE_RANGE = 150
 
 // 태그 노드를 눌렀을 때 카메라가 노드에서 떨어지는 거리
 const FOCUS_DISTANCE = 100
@@ -129,7 +129,7 @@ function motionMs(ms) {
 
 // 노드가 적으면 여백을 크게 줘서 과하게 확대되지 않게 한다
 function fitPadding(nodeCount) {
-  return nodeCount < 8 ? 120 : 40
+  return nodeCount < 8 ? 96 : 24
 }
 
 // 글자 위치: 공 반지름만큼 내려서 공과 겹치지 않게 한다
@@ -578,7 +578,7 @@ function KnowledgeGraph({
         const label = new SpriteText(node.name)
         label.userData.baseColor = LABEL_COLOR
         label.color = LABEL_COLOR
-        label.textHeight = 4
+        label.textHeight = 4.5
         label.fontFace = 'Pretendard, "Noto Sans KR", system-ui, sans-serif'
         label.fontWeight = "500"
         label.fontSize = 120

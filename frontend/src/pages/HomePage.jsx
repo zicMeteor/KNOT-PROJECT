@@ -1,6 +1,7 @@
 // src/pages/HomePage.jsx
 // 홈: 첫 화면(링크 입력과 자료 상자) → 찾는 길 세 가지 → 지식이 자라는 모습
 import { useMemo } from "react"
+import { Link } from "react-router-dom"
 import { useContents } from "../hooks/useContents"
 import { tagGraph } from "../lib/threadGraph"
 import HomeHero from "../components/home/HomeHero"
@@ -19,6 +20,18 @@ function HomePage() {
   return (
     <div className={styles.page}>
       <HomeHero contents={contents} graph={graph} loading={loading} error={error} />
+      {!loading && contents.length === 0 && !error && (
+        <section className={styles.empty} aria-labelledby="empty-title">
+          <p className={styles.eyebrow}>KNOT 시작하기</p>
+          <h2 id="empty-title">첫 자료를 추가해 보세요</h2>
+          <p className={styles.emptyCopy}>
+            자료를 저장하면 AI가 요약하고, 카테고리와 태그를 지식 그래프로 연결합니다.
+          </p>
+          <Link to="/add" className={styles.emptyAction}>
+            자료 추가
+          </Link>
+        </section>
+      )}
       {contents.length > 0 && (
         <>
           <HomeWays contents={contents} graph={graph} />
