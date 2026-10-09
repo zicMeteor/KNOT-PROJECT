@@ -13,7 +13,7 @@ function searchText(c) {
 }
 
 // 최근 추가 순: 생성일자(ISO 문자열이라 글자 순 비교 = 시간 순) → 같거나 없으면 id 큰 순
-function byNewest(a, b) {
+export function byNewest(a, b) {
   const byDate = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))
   return byDate !== 0 ? byDate : b.id - a.id
 }

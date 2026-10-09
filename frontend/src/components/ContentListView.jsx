@@ -29,7 +29,8 @@ function formatDate(value) {
 // items: 보여줄 자료 / header: 목록 위에 둘 내용(건수, 안내 등) / renderBadge: 제목 옆 표시(일치 방식 등)
 // 카드 안 정보 순서: 제목 > 출처 줄(작게) > 요약 > 태그(글자)
 // 알약 모양은 누를 수 있는 것에만 쓰고, 태그처럼 정보만 있는 것은 글자로 둔다
-function ContentListView({ items, header, renderBadge }) {
+// compact: 한 줄 목록 (제목 + 출처 + 날짜만). 자료 추가 화면의 최근 자료처럼 훑어보는 곳에서 쓴다
+function ContentListView({ items, header, renderBadge, compact = false }) {
   const [selected, setSelected] = useState(null)
 
   // 목록이 바뀌면(다른 태그, 새 검색) 열려 있던 상세를 닫는다
@@ -56,6 +57,23 @@ function ContentListView({ items, header, renderBadge }) {
       <ul className={styles.list}>
         {items.map((c) => {
           const date = formatDate(c.createdAt)
+          if (compact) {
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  className={`${styles.item} ${styles.itemCompact}`}
+                  onClick={() => setSelected(c)}
+                >
+                  <span className={styles.compactTitle}>{c.title || c.url || "제목 없음"}</span>
+                  <span className={`${styles.meta} ${styles.compactMeta}`}>
+                    <span>{sourceLabel(c.url)}</span>
+                    {date && <span>{date}</span>}
+                  </span>
+                </button>
+              </li>
+            )
+          }
           return (
             <li key={c.id}>
               <button type="button" className={styles.item} onClick={() => setSelected(c)}>
