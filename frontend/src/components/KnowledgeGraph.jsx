@@ -28,6 +28,21 @@ const CHARGE_RANGE = { all: 60, category: 90 }
 // 태그 노드를 눌렀을 때 카메라가 노드에서 떨어지는 거리
 const FOCUS_DISTANCE = 100
 
+// 검색 결과로 카메라를 옮길 때
+const HIT_CAMERA_MS = 800 // 카메라 이동 시간(ms)
+const HIT_FIT_MARGIN = 1.15 // 찾은 노드 묶음 둘레에 남길 여유 (1보다 크면 멀어짐. 검색창에 가리면 키운다)
+const MIN_HIT_DISTANCE = 140 // 묶음 중심에서 카메라까지 최소 거리 (노드가 1~2개일 때 너무 붙지 않게)
+
+// 검색 연출: 카메라 이동이 끝난 뒤 찾은 노드가 결과 순서대로 하나씩 켜진다
+// 카메라가 움직이는 동안 화면을 다시 그리면 끊겨 보여서, 이동이 끝난 다음에 시작한다
+const REVEAL_DELAY = HIT_CAMERA_MS + 50 // 첫 노드가 켜질 때까지(ms)
+const REVEAL_STEP = 120 // 노드가 하나씩 켜지는 간격(ms)
+
+// 기기에서 "동작 줄이기"를 켜 두었으면 연출 없이 한 번에 보여준다
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+}
+
 // 노드가 적으면 여백을 크게 줘서 과하게 확대되지 않게 한다
 function fitPadding(nodeCount) {
   return nodeCount < 8 ? 120 : 40
@@ -45,17 +60,48 @@ function focusCamera(fg, node, ms) {
   fg.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, ms)
 }
 
-// 검색으로 찾은 노드들이 한 화면에 들어오게 카메라를 맞춘다
-// 하나뿐이면 그 노드로 다가간다 (점 하나에 맞추면 카메라가 노드 안으로 들어가 버린다)
+// 검색으로 찾은 노드들이 한 화면에 들어오게 카메라를 옮긴다
+// 지금 보는 방향은 그대로 두고 묶음 중심 쪽으로 다가간다
+// 묶음이 작아도(노드 1~2개) MIN_HIT_DISTANCE보다 가까이 가지 않는다
+// (라이브러리의 zoomToFit은 최소 거리가 없어서 노드 안으로 들어가 버릴 수 있다)
 function fitToHits(fg, ids, nodes, ms) {
   if (!fg || !ids || ids.size === 0) return
-  if (ids.size === 1) {
-    const [only] = ids
-    const node = nodes.find((n) => n.id === only)
-    if (node) focusCamera(fg, node, ms)
-    return
+  const hits = nodes.filter((n) => ids.has(n.id) && Number.isFinite(n.x))
+  if (hits.length === 0) return
+
+  // 묶음 중심과, 중심에서 가장 먼 노드까지의 거리 (+ 노드 크기와 글자 여유)
+  const c = { x: 0, y: 0, z: 0 }
+  for (const n of hits) {
+    c.x += n.x / hits.length
+    c.y += n.y / hits.length
+    c.z += n.z / hits.length
   }
-  fg.zoomToFit(ms, fitPadding(ids.size), (n) => ids.has(n.id))
+  let r = 0
+  for (const n of hits) r = Math.max(r, Math.hypot(n.x - c.x, n.y - c.y, n.z - c.z))
+  r += 12
+
+  // 세로·가로 시야 중 좁은 쪽에 묶음이 다 들어오는 거리
+  const cam = fg.camera()
+  const vHalf = (cam.fov * Math.PI) / 360
+  const hHalf = Math.atan(Math.tan(vHalf) * cam.aspect)
+  const dist = Math.max(MIN_HIT_DISTANCE, (r / Math.sin(Math.min(vHalf, hHalf))) * HIT_FIT_MARGIN)
+
+  // 지금 카메라가 있는 방향 그대로, 중심에서 dist만큼 떨어진 곳으로
+  let dx = cam.position.x - c.x
+  let dy = cam.position.y - c.y
+  let dz = cam.position.z - c.z
+  let len = Math.hypot(dx, dy, dz)
+  if (len < 1e-6) {
+    dx = 0
+    dy = 0
+    dz = 1
+    len = 1
+  }
+  fg.cameraPosition(
+    { x: c.x + (dx / len) * dist, y: c.y + (dy / len) * dist, z: c.z + (dz / len) * dist },
+    c,
+    ms
+  )
 }
 
 // 시뮬레이션이 시작되면 link.source/target이 id에서 노드 객체로 바뀐다
@@ -66,6 +112,7 @@ function endId(end) {
 // data: { nodes, links } / category: 화면에 보이는 데이터의 카테고리, null이면 전체 그래프
 // fitKey: 값이 바뀌면 전체가 보이게 다시 맞춘다 (사이드바를 닫을 때)
 // highlightNames: 찾은 노드 이름(소문자) Set. AI 검색 결과에서 온다. 없으면 null
+// focusNames: 찾은 노드 중 카메라가 중심으로 잡을 이름(소문자) Set. 질문에서 AI가 뽑은 태그. 없으면 null
 // selectedName: 선택한 태그 이름. 그 노드와 이웃을 계속 밝게 보여준다. 없으면 null
 // onBackgroundClick: 빈 공간을 눌렀을 때 (선택 해제용)
 function KnowledgeGraph({
@@ -75,6 +122,7 @@ function KnowledgeGraph({
   onBackgroundClick,
   fitKey = 0,
   highlightNames = null,
+  focusNames = null,
   selectedName = null,
 }) {
   const boxRef = useRef(null)
@@ -83,8 +131,11 @@ function KnowledgeGraph({
   const draggingRef = useRef(false) // 드래그 중에는 마우스 강조가 다른 노드로 바뀌지 않게
   const labelsRef = useRef(new Map()) // 노드 id → 글자 객체 (흐리게 만들 때 사용)
   const hadHitsRef = useRef(false) // 직전에 검색 결과가 있었는지 (검색을 지울 때 전체로 돌아가기용)
+  const revealTimerRef = useRef(null) // 하나씩 켜지는 연출의 타이머
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [hoverId, setHoverId] = useState(null)
+  // 하나씩 켜지는 연출 상태: ids는 어떤 검색 결과에 대한 것인지, count는 지금까지 켜진 개수
+  const [reveal, setReveal] = useState({ ids: null, count: 0 })
 
   const nodeCount = data?.nodes.length ?? 0
 
@@ -157,7 +208,63 @@ function KnowledgeGraph({
     return ids.size > 0 ? ids : null
   }, [highlightNames, data])
 
-  const isHit = useCallback((id) => highlightIds?.has(id) ?? false, [highlightIds])
+  // 카메라가 중심으로 잡을 노드: 찾은 노드 중 질문에서 뽑은 태그와 이름이 같은 것
+  // (예: "트랜스포머" → Transformer, 자연어처리, 어텐션 메커니즘)
+  // 하나도 없으면 null → 찾은 노드 전체에 맞춘다
+  const focusIds = useMemo(() => {
+    if (!highlightIds || !focusNames || focusNames.size === 0) return null
+    const ids = new Set()
+    for (const n of data.nodes) {
+      if (highlightIds.has(n.id) && focusNames.has(String(n.name).toLowerCase())) ids.add(n.id)
+    }
+    return ids.size > 0 ? ids : null
+  }, [highlightIds, focusNames, data])
+
+  // 찾은 노드를 켤 순서: 질문 태그(카메라 중심)가 먼저, 그다음 검색 결과 순서
+  const hitOrder = useMemo(() => {
+    if (!highlightIds) return []
+    const idByName = new Map(data.nodes.map((n) => [String(n.name).toLowerCase(), n.id]))
+    const order = []
+    for (const name of [...(focusNames ?? []), ...highlightNames]) {
+      const id = idByName.get(name)
+      if (id != null && highlightIds.has(id) && !order.includes(id)) order.push(id)
+    }
+    return order
+  }, [highlightIds, highlightNames, focusNames, data])
+
+  // 지금까지 켜진 찾은 노드. 새 검색 결과로 바뀐 직후에는 연출이 시작되기 전이라 비어 있다
+  // (ids로 어느 결과의 연출인지 확인해서, 새 결과가 한 프레임 전부 켜졌다 꺼지는 깜빡임을 막는다)
+  const revealedIds = useMemo(() => {
+    if (!highlightIds) return null
+    if (reveal.ids !== highlightIds) return new Set()
+    return new Set(hitOrder.slice(0, reveal.count))
+  }, [highlightIds, hitOrder, reveal])
+
+  const isHit = useCallback((id) => revealedIds?.has(id) ?? false, [revealedIds])
+
+  // 하나씩 켜지는 중인지. 켜지는 동안에는 실 위 입자를 끈다
+  // (입자는 바뀔 때마다 새로 만들어져서, 켜질 때마다 바뀌면 화면이 끊긴다)
+  const revealing = revealedIds != null && revealedIds.size < hitOrder.length
+
+  // 연출 시작: REVEAL_DELAY 뒤부터 REVEAL_STEP 간격으로 하나씩 켠다
+  function startReveal(ids, total) {
+    clearTimeout(revealTimerRef.current)
+    if (prefersReducedMotion()) {
+      setReveal({ ids, count: Infinity })
+      return
+    }
+    setReveal({ ids, count: 0 })
+    let n = 0
+    const step = () => {
+      n += 1
+      setReveal({ ids, count: n })
+      if (n < total) revealTimerRef.current = setTimeout(step, REVEAL_STEP)
+    }
+    revealTimerRef.current = setTimeout(step, REVEAL_DELAY)
+  }
+
+  // 화면을 떠나면 남은 타이머를 정리한다
+  useEffect(() => () => clearTimeout(revealTimerRef.current), [])
 
   // 그래프가 처음 자리 잡으면 화면을 맞춘다. 검색 결과가 있으면 찾은 노드 쪽으로, 없으면 전체
   // (검색 후 다른 카테고리로 자동 이동한 경우가 여기에 해당한다)
@@ -165,13 +272,19 @@ function KnowledgeGraph({
     if (fittedRef.current) return
     fittedRef.current = true
     const fg = fgRef.current
-    if (highlightIds) fitToHits(fg, highlightIds, data.nodes, 400)
-    else fg?.zoomToFit(400, fitPadding(nodeCount))
+    if (highlightIds) {
+      fitToHits(fg, focusIds ?? highlightIds, data.nodes, HIT_CAMERA_MS)
+      startReveal(highlightIds, hitOrder.length)
+    } else {
+      fg?.zoomToFit(400, fitPadding(nodeCount))
+    }
   }
 
-  // 같은 그래프에서 검색 결과가 바뀌면 찾은 노드 쪽으로, 검색을 지우면 전체가 보이게 카메라를 옮긴다
-  // 그래프가 아직 자리 잡는 중이면(fittedRef가 false) handleEngineStop이 대신 맞춘다
+  // 같은 그래프에서 검색 결과가 바뀌면 질문 태그(없으면 찾은 노드 전체) 쪽으로 다가가며 하나씩 켜고,
+  // 검색을 지우면 전체가 보이게 카메라를 옮긴다
+  // 그래프가 아직 자리 잡는 중이면(fittedRef가 false) handleEngineStop이 대신 한다
   // 오른쪽 사이드바가 열리며 캔버스 크기가 바뀌므로 조금 늦게 실행한다
+  // (의존성은 highlightIds만 둔다. 검색 결과가 바뀔 때만 실행되어야 한다)
   useEffect(() => {
     const hadHits = hadHitsRef.current
     hadHitsRef.current = highlightIds != null
@@ -179,8 +292,13 @@ function KnowledgeGraph({
     if (!highlightIds && !hadHits) return
     const id = setTimeout(() => {
       const fg = fgRef.current
-      if (highlightIds) fitToHits(fg, highlightIds, data?.nodes ?? [], 800)
-      else fg?.zoomToFit(800, fitPadding(nodeCount))
+      if (highlightIds) {
+        fitToHits(fg, focusIds ?? highlightIds, data?.nodes ?? [], HIT_CAMERA_MS)
+        startReveal(highlightIds, hitOrder.length)
+      } else {
+        clearTimeout(revealTimerRef.current) // 연출 도중에 지웠으면 남은 타이머를 멈춘다
+        fg?.zoomToFit(800, fitPadding(nodeCount))
+      }
     }, 100)
     return () => clearTimeout(id)
   }, [highlightIds])
@@ -193,26 +311,28 @@ function KnowledgeGraph({
 
   // 밝기 우선순위: 마우스 올림 > 선택한 태그 > 검색 결과 > 모두 밝게
   // 마우스 올림과 선택은 "그 노드 + 이웃"을 밝게 한다
+  // 검색 결과는 켜진 노드만 밝다 (연출 중에는 나머지가 어두운 채로 하나씩 켜진다)
   const focusId = hoverId ?? selectedId
 
   const isLit = useCallback(
     (id) => {
       if (focusId != null) return id === focusId || neighbors.get(focusId)?.has(id)
-      if (highlightIds) return highlightIds.has(id)
+      if (revealedIds) return revealedIds.has(id)
       return true
     },
-    [focusId, neighbors, highlightIds]
+    [focusId, neighbors, revealedIds]
   )
 
+  // 양 끝 노드가 모두 켜지면 그 실이 밝아지고 입자가 흐른다
   const isLinkLit = useCallback(
     (l) => {
       const a = endId(l.source)
       const b = endId(l.target)
       if (focusId != null) return a === focusId || b === focusId
-      if (highlightIds) return highlightIds.has(a) && highlightIds.has(b)
+      if (revealedIds) return revealedIds.has(a) && revealedIds.has(b)
       return false
     },
-    [focusId, highlightIds]
+    [focusId, revealedIds]
   )
 
   const focusing = focusId != null || highlightIds != null
@@ -305,7 +425,7 @@ function KnowledgeGraph({
           linkOpacity={0.7}
           linkWidth={(l) => (isLinkLit(l) ? 1.2 : 0)}
           linkColor={(l) => (!focusing ? LINK_BASE : isLinkLit(l) ? LINK_LIT : LINK_DIM)}
-          linkDirectionalParticles={(l) => (isLinkLit(l) ? 2 : 0)}
+          linkDirectionalParticles={(l) => (!revealing && isLinkLit(l) ? 2 : 0)}
           linkDirectionalParticleWidth={1.6}
           linkDirectionalParticleSpeed={0.006}
           linkDirectionalParticleColor={() => LINK_LIT}

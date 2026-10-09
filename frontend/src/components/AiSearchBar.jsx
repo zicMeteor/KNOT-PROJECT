@@ -58,15 +58,26 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
 
   // Enter는 검색, 줄바꿈은 넣지 않는다 (질문은 한 문장이라 줄바꿈이 필요 없다)
   // 한글 입력 중(조합 중) Enter는 글자 확정용이라 무시한다. 안 그러면 마지막 글자가 빠진 채 검색된다
+  // Esc는 × 버튼과 같다 (글자, 결과, 강조를 모두 지운다)
   function handleKeyDown(e) {
-    if (e.key !== "Enter" || e.nativeEvent.isComposing) return
+    if (e.nativeEvent.isComposing) return
+    if (e.key === "Escape") {
+      e.preventDefault()
+      handleClear()
+      return
+    }
+    if (e.key !== "Enter") return
     e.preventDefault()
     submit()
   }
 
   // 붙여넣은 글의 줄바꿈은 띄어쓰기로 바꾼다
+  // 글자를 모두 지우면 결과와 강조도 같이 지운다 (빈 검색창인데 그래프만 강조된 상태를 막는다)
+  // 찾는 중이었으면 요청도 취소된다 (onClear가 search.reset을 부른다)
   function handleChange(e) {
-    setText(e.target.value.replace(/[\r\n]+/g, " "))
+    const next = e.target.value.replace(/[\r\n]+/g, " ")
+    setText(next)
+    if (next.trim() === "" && (hasResult || loading)) onClear()
   }
 
   function handleClear() {

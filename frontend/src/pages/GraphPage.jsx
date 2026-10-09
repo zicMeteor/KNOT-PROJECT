@@ -81,6 +81,14 @@ function GraphPage() {
     return new Set(names.filter(Boolean).map((n) => String(n).toLowerCase()))
   }, [search.status, search.result, dataCategory])
 
+  // 카메라가 중심으로 잡을 태그: 질문에서 AI가 뽑은 태그 (예: "트랜스포머" → Transformer)
+  // 카테고리 그래프에서만 쓴다. 찾은 노드 중에 이 태그가 없으면 KnowledgeGraph가 찾은 노드 전체에 맞춘다
+  const focusNames = useMemo(() => {
+    if (search.status !== "done" || !search.result || !dataCategory) return null
+    const tags = search.result.analysis?.tags ?? []
+    return tags.length > 0 ? new Set(tags.map((t) => String(t).toLowerCase())) : null
+  }, [search.status, search.result, dataCategory])
+
   function goAll() {
     setCategory(null)
     setTag(null)
@@ -139,25 +147,18 @@ function GraphPage() {
   }
 
   let status = null
-  if (error) 
-    status = "오류: " + error
-  else if (loading) 
-    status = "불러오는 중…"
+  if (error) status = "오류: " + error
+  else if (loading) status = "불러오는 중…"
   else if (data && data.nodes.length === 0)
     status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
-  else if (notice) 
-    status = notice
+  else if (notice) status = notice
 
   // 검색과 태그가 둘 다 있을 때만 탭을 보여준다. 하나만 있으면 제목만
   const searchActive = search.status !== "idle"
   const showTabs = searchActive && tag != null
-
   let searchTabLabel = "AI로 찾기"
-
-  if (search.status === "loading") 
-    searchTabLabel += " · 검색 중"
-  else if (search.status === "done" && search.result) 
-    searchTabLabel = "AI 결과 " + search.result.contents.length + "건"
+  if (search.status === "loading") searchTabLabel = "AI로 찾는 중"
+  else if (search.status === "done" && search.result) searchTabLabel = "AI 결과 " + search.result.contents.length + "건"
 
   // 그래프에서 계속 강조할 태그: 오른쪽 패널이 열려 태그 자료를 보고 있고,
   // 화면의 그래프가 그 태그의 카테고리일 때만 (패널을 닫으면 강조도 꺼진다)
@@ -238,6 +239,7 @@ function GraphPage() {
           onBackgroundClick={handleBackgroundClick}
           fitKey={fitKey}
           highlightNames={highlightNames}
+          focusNames={focusNames}
           selectedName={selectedName}
         />
 
