@@ -2,9 +2,9 @@ import { NavLink, Outlet, useLocation } from "react-router-dom"
 import styles from "./Layout.module.css"
 
 const MENU = [
-  { to: "/", label: "홈" },
   { to: "/add", label: "자료 추가" },
   { to: "/graph", label: "지식 그래프" },
+  { to: "/library", label: "전체 자료" },
 ]
 
 // 여백 없이 화면 전체를 쓰는 페이지
@@ -17,18 +17,23 @@ function Layout() {
   return (
     <div className={full ? styles.appFull : undefined}>
       <nav className={styles.nav}>
-        {MENU.map((m) => (
-          <NavLink
-            key={m.to}
-            to={m.to}
-            end={m.to === "/"}
-            className={({ isActive }) =>
-              isActive ? `${styles.link} ${styles.active}` : styles.link
-            }
-          >
-            {m.label}
-          </NavLink>
-        ))}
+        {/* 서비스 이름. 누르면 홈으로 (홈 메뉴를 대신한다) */}
+        <NavLink to="/" end className={styles.brand} aria-label="KNOT 홈">
+          KNOT
+        </NavLink>
+        <div className={styles.links}>
+          {MENU.map((m) => (
+            <NavLink
+              key={m.to}
+              to={m.to}
+              className={({ isActive }) =>
+                isActive ? `${styles.link} ${styles.active}` : styles.link
+              }
+            >
+              {m.label}
+            </NavLink>
+          ))}
+        </div>
       </nav>
       <main className={full ? styles.mainFull : styles.main}>
         <Outlet />

@@ -1,97 +1,140 @@
+/* 그래프 위에 떠 있는 검색창. 바깥 모서리 16px = 안쪽 버튼 10px + 여백 6px */
 .bar {
   position: absolute;
   left: 50%;
   bottom: var(--space-6);
   transform: translateX(-50%);
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   width: min(560px, calc(100% - 32px));
+  display: flex;
+  /* 줄이 늘어나도 아이콘과 버튼은 마지막 줄 높이에 붙어 있게 */
+  align-items: flex-end;
+  gap: var(--space-2);
   padding: 6px 6px 6px var(--space-4);
   background: rgba(19, 19, 22, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   transition: border-color var(--dur-fast) var(--ease-out);
 }
 
 .bar:focus-within {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--color-text-faint);
 }
 
+/* 높이를 버튼(36px)과 맞춰 첫 줄 가운데에 오게 */
 .icon {
-  flex: 0 0 auto;
-  color: var(--color-text-faint);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 36px;
+  color: var(--color-text-muted);
 }
 
+.icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 한 줄로 시작해서 칸을 넘으면 아래로 줄바꿈 (높이는 JS가 내용에 맞춘다) */
 .input {
   flex: 1;
   min-width: 0;
-  height: 36px;
-  padding: 0;
-  font: inherit;
-  font-size: 15px;
-  color: var(--color-text);
-  background: transparent;
+  box-sizing: border-box; /* 높이 계산에 위아래 여백이 포함되게 */
+  padding: 6px 0;
   border: 0;
   outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-md);
+  line-height: 24px;
+  resize: none;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 
 .input::placeholder {
-  color: var(--color-text-faint);
-}
-
-.status {
-  flex: 0 0 auto;
-  font-size: 13px;
   color: var(--color-text-muted);
 }
 
-.iconBtn {
-  display: inline-flex;
-  flex: 0 0 28px;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: var(--color-text-muted);
+.clear {
+  flex: none;
+  width: 32px;
+  height: 36px; /* 엔터 버튼과 같은 높이라 마지막 줄에 나란히 선다 */
+  border: 0;
+  border-radius: 8px;
   background: transparent;
-  border: 0;
-  border-radius: 50%;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  line-height: 1;
   cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out),
-    color var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 
-.iconBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
+.clear:hover {
   color: var(--color-text);
+  background: rgba(255, 255, 255, 0.06);
 }
 
+/* 엔터 아이콘 버튼 */
 .submit {
-  flex: 0 0 auto;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
   height: 36px;
-  padding: 0 var(--space-4);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-bg);
-  background: var(--color-accent);
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
   cursor: pointer;
-  transition: opacity var(--dur-fast) var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
+.submit svg {
+  width: 18px;
+  height: 18px;
+}
+
+.submit:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 입력이 비어 있으면 누를 수 없음을 흐리게 보여준다 */
 .submit:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-faint);
+  cursor: default;
 }
 
-.iconBtn:focus-visible,
+.clear:focus-visible,
 .submit:focus-visible {
-  outline: 2px solid var(--color-text-faint);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* 찾는 중: 버튼 안에서 도는 고리 */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.6;
+  }
 }

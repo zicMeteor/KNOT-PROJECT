@@ -34,26 +34,37 @@ function GraphPage() {
     return () => clearTimeout(id)
   }, [notice])
 
-  // 검색이 끝나면 찾은 자료가 있는 화면으로 이동한다
-  // - 결과가 한 카테고리에만 있으면 그 카테고리(태그 그래프)로
-  // - 여러 카테고리인데 지금 카테고리에 결과가 없으면 전체 그래프로
-  // - 검색 중에 사용자가 태그를 눌렀다면(rightMode가 "tag") 화면을 빼앗지 않는다
+  // 검색이 끝나면 찾은 자료가 있는 카테고리(태그 그래프)로 이동한다
+  // 1. 질문에서 AI가 뽑은 카테고리(analysis.category)가 결과에 있으면 그 카테고리로
+  // 2. 아니면 결과가 가장 많은 카테고리로 (같으면 결과 목록에서 먼저 나온 쪽)
+  // 검색 중에 사용자가 태그를 눌렀다면(rightMode가 "tag") 화면을 빼앗지 않는다
   useEffect(() => {
     const result = search.result
     if (search.status !== "done" || !result || autoNavRef.current === result) return
     autoNavRef.current = result
     if (rightMode !== "search") return
 
-    const cats = new Set(result.contents.map((c) => c.category).filter(Boolean))
-    if (cats.size === 0) return
-    if (cats.size === 1) {
-      const [only] = cats
-      if (only !== category) {
-        setCategory(only)
-        setTag(null)
+    // 카테고리별 결과 건수 (Map은 넣은 순서를 지키므로 건수가 같으면 먼저 나온 쪽이 남는다)
+    const counts = new Map()
+    for (const c of result.contents) {
+      if (c.category) counts.set(c.category, (counts.get(c.category) ?? 0) + 1)
+    }
+    if (counts.size === 0) return
+
+    const asked = result.analysis?.category
+    let target = asked && counts.has(asked) ? asked : null
+    if (!target) {
+      let best = 0
+      for (const [name, n] of counts) {
+        if (n > best) {
+          best = n
+          target = name
+        }
       }
-    } else if (category && !cats.has(category)) {
-      setCategory(null)
+    }
+
+    if (target !== category) {
+      setCategory(target)
       setTag(null)
     }
   }, [search.status, search.result, rightMode, category])
@@ -128,18 +139,25 @@ function GraphPage() {
   }
 
   let status = null
-  if (error) status = "오류: " + error
-  else if (loading) status = "불러오는 중…"
+  if (error) 
+    status = "오류: " + error
+  else if (loading) 
+    status = "불러오는 중…"
   else if (data && data.nodes.length === 0)
     status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
-  else if (notice) status = notice
+  else if (notice) 
+    status = notice
 
   // 검색과 태그가 둘 다 있을 때만 탭을 보여준다. 하나만 있으면 제목만
   const searchActive = search.status !== "idle"
   const showTabs = searchActive && tag != null
-  let searchTabLabel = "AI 검색"
-  if (search.status === "loading") searchTabLabel += " · 검색 중"
-  else if (search.status === "done" && search.result) searchTabLabel += " · " + search.result.contents.length + "건"
+
+  let searchTabLabel = "AI로 찾기"
+
+  if (search.status === "loading") 
+    searchTabLabel += " · 검색 중"
+  else if (search.status === "done" && search.result) 
+    searchTabLabel = "AI 결과 " + search.result.contents.length + "건"
 
   // 그래프에서 계속 강조할 태그: 오른쪽 패널이 열려 태그 자료를 보고 있고,
   // 화면의 그래프가 그 태그의 카테고리일 때만 (패널을 닫으면 강조도 꺼진다)
@@ -148,14 +166,14 @@ function GraphPage() {
       ? tag
       : null
 
-  const rightTitle = rightMode === "search" ? "AI 검색" : tag ?? "자료"
+  const rightTitle = rightMode === "search" ? "AI로 찾은 자료" : tag ?? "자료"
 
   return (
     <div className={styles.page}>
       {leftOpen && (
         <aside className={styles.left}>
           <div className={styles.sideHead}>
-            <span className={styles.sideTitle}>지식 그래프</span>
+            <span className={styles.sideTitle}>분류</span>
             <button
               type="button"
               className={styles.iconBtn}

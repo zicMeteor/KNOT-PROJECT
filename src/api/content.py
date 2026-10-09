@@ -58,7 +58,8 @@ def get_contents(db: Session = Depends(get_db)):
             "summary": content.summary,
             "URL": content.URL,
             "tags": tag_names,
-            "memo": content.memo
+            "memo": content.memo,
+            "created_at": content.created_at
         })
     
     return result

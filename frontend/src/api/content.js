@@ -17,6 +17,7 @@ export async function fetchContents() {
     url: c.URL,
     tags: c.tags,
     memo: c.memo,
+    createdAt: c.created_at
   }))
 }
 
