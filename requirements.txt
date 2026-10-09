@@ -1,0 +1,12 @@
+# KNOT 백엔드 직접 의존성 (개발 환경 .venv 기준 버전으로 고정, Python 3.13)
+anthropic==1.7.0
+fastapi==0.141.1
+uvicorn==0.53.0
+python-multipart==0.0.32
+pydantic==2.13.5
+sqlalchemy==2.0.54
+pymysql==1.2.3
+python-dotenv==1.2.3
+trafilatura==2.2.0
+playwright==1.63.0
+pymupdf==1.28.2
