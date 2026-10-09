@@ -38,6 +38,26 @@ function labelY(baseRadius, valScale) {
   return -(baseRadius * Math.cbrt(valScale) + LABEL_GAP)
 }
 
+// 카메라가 노드 쪽으로 다가간다 (공식 click-to-focus 예제 방식)
+function focusCamera(fg, node, ms) {
+  const len = Math.hypot(node.x, node.y, node.z) || 1
+  const ratio = 1 + FOCUS_DISTANCE / len
+  fg.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, ms)
+}
+
+// 검색으로 찾은 노드들이 한 화면에 들어오게 카메라를 맞춘다
+// 하나뿐이면 그 노드로 다가간다 (점 하나에 맞추면 카메라가 노드 안으로 들어가 버린다)
+function fitToHits(fg, ids, nodes, ms) {
+  if (!fg || !ids || ids.size === 0) return
+  if (ids.size === 1) {
+    const [only] = ids
+    const node = nodes.find((n) => n.id === only)
+    if (node) focusCamera(fg, node, ms)
+    return
+  }
+  fg.zoomToFit(ms, fitPadding(ids.size), (n) => ids.has(n.id))
+}
+
 // 시뮬레이션이 시작되면 link.source/target이 id에서 노드 객체로 바뀐다
 function endId(end) {
   return typeof end === "object" ? end.id : end
@@ -62,6 +82,7 @@ function KnowledgeGraph({
   const fittedRef = useRef(false) // 데이터마다 화면 맞춤은 한 번만
   const draggingRef = useRef(false) // 드래그 중에는 마우스 강조가 다른 노드로 바뀌지 않게
   const labelsRef = useRef(new Map()) // 노드 id → 글자 객체 (흐리게 만들 때 사용)
+  const hadHitsRef = useRef(false) // 직전에 검색 결과가 있었는지 (검색을 지울 때 전체로 돌아가기용)
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [hoverId, setHoverId] = useState(null)
 
@@ -78,6 +99,7 @@ function KnowledgeGraph({
   }, [])
 
   // 새 데이터를 받으면 화면 맞춤과 강조를 초기화
+  // (아래 검색 카메라 effect보다 먼저 선언되어야 fittedRef가 먼저 false가 된다)
   useEffect(() => {
     fittedRef.current = false
     draggingRef.current = false
@@ -124,12 +146,6 @@ function KnowledgeGraph({
     return data.nodes.find((n) => String(n.name).toLowerCase() === key)?.id ?? null
   }, [selectedName, category, data])
 
-  function handleEngineStop() {
-    if (fittedRef.current) return
-    fittedRef.current = true
-    fgRef.current?.zoomToFit(400, fitPadding(nodeCount))
-  }
-
   // 검색 강조: 이름이 맞는 노드 id 집합. 지금 그래프에 맞는 노드가 하나도 없으면 강조하지 않는다
   // (모든 노드가 흐려져 고장 난 것처럼 보이는 것을 막는다)
   const highlightIds = useMemo(() => {
@@ -142,6 +158,32 @@ function KnowledgeGraph({
   }, [highlightNames, data])
 
   const isHit = useCallback((id) => highlightIds?.has(id) ?? false, [highlightIds])
+
+  // 그래프가 처음 자리 잡으면 화면을 맞춘다. 검색 결과가 있으면 찾은 노드 쪽으로, 없으면 전체
+  // (검색 후 다른 카테고리로 자동 이동한 경우가 여기에 해당한다)
+  function handleEngineStop() {
+    if (fittedRef.current) return
+    fittedRef.current = true
+    const fg = fgRef.current
+    if (highlightIds) fitToHits(fg, highlightIds, data.nodes, 400)
+    else fg?.zoomToFit(400, fitPadding(nodeCount))
+  }
+
+  // 같은 그래프에서 검색 결과가 바뀌면 찾은 노드 쪽으로, 검색을 지우면 전체가 보이게 카메라를 옮긴다
+  // 그래프가 아직 자리 잡는 중이면(fittedRef가 false) handleEngineStop이 대신 맞춘다
+  // 오른쪽 사이드바가 열리며 캔버스 크기가 바뀌므로 조금 늦게 실행한다
+  useEffect(() => {
+    const hadHits = hadHitsRef.current
+    hadHitsRef.current = highlightIds != null
+    if (!fittedRef.current) return
+    if (!highlightIds && !hadHits) return
+    const id = setTimeout(() => {
+      const fg = fgRef.current
+      if (highlightIds) fitToHits(fg, highlightIds, data?.nodes ?? [], 800)
+      else fg?.zoomToFit(800, fitPadding(nodeCount))
+    }, 100)
+    return () => clearTimeout(id)
+  }, [highlightIds])
 
   // 노드 크기 배율: 선택한 노드 > 찾은 노드 > 보통
   const valScale = useCallback(
@@ -227,18 +269,10 @@ function KnowledgeGraph({
     setHoverId(null)
   }
 
-  // 카테고리 그래프에서 태그를 누르면 카메라가 그 노드 쪽으로 다가간다 (공식 click-to-focus 예제 방식)
+  // 카테고리 그래프에서 태그를 누르면 카메라가 그 노드 쪽으로 다가간다
   function handleNodeClick(node) {
     const fg = fgRef.current
-    if (category && fg) {
-      const len = Math.hypot(node.x, node.y, node.z) || 1
-      const ratio = 1 + FOCUS_DISTANCE / len
-      fg.cameraPosition(
-        { x: node.x * ratio, y: node.y * ratio, z: node.z * ratio },
-        node,
-        800
-      )
-    }
+    if (category && fg) focusCamera(fg, node, 800)
     onNodeClick(node)
   }
 
