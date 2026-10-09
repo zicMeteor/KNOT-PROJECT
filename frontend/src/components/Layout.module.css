@@ -1,31 +1,41 @@
+/* 위 메뉴: 왼쪽 KNOT, 오른쪽 메뉴. 지금 페이지는 밑줄 (빛 번짐 없이) */
 .nav {
+  position: relative;
+  z-index: 20;
   display: flex;
   align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-3) var(--space-6);
+  gap: var(--space-4) 40px;
+  min-height: var(--nav-h);
+  padding: 0 var(--gut);
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
 }
 
-/* 서비스 이름. 메뉴보다 확실히 크고 굵게 */
+/* 서비스 이름: 명조, 넓은 자간 */
 .brand {
   flex: none;
+  margin-right: auto;
   color: var(--color-text);
   text-decoration: none;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.32em;
 }
 
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--space-2) 32px;
 }
 
 .link {
+  position: relative;
+  padding: 6px 0;
   color: var(--color-text-muted);
   text-decoration: none;
-  transition: color var(--dur-fast) var(--ease-out);
+  font-size: 15px;
+  transition: color var(--dur-base) var(--ease-out);
 }
 
 .link:hover {
@@ -36,15 +46,25 @@
   color: var(--color-text);
 }
 
+.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--color-text);
+}
+
 .brand:focus-visible,
 .link:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-text);
   outline-offset: 4px;
   border-radius: 4px;
 }
 
 .main {
-  padding: var(--space-6);
+  padding: 0;
 }
 
 .appFull {
@@ -57,4 +77,24 @@
   flex: 1;
   min-height: 0;
   display: flex;
+}
+
+/* 좁은 화면: 메뉴가 두 줄로 접히지 않게 글자와 간격을 줄인다 */
+@media (max-width: 520px) {
+  .nav {
+    gap: var(--space-3) 18px;
+  }
+
+  .brand {
+    font-size: 17px;
+    letter-spacing: 0.2em;
+  }
+
+  .links {
+    gap: var(--space-2) 16px;
+  }
+
+  .link {
+    font-size: 14px;
+  }
 }

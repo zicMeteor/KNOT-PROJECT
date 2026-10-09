@@ -1,0 +1,27 @@
+.page {
+  background: #000;
+}
+
+/* 맨 아래: 윤곽선만 있는 큰 이름 */
+.end {
+  padding: 72px clamp(24px, 5vw, 72px) 48px;
+  overflow: hidden;
+}
+
+.big {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: clamp(72px, 12vw, 180px);
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(242, 242, 240, 0.22);
+  user-select: none;
+}
+
+.foot {
+  margin-top: 48px;
+  font-size: var(--text-sm);
+  color: var(--color-text-faint);
+}

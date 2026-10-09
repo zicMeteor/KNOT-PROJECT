@@ -7,3 +7,35 @@
   margin: 0 0 var(--space-3);
   color: var(--color-text-muted);
 }
+/* 실(두 태그) 패널 아래: 각 태그 따로 보기 */
+.alt {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+.altRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.altChip {
+  padding: 6px 13px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.altChip:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}

@@ -1,5 +1,38 @@
 // src/pages/HomePage.jsx
+// 홈: 첫 화면(링크 입력과 자료 상자) → 찾는 길 세 가지 → 지식이 자라는 모습
+import { useMemo } from "react"
+import { useContents } from "../hooks/useContents"
+import { tagGraph } from "../lib/threadGraph"
+import HomeHero from "../components/home/HomeHero"
+import HomeWays from "../components/home/HomeWays"
+import HomeTimeline from "../components/home/HomeTimeline"
+import styles from "./HomePage.module.css"
+
 function HomePage() {
-  return <h1>KNOT</h1>
+  const { contents, loading, error } = useContents()
+  // 태그 그래프: 노드 = 태그, 엣지 = 두 태그를 함께 쓴 자료 수
+  const graph = useMemo(
+    () => tagGraph(contents.map((c) => ({ cat: c.category, tags: c.tags ?? [] }))),
+    [contents]
+  )
+
+  return (
+    <div className={styles.page}>
+      <HomeHero contents={contents} graph={graph} loading={loading} error={error} />
+      {contents.length > 0 && (
+        <>
+          <HomeWays contents={contents} graph={graph} />
+          <HomeTimeline contents={contents} />
+        </>
+      )}
+      <footer className={styles.end}>
+        <p className={styles.big} aria-hidden="true">
+          KNOT
+        </p>
+        <p className={styles.foot}>KNOT, 읽은 것을 잇는 개인 지식 그래프</p>
+      </footer>
+    </div>
+  )
 }
+
 export default HomePage

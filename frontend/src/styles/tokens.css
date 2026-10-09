@@ -1,20 +1,25 @@
 :root {
-  /* 배경: 한 단계씩 밝아지는 3단 */
-  --color-bg: #09090b;
-  --color-surface: #131316;
-  --color-surface-raised: #1b1b20;
-  --color-border: #26262c;
+  /* 배경: 검정 위에 한 단계씩 밝아지는 3단 (디자인 시안 "빛의 실") */
+  --color-bg: #000;
+  --color-surface: #0e0e10;
+  --color-surface-raised: #18181b;
+  --color-border: rgba(255, 255, 255, 0.11);
 
-  /* 글자 */
-  --color-text: #f4f4f5;
-  --color-text-muted: #a1a1aa;
-  --color-text-faint: #71717a;
+  /* 글자: 검정 배경에서 본문 4.5:1 이상 */
+  --color-text: #f2f2f0;
+  --color-text-muted: #a3a3a0;
+  --color-text-faint: #82827f;
 
   /* 강조 */
-  --color-accent: #e4e4e7;
+  --color-accent: #f2f2f0;
   --color-danger: #f87171;
   --color-warn: #fbbf24;
   --color-success: #4ade80;
+
+  /* 위 메뉴 줄 높이 (홈 첫 화면 높이 계산에 쓴다) */
+  --nav-h: 64px;
+  /* 화면 좌우 여백 */
+  --gut: clamp(20px, 5vw, 72px);
 
   /* 간격 */
   --space-1: 4px;
@@ -31,7 +36,9 @@
   --radius-pill: 999px;
 
   /* 글꼴 */
-  --font-sans: "Pretendard", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Pretendard", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* 큰 제목에만 쓴다. 본문과 버튼은 --font-sans */
+  --font-serif: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif;
   --text-sm: 14px;
   --text-md: 16px;
   --text-xl: 24px;
@@ -39,6 +46,7 @@
 
   /* 움직임 */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-slow: 500ms;
   --dur-fast: 150ms;
   --dur-base: 250ms;
 }

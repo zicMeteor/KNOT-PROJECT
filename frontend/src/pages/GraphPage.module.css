@@ -6,21 +6,129 @@
   background: var(--color-bg);
 }
 
-/* 경계선 없이 배경 밝기 차이로만 영역을 나눈다 */
+/* 양옆 사이드바: 검정 위에 가는 선으로만 나눈다 */
 .left,
 .right {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--color-surface);
+  background: var(--color-bg);
 }
 
 .left {
-  flex: 0 0 256px;
+  flex: 0 0 268px;
+  border-right: 1px solid var(--color-border);
 }
 
 .right {
-  flex: 0 0 360px;
+  flex: 0 0 384px;
+  border-left: 1px solid var(--color-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%);
+  animation: panelIn 0.5s var(--ease-out);
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+/* 왼쪽 위 "분류" 제목과 안내 */
+.railTitle {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.railNote {
+  margin: -6px 0 0;
+  padding: 0 var(--space-4) 10px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+/* 왼쪽 아래: 읽는 법과 재분류 */
+.legend {
+  flex-shrink: 0;
+  padding: 16px var(--space-6) 22px var(--space-4);
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-faint);
+}
+
+.recl {
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.recl:hover {
+  color: var(--color-text);
+}
+
+/* 그래프 왼쪽 위: 지금 보는 그래프 이름과 숫자 */
+.hud {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.hudTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.hudCounts {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* 그래프 오른쪽 위: 축소, 확대, 전체 보기, 선택 해제 */
+.tools {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: rgba(14, 14, 16, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.tools button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tools button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
 }
 
 /* 왼쪽·오른쪽 머리줄과 그래프 위 버튼 줄을 같은 52px로 맞춘다 */
@@ -108,17 +216,16 @@
   right: 0;
   z-index: 5;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-2);
-  height: 52px;
-  padding: 0 var(--space-3);
+  padding: 22px 24px 0 28px;
   pointer-events: none;
 }
 
 .toolbarGroup {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   pointer-events: auto;
 }
@@ -181,4 +288,12 @@
 .tab:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+/* 왼쪽 위 묶음(제목, 숫자)은 그래프 조작을 막지 않는다. 버튼만 누를 수 있다 */
+.toolbarGroup:first-child {
+  pointer-events: none;
+}
+
+.toolbarGroup:first-child button {
+  pointer-events: auto;
 }

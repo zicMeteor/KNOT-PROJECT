@@ -1,116 +1,240 @@
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  max-width: 760px;
-  margin: 0 auto;
+  padding: 48px var(--gut) 140px;
 }
 
 .head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  max-width: 40em;
 }
 
 .title {
   margin: 0;
-  font-size: var(--text-xl);
-  font-weight: 700;
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: clamp(32px, 2.8vw, 40px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
 .lead {
-  margin: 0;
+  margin-top: 12px;
+  font-size: 17px;
+  line-height: 1.7;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+}
+
+.tools {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+}
+
+.search {
+  flex: 1 1 420px;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.sbox {
+  position: relative;
+  display: flex;
 }
 
 .input {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  padding: 0 96px 0 24px;
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.045);
   color: var(--color-text);
   font: inherit;
-  font-size: var(--text-md);
-  transition: border-color var(--dur-fast) var(--ease-out);
+  font-size: 17px;
+  transition: border-color var(--dur-base) var(--ease-out);
 }
 
 .input::placeholder {
   color: var(--color-text-faint);
 }
 
-.input:focus-visible {
+.input:focus {
   outline: none;
-  border-color: var(--color-text-faint);
+  border-color: rgba(255, 255, 255, 0.55);
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+/* 브라우저 기본 지우기(×)는 숨기고 글자로 된 지우기 버튼을 쓴다 */
+.input::-webkit-search-cancel-button {
+  display: none;
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
+.clear {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
   border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
   font: inherit;
   font-size: var(--text-sm);
   cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.clear:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.chips,
+.active {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.active {
+  margin-top: 12px;
+}
+
+/* 누를 수 있는 알약. 고른 것은 흰 바탕 (빛 번짐 없이) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
 }
 
 .chip:hover {
-  color: var(--color-text);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
-.chip:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.chipActive {
-  background: var(--color-surface-raised);
-  border-color: var(--color-text-faint);
-  color: var(--color-text);
+.chip[aria-pressed="true"] {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: #000;
 }
 
 .dot {
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  flex: none;
 }
 
-.count {
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 0 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
-  font-variant-numeric: tabular-nums;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--color-text);
 }
 
 .results {
   min-height: 200px;
 }
 
-.resultCount {
-  margin: 0 0 var(--space-3);
+.muted,
+.error {
+  padding: 48px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-md);
+  line-height: 1.7;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.muted {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
 }
 
 .error {
-  margin: 0;
   color: var(--color-danger);
-  font-size: var(--text-sm);
+}
+
+/* 결과 0건: 이유와 바로 할 수 있는 일 */
+.none {
+  max-width: 640px;
+  padding: 56px 0 24px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.none h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.none p {
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn,
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn {
+  background: var(--color-text);
+  color: #000;
+}
+
+.btnGhost {
+  background: transparent;
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.btnGhost:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }

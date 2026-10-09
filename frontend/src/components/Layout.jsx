@@ -16,7 +16,7 @@ function Layout() {
 
   return (
     <div className={full ? styles.appFull : undefined}>
-      <nav className={styles.nav}>
+      <nav className={styles.nav} aria-label="주 메뉴">
         {/* 서비스 이름. 누르면 홈으로 (홈 메뉴를 대신한다) */}
         <NavLink to="/" end className={styles.brand} aria-label="KNOT 홈">
           KNOT

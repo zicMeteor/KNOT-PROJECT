@@ -1,0 +1,455 @@
+/* 스크롤 고정 구간. 높이는 스크립트가 첫 화면 높이의 배수로 정한다 */
+.journey {
+  position: relative;
+  background: #000;
+}
+
+/* 홈 첫 화면: 화면 한 장을 꽉 채운다. 왼쪽 설명과 입력, 오른쪽 자료 상자, 뒤에 그래프 */
+.hero {
+  position: sticky;
+  top: 0;
+  --gut: clamp(24px, 5vw, 72px);
+  --head-w: min(480px, 36%);
+  height: calc(100svh - var(--nav-h));
+  min-height: 640px;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 70% at 70% 45%, rgba(255, 255, 255, 0.05), transparent 70%),
+    #000;
+}
+
+.graph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.85;
+}
+
+/* 왼쪽: 제목, 설명, 입력 */
+.head {
+  position: absolute;
+  z-index: 8;
+  left: var(--gut);
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--head-w);
+}
+
+.title {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: clamp(44px, 5vw, 76px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  word-break: keep-all;
+}
+
+.sub {
+  margin-top: 18px;
+  max-width: 30em;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+}
+
+.form {
+  margin-top: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 24px;
+  border-radius: var(--radius-pill);
+  background: rgba(14, 14, 16, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: border-color var(--dur-base) var(--ease-out);
+}
+
+.form:focus-within {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.submit {
+  flex: none;
+  height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: #000;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.submit:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+.help,
+.error {
+  margin-top: 12px;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-text-faint);
+}
+
+.help a {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.stats {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.statLinks {
+  display: flex;
+  gap: 16px;
+}
+
+.statLinks a {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-text-faint);
+}
+
+.statLinks a:hover {
+  border-color: var(--color-text);
+}
+
+/* 오른쪽: 자료 상자. 왼쪽 설명과 32px 이상 떨어진 영역 안에서만 움직인다 */
+.crate {
+  position: absolute;
+  z-index: 5;
+  left: calc(var(--gut) + var(--head-w) + 32px);
+  right: 0;
+  top: 64px;
+  bottom: 112px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 64px);
+  mask-image: linear-gradient(90deg, transparent, #000 64px);
+  perspective: 1700px;
+  perspective-origin: 50% 40%;
+  touch-action: pan-y;
+  cursor: grab;
+  outline: none;
+}
+
+.crate:active {
+  cursor: grabbing;
+}
+
+.crate:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -6px;
+  border-radius: var(--radius-md);
+}
+
+.card {
+  --body: 1;
+  --title: 1;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300px;
+  height: 400px;
+  margin: -200px 0 0 -150px;
+  padding: 26px;
+  border-radius: 18px;
+  background: linear-gradient(170deg, rgb(28, 28, 32), rgb(10, 10, 12));
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--color-text);
+  text-decoration: none;
+  transform-style: preserve-3d;
+  will-change: transform;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 4px;
+}
+
+/* 카드 윗선: 홈에서 빛이 허락되는 곳 */
+.edge {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: -1px;
+  height: 2px;
+  border-radius: 2px;
+  box-shadow:
+    0 0 18px currentColor,
+    0 0 40px currentColor;
+}
+
+.kind {
+  opacity: var(--title);
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.cardTitle {
+  opacity: var(--title);
+  font-family: "Noto Serif KR", serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.more {
+  opacity: var(--body);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.src {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary {
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tags {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+/* 오른쪽 아래: 몇 번째인지와 화살표. 카드와 겹치지 않게 상자 아래에 둔다 */
+.controls {
+  position: absolute;
+  z-index: 7;
+  right: var(--gut);
+  bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.count b {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+}
+
+.arrows {
+  display: flex;
+  gap: 8px;
+}
+
+.arrows button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-out);
+}
+
+.arrows button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.arrows button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.arrows button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+/* 불러오는 중, 오류, 빈 상태 */
+.state {
+  position: absolute;
+  z-index: 5;
+  left: calc(var(--gut) + var(--head-w) + 32px);
+  right: var(--gut);
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.stateSub {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--color-text-faint);
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* 좁은 화면: 설명 아래에 상자를 둔다 */
+@media (max-width: 900px) {
+  .hero {
+    position: relative;
+    --head-w: auto;
+    height: auto;
+    min-height: 0;
+    padding: 56px var(--gut) 0;
+  }
+
+  .head {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: auto;
+  }
+
+  .crate {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    height: 440px;
+    margin: 32px calc(var(--gut) * -1) 0;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .card {
+    width: 260px;
+    height: 360px;
+    margin: -180px 0 0 -130px;
+  }
+
+  .controls {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    justify-content: space-between;
+    padding: 8px 0 40px;
+  }
+
+  .state {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    transform: none;
+    padding: 64px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form,
+  .submit,
+  .arrows button {
+    transition: none;
+  }
+}

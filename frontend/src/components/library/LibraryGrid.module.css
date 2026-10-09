@@ -1,0 +1,177 @@
+.wrap {
+  position: relative;
+}
+
+/* 실: 카드 뒤 (카드가 불투명해서 틈으로만 보인다) */
+.threads {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.threads path {
+  fill: none;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px currentColor);
+  transition: stroke-dashoffset 0.7s var(--ease-out);
+}
+
+/* 왼쪽에서 오른쪽, 위에서 아래로 읽힌다 */
+.grid {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.cell {
+  display: flex;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 24px;
+  border-radius: 22px;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, #121215, #0b0b0d);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color 0.35s var(--ease-out),
+    transform 0.45s var(--ease-out),
+    background 0.35s var(--ease-out);
+}
+
+.enter {
+  animation: enter 0.6s var(--ease-out) backwards;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+}
+
+.hot {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: linear-gradient(180deg, #19191d, #0f0f12);
+  transform: translateY(-4px);
+}
+
+.rel {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* 윗선: 카테고리 색 (빛 번짐 없이) */
+.edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cat), transparent);
+}
+
+.kind {
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.common {
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  animation: enter 0.4s var(--ease-out);
+}
+
+.title {
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.38;
+}
+
+.title mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.summary {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.meta span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 자료 종류마다 생김새가 조금씩 다르다 */
+.paper .title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.doc {
+  border-style: dashed;
+}
+
+.pdf {
+  border-radius: 6px;
+  background: linear-gradient(160deg, #1a1a1e, #0e0e10);
+  clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 0 100%);
+}
+
+.pdf::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(225deg, transparent 50%, rgba(255, 255, 255, 0.14) 50%);
+}

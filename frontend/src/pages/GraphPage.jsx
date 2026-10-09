@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useGraphData } from "../hooks/useGraphData"
+import { useContents } from "../hooks/useContents"
+import { buildTagOverview } from "../lib/tagOverview"
 import { useAiSearch } from "../hooks/useAiSearch"
-import Button from "../components/ui/Button"
 import SidebarIcon from "../components/ui/SidebarIcon"
 import CategoryTree from "../components/CategoryTree"
 import KnowledgeGraph from "../components/KnowledgeGraph"
 import TagPanel from "../components/TagPanel"
+import PairPanel from "../components/PairPanel"
 import AiSearchBar from "../components/AiSearchBar"
 import AiSearchPanel from "../components/AiSearchPanel"
 import ReclassifyModal from "../components/ReclassifyModal"
@@ -14,7 +17,8 @@ import styles from "./GraphPage.module.css"
 function GraphPage() {
   const [category, setCategory] = useState(null) // 선택한 카테고리. null이면 전체 그래프
   const [tag, setTag] = useState(null) // 오른쪽 사이드바에 열린 태그
-  const [rightMode, setRightMode] = useState("tag") // 오른쪽 사이드바 내용: "tag" | "search"
+  const [rightMode, setRightMode] = useState("tag") // 오른쪽 사이드바 내용: "tag" | "search" | "pair"
+  const [pair, setPair] = useState(null) // 실로 고른 두 태그 { a, b }
   const [reloadKey, setReloadKey] = useState(0) // 재분류 후 다시 불러오기용
   const [modalOpen, setModalOpen] = useState(false)
   const [notice, setNotice] = useState(null)
@@ -26,6 +30,39 @@ function GraphPage() {
   // dataCategory: 지금 화면에 보이는 데이터의 카테고리 (불러오는 동안은 category와 다를 수 있다)
   const { data, dataCategory, loading, error } = useGraphData(category, reloadKey)
   const search = useAiSearch()
+  const { contents, reload: reloadContents } = useContents() // 전체 그래프와 위쪽 숫자(자료 수)용
+  // 전체 그래프: 서버의 카테고리 그래프 대신 모든 태그를 한 그래프로 (디자인 시안)
+  const overview = useMemo(() => buildTagOverview(contents), [contents])
+  const graphData = dataCategory ? data : overview
+  const controlsRef = useRef(null) // 확대·축소·전체 보기
+
+  // 홈의 "AI에게" 칸에서 넘겨받은 질문은 바로 찾는다
+  const location = useLocation()
+  const navigate = useNavigate()
+  const handoffQuery = location.state?.q
+  const [initialQuery] = useState(handoffQuery ?? "")
+  const startHandoff = useEffectEvent((q) => handleSearch(q))
+  // 이미 실행했는지 따로 막지 않는다. 개발 모드(StrictMode)에서는 화면이 한 번 내려갔다 올라오며
+  // useAiSearch가 첫 검색을 취소하므로, 두 번째 실행이 있어야 결과가 나온다.
+  // 넘겨받은 값은 바로 지우므로 다음 렌더링부터는 다시 실행되지 않는다 (새로고침해도 다시 찾지 않는다)
+  useEffect(() => {
+    if (!handoffQuery) return
+    navigate(".", { replace: true, state: null })
+    startHandoff(handoffQuery)
+  }, [handoffQuery, navigate])
+
+  // 전체 자료의 서랍에서 넘겨받은 카테고리와 태그를 연다
+  const handoffCategory = location.state?.category
+  const handoffTag = location.state?.tag
+  const openHandoff = useEffectEvent((cat, t) => {
+    if (t) selectTag(cat, t)
+    else selectCategory(cat)
+  })
+  useEffect(() => {
+    if (!handoffCategory) return
+    navigate(".", { replace: true, state: null })
+    openHandoff(handoffCategory, handoffTag)
+  }, [handoffCategory, handoffTag, navigate])
 
   // 재분류 완료 문구는 4초 뒤 사라진다
   useEffect(() => {
@@ -70,33 +107,35 @@ function GraphPage() {
   }, [search.status, search.result, rightMode, category])
 
   // AI 검색 강조: 찾은 자료 기준 (패널 목록과 그래프가 항상 일치하도록)
-  // 전체 그래프 → 찾은 자료의 카테고리 노드
+  // 전체 그래프 → 찾은 자료들의 태그 노드
   // 카테고리 그래프 → 이 카테고리에 속한 찾은 자료들의 태그 노드
   const highlightNames = useMemo(() => {
     if (search.status !== "done" || !search.result) return null
     const contents = search.result.contents
-    const names = dataCategory
-      ? contents.filter((c) => c.category === dataCategory).flatMap((c) => c.tags ?? [])
-      : contents.map((c) => c.category)
+    const names = (dataCategory ? contents.filter((c) => c.category === dataCategory) : contents).flatMap(
+      (c) => c.tags ?? []
+    )
     return new Set(names.filter(Boolean).map((n) => String(n).toLowerCase()))
   }, [search.status, search.result, dataCategory])
 
   // 카메라가 중심으로 잡을 태그: 질문에서 AI가 뽑은 태그 (예: "트랜스포머" → Transformer)
-  // 카테고리 그래프에서만 쓴다. 찾은 노드 중에 이 태그가 없으면 KnowledgeGraph가 찾은 노드 전체에 맞춘다
+  // 찾은 노드 중에 이 태그가 없으면 KnowledgeGraph가 찾은 노드 전체에 맞춘다
   const focusNames = useMemo(() => {
-    if (search.status !== "done" || !search.result || !dataCategory) return null
+    if (search.status !== "done" || !search.result) return null
     const tags = search.result.analysis?.tags ?? []
     return tags.length > 0 ? new Set(tags.map((t) => String(t).toLowerCase())) : null
-  }, [search.status, search.result, dataCategory])
+  }, [search.status, search.result])
 
   function goAll() {
     setCategory(null)
     setTag(null)
+    setPair(null)
   }
 
   function selectCategory(name) {
     setCategory(name)
     setTag(null)
+    setPair(null)
   }
 
   function closeLeft() {
@@ -112,21 +151,37 @@ function GraphPage() {
   function selectTag(cat, t) {
     setCategory(cat)
     setTag(t)
+    setPair(null)
     setRightMode("tag")
     setRightOpen(true)
   }
 
+  // 실을 누르면 두 태그를 함께 가진 자료를 오른쪽에 모아 본다
+  // (전체 그래프면 모든 카테고리에서, 카테고리 그래프면 그 카테고리에서)
+  function handleLinkClick(link) {
+    const name = (end) => (typeof end === "object" ? end.name : end)
+    setPair({ a: name(link.source), b: name(link.target) })
+    setRightMode("pair")
+    setRightOpen(true)
+  }
+
+  // 선택 해제: 고른 태그와 실을 푼다. 검색 결과가 있으면 검색 패널로 돌아간다
+  function clearSelection() {
+    setTag(null)
+    setPair(null)
+    setRightMode(search.status !== "idle" ? "search" : "tag")
+  }
+
   // 화면에 보이는 노드 기준으로 판단해야 불러오는 중에 눌러도 어긋나지 않는다
+  // 전체 그래프에서 태그를 누르면 전체 그래프에 머문 채 그 태그의 모든 자료를 보여 준다
   function handleNodeClick(node) {
-    if (!dataCategory) selectCategory(node.name)
-    else selectTag(dataCategory, node.name)
+    selectTag(dataCategory, node.name)
   }
 
   // 빈 공간을 누르면 태그 선택을 푼다. 검색 결과가 있으면 검색 패널로 돌아간다
   function handleBackgroundClick() {
-    if (!tag) return
-    setTag(null)
-    if (search.status !== "idle") setRightMode("search")
+    if (!tag && !pair) return
+    clearSelection()
   }
 
   function handleSearch(query) {
@@ -142,14 +197,16 @@ function GraphPage() {
 
   function handleApplied(count) {
     setTag(null) // 열려 있던 태그가 사라졌을 수 있으므로 비운다
+    setPair(null)
     setReloadKey((k) => k + 1)
+    reloadContents()
     setNotice(count + "건을 재분류했습니다")
   }
 
   let status = null
   if (error) status = "오류: " + error
   else if (loading) status = "불러오는 중…"
-  else if (data && data.nodes.length === 0)
+  else if (graphData && graphData.nodes.length === 0)
     status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
   else if (notice) status = notice
 
@@ -161,20 +218,34 @@ function GraphPage() {
   else if (search.status === "done" && search.result) searchTabLabel = "AI 결과 " + search.result.contents.length + "건"
 
   // 그래프에서 계속 강조할 태그: 오른쪽 패널이 열려 태그 자료를 보고 있고,
-  // 화면의 그래프가 그 태그의 카테고리일 때만 (패널을 닫으면 강조도 꺼진다)
-  const selectedName =
-    rightOpen && rightMode === "tag" && tag && dataCategory && dataCategory === category
-      ? tag
-      : null
+  // 화면의 그래프가 고른 카테고리(전체면 null)와 같을 때만 (패널을 닫으면 강조도 꺼진다)
+  const selectedName = rightOpen && rightMode === "tag" && tag && dataCategory === category ? tag : null
 
-  const rightTitle = rightMode === "search" ? "AI로 찾은 자료" : tag ?? "자료"
+  const rightTitle =
+    rightMode === "search"
+      ? "AI로 찾은 자료"
+      : rightMode === "pair" && pair
+        ? `#${pair.a} + #${pair.b}`
+        : tag ?? "자료"
+
+  // 실로 고른 두 태그: 패널이 열려 있고, 그래프가 그 카테고리일 때만 강조
+  const selectedPair = rightOpen && rightMode === "pair" && pair && dataCategory === category ? pair : null
+  const hasSelection = tag != null || pair != null
+
+  // 위쪽 숫자: 지금 보는 그래프 기준
+  const itemCount = dataCategory
+    ? contents.filter((c) => c.category === dataCategory).length
+    : contents.length
+  const hudCounts = graphData
+    ? `자료 ${itemCount}건, 태그 ${graphData.nodes.length}개, 연결 ${graphData.links.length}개`
+    : ""
 
   return (
     <div className={styles.page}>
       {leftOpen && (
         <aside className={styles.left}>
           <div className={styles.sideHead}>
-            <span className={styles.sideTitle}>분류</span>
+            <span className={styles.railTitle}>분류</span>
             <button
               type="button"
               className={styles.iconBtn}
@@ -185,6 +256,7 @@ function GraphPage() {
               <SidebarIcon side="left" />
             </button>
           </div>
+          <p className={styles.railNote}>숫자는 자료 수입니다</p>
           <div className={styles.sideBody}>
             <CategoryTree
               reloadKey={reloadKey}
@@ -194,6 +266,16 @@ function GraphPage() {
               onSelectCategory={selectCategory}
               onSelectTag={selectTag}
             />
+          </div>
+          <div className={styles.legend}>
+            <p>
+              점이 클수록 자료가 많은 태그이고, 색은 카테고리입니다. 실을 누르면 두 태그를 함께 쓴 자료만
+              모아 봅니다.
+            </p>
+            {/* 재분류는 자주 쓰는 기능이 아니라 그래프 위가 아닌 여기에 둔다. 적용 전에 바뀌는 내용을 먼저 보여 준다 */}
+            <button type="button" className={styles.recl} onClick={() => setModalOpen(true)}>
+              분류 다시 검토 (적용 전에 바뀌는 내용을 보여 줍니다)
+            </button>
           </div>
         </aside>
       )}
@@ -212,12 +294,29 @@ function GraphPage() {
                 <SidebarIcon side="left" />
               </button>
             )}
-            {status && <p className={styles.status}>{status}</p>}
+            <div className={styles.hud}>
+              <h1 className={styles.hudTitle}>{dataCategory ?? "전체"}</h1>
+              {hudCounts && <p className={styles.hudCounts}>{hudCounts}</p>}
+              {status && <p className={styles.status}>{status}</p>}
+            </div>
           </div>
           <div className={styles.toolbarGroup}>
-            <Button variant="secondary" size="sm" onClick={() => setModalOpen(true)}>
-              재분류
-            </Button>
+            <div className={styles.tools} role="toolbar" aria-label="그래프 보기">
+              <button type="button" onClick={() => controlsRef.current?.zoomBy(1 / 1.3)} aria-label="축소">
+                −
+              </button>
+              <button type="button" onClick={() => controlsRef.current?.zoomBy(1.3)} aria-label="확대">
+                +
+              </button>
+              <button type="button" onClick={() => controlsRef.current?.fit()}>
+                전체 보기
+              </button>
+              {hasSelection && (
+                <button type="button" onClick={clearSelection}>
+                  선택 해제
+                </button>
+              )}
+            </div>
             {!rightOpen && (
               <button
                 type="button"
@@ -233,7 +332,7 @@ function GraphPage() {
         </div>
 
         <KnowledgeGraph
-          data={data}
+          data={graphData}
           category={dataCategory}
           onNodeClick={handleNodeClick}
           onBackgroundClick={handleBackgroundClick}
@@ -241,6 +340,9 @@ function GraphPage() {
           highlightNames={highlightNames}
           focusNames={focusNames}
           selectedName={selectedName}
+          selectedPair={selectedPair}
+          onLinkClick={handleLinkClick}
+          controlsRef={controlsRef}
         />
 
         <AiSearchBar
@@ -248,6 +350,7 @@ function GraphPage() {
           hasResult={search.result != null || search.status === "error"}
           onSubmit={handleSearch}
           onClear={handleClearSearch}
+          initialText={initialQuery}
         />
       </section>
 
@@ -295,6 +398,13 @@ function GraphPage() {
                 status={search.status}
                 result={search.result}
                 error={search.error}
+              />
+            ) : rightMode === "pair" && pair ? (
+              <PairPanel
+                a={pair.a}
+                b={pair.b}
+                category={dataCategory}
+                onPickTag={(t) => selectTag(dataCategory, t)}
               />
             ) : tag ? (
               <TagPanel tag={tag} category={category} />

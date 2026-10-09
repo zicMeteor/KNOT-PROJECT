@@ -1,15 +1,27 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react"
 import ForceGraph3D from "react-force-graph-3d"
 import SpriteText from "three-spritetext"
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Group, Points, PointsMaterial, Sprite, SpriteMaterial } from "three"
 import { categoryColor } from "../constants/categories"
 import styles from "./KnowledgeGraph.module.css"
 
 const LABEL_COLOR = "#d4d4d8"
 const LABEL_STRONG = "#fafafa" // 찾은 노드·선택한 노드 글자 (라임 공 위에 라임 글자는 안 읽혀서 흰색)
-const NODE_DIM = "#3f3f46" // 강조 중일 때 관련 없는 노드
-const LINK_BASE = "#52525b" // 평소 실
-const LINK_DIM = "#27272a" // 강조 중일 때 관련 없는 실
-const LINK_LIT = "#e4e4e7" // 강조된 실과 입자
+const NODE_DIM = "#2a2a2e" // 강조 중일 때 관련 없는 노드
+const LINK_DIM = "#1c1c1f" // 강조 중일 때 관련 없는 실
+const LINK_LIT = "#f2f2f0" // 강조된 실과 입자 (흰색)
+// 평소 실: 카테고리 색을 이만큼 어둡게 (0이면 검정, 1이면 원래 색)
+const LINK_BASE_LEVEL = 0.85
+
+// 빛 번짐: 노드마다 카테고리 색 빛을 겹쳐 그린다 (디자인 시안 "빛의 실")
+// 노드 반지름의 몇 배까지 번지는지, 평소와 흐릴 때 밝기
+const GLOW_SCALE = 10
+const GLOW_OPACITY = 0.85
+const GLOW_DIM_OPACITY = 0.06
+
+// 배경 먼지: 깊이감을 주는 흐린 점
+const DUST_COUNT = 500
+const DUST_RADIUS = 700
 
 // AI 검색으로 찾은 노드 전용 색. 카테고리 팔레트 어느 색과도 겹치지 않고 훨씬 밝다
 const HIT_COLOR = "#a3e635"
@@ -22,8 +34,8 @@ const SELECTED_VAL_SCALE = 4 // 선택한 노드 → 약 1.59배 (찾은 노드�
 const NODE_REL_SIZE = 3 // 반지름 = val의 세제곱근 × 이 값 (ForceGraph3D nodeRelSize와 같아야 함)
 const LABEL_GAP = 7 // 공 아래쪽 끝과 글자 중심 사이 거리
 
-// 전체(카테고리 6개, 고정)와 카테고리(태그, 계속 늘어남)는 반발 거리를 따로 둔다
-const CHARGE_RANGE = { all: 60, category: 90 }
+// 연결 없는 노드가 멀리 밀려나지 않게 반발력이 미치는 거리를 제한한다
+const CHARGE_RANGE = 90
 
 // 태그 노드를 눌렀을 때 카메라가 노드에서 떨어지는 거리
 const FOCUS_DISTANCE = 100
@@ -39,6 +51,71 @@ const REVEAL_DELAY = HIT_CAMERA_MS + 50 // 첫 노드가 켜질 때까지(ms)
 const REVEAL_STEP = 120 // 켜지는 간격(ms)
 // 찾은 노드가 많아도 화면을 다시 그리는 횟수는 이만큼만 (넘으면 여러 개씩 묶어서 켠다)
 const MAX_REVEAL_STEPS = 8
+
+// "#5b8cff" → 같은 색을 level만큼 어둡게 한 "#rrggbb"
+function dimHex(hex, level) {
+  const h = String(hex).replace("#", "")
+  const ch = (i) =>
+    Math.round(parseInt(h.slice(i, i + 2), 16) * level)
+      .toString(16)
+      .padStart(2, "0")
+  return `#${ch(0)}${ch(2)}${ch(4)}`
+}
+
+// 빛 번짐 그림: 가운데가 밝고 바깥으로 사라지는 원. 한 번만 만들어 모든 노드가 같이 쓴다
+let glowTexture = null
+function getGlowTexture() {
+  if (glowTexture) return glowTexture
+  const size = 128
+  const c = document.createElement("canvas")
+  c.width = c.height = size
+  const ctx = c.getContext("2d")
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
+  g.addColorStop(0, "rgba(255,255,255,1)")
+  g.addColorStop(0.18, "rgba(255,255,255,0.45)")
+  g.addColorStop(0.45, "rgba(255,255,255,0.12)")
+  g.addColorStop(1, "rgba(255,255,255,0)")
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, size, size)
+  glowTexture = new CanvasTexture(c)
+  return glowTexture
+}
+
+// 배경 먼지: 그래프를 둘러싼 구 안에 흐린 점을 흩뿌린다 (매번 같은 배치)
+function makeDust() {
+  const pos = new Float32Array(DUST_COUNT * 3)
+  let seed = 7
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647
+    return (seed - 1) / 2147483646
+  }
+  for (let i = 0; i < DUST_COUNT; i++) {
+    const r = DUST_RADIUS * Math.cbrt(rnd())
+    const t = rnd() * Math.PI * 2
+    const u = rnd() * 2 - 1
+    const s = Math.sqrt(1 - u * u)
+    pos[i * 3] = r * s * Math.cos(t)
+    pos[i * 3 + 1] = r * s * Math.sin(t)
+    pos[i * 3 + 2] = r * u
+  }
+  const geo = new BufferGeometry()
+  geo.setAttribute("position", new BufferAttribute(pos, 3))
+  // 둥근 점으로 그린다 (그림 없이 그리면 가까이 있는 먼지가 네모로 보인다)
+  const mat = new PointsMaterial({
+    color: 0xffffff,
+    size: 3,
+    map: getGlowTexture(),
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+  })
+  return new Points(geo, mat)
+}
+
+// 실 위 안내에 넣는 태그 이름 (HTML로 그려지므로 특수 문자를 바꾼다)
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
+}
 
 // 기기에서 "동작 줄이기"를 켜 두었으면 연출 없이 한 번에 보여준다 (카메라도 바로 이동)
 function prefersReducedMotion() {
@@ -120,12 +197,20 @@ function endId(end) {
   return typeof end === "object" ? end.id : end
 }
 
+// 확대·축소 버튼 한 번에 카메라 거리가 바뀌는 비율
+const ZOOM_STEP = 1.3
+const ZOOM_MS = 400
+
 // data: { nodes, links } / category: 화면에 보이는 데이터의 카테고리, null이면 전체 그래프
+//   (전체 그래프도 노드 = 태그. node.category가 점 색, node.showLabel이 이름 표시, node.catLabel이 카테고리 이름)
 // fitKey: 값이 바뀌면 전체가 보이게 다시 맞춘다 (사이드바를 닫을 때)
 // highlightNames: 찾은 노드 이름(소문자) Set. AI 검색 결과에서 온다. 없으면 null
 // focusNames: 찾은 노드 중 카메라가 중심으로 잡을 이름(소문자) Set. 질문에서 AI가 뽑은 태그. 없으면 null
 // selectedName: 선택한 태그 이름. 그 노드와 이웃을 계속 밝게 보여준다. 없으면 null
 // onBackgroundClick: 빈 공간을 눌렀을 때 (선택 해제용)
+// onLinkClick(link): 카테고리 그래프에서 실을 눌렀을 때. link.source/target은 노드 객체
+// selectedPair: { a, b } 실로 고른 두 태그 이름. 두 노드와 그 실을 밝게 보여준다. 없으면 null
+// controlsRef: { zoomBy(배율), fit() }를 받아 갈 ref (그래프 위 확대·축소·전체 보기 버튼용)
 function KnowledgeGraph({
   data,
   category,
@@ -135,12 +220,17 @@ function KnowledgeGraph({
   highlightNames = null,
   focusNames = null,
   selectedName = null,
+  selectedPair = null,
+  onLinkClick,
+  controlsRef,
 }) {
   const boxRef = useRef(null)
   const fgRef = useRef(null)
   const fittedRef = useRef(false) // 데이터마다 화면 맞춤은 한 번만
   const draggingRef = useRef(false) // 드래그 중에는 마우스 강조가 다른 노드로 바뀌지 않게
   const labelsRef = useRef(new Map()) // 노드 id → 글자 객체 (흐리게 만들 때 사용)
+  const glowsRef = useRef(new Map()) // 노드 id → 빛 번짐 객체
+  const catLabelsRef = useRef(new Map()) // 노드 id → 카테고리 이름 (전체 그래프)
   const hadHitsRef = useRef(false) // 직전에 검색 결과가 있었는지 (검색을 지울 때 전체로 돌아가기용)
   const revealTimerRef = useRef(null) // 하나씩 켜지는 연출의 타이머 (돌고 있지 않으면 null)
   const latestRef = useRef({}) // 타이머·effect 안에서 쓸 최신 값 (렌더마다 갱신)
@@ -175,9 +265,9 @@ function KnowledgeGraph({
   useEffect(() => {
     const fg = fgRef.current
     if (!fg || !data) return
-    fg.d3Force("charge")?.distanceMax(category ? CHARGE_RANGE.category : CHARGE_RANGE.all)
+    fg.d3Force("charge")?.distanceMax(CHARGE_RANGE)
     fg.d3ReheatSimulation()
-  }, [data, category])
+  }, [data])
 
   // fitKey가 바뀌면 (사이드바를 닫을 때) 전체가 보이게 다시 맞춘다
   // 캔버스 크기가 먼저 바뀌도록 조금 늦게 실행한다
@@ -210,11 +300,11 @@ function KnowledgeGraph({
     [data]
   )
 
-  // 선택한 태그 이름 → 지금 그래프의 노드 id. 카테고리 그래프에서만 의미가 있다
+  // 선택한 태그 이름 → 지금 그래프의 노드 id
   const selectedId = useMemo(() => {
-    if (!selectedName || !category) return null
+    if (!selectedName) return null
     return idByName.get(String(selectedName).toLowerCase()) ?? null
-  }, [selectedName, category, idByName])
+  }, [selectedName, idByName])
 
   // 검색 강조: 이름이 맞는 노드 id 집합. 지금 그래프에 맞는 노드가 하나도 없으면 강조하지 않는다
   // (모든 노드가 흐려져 고장 난 것처럼 보이는 것을 막는다)
@@ -352,6 +442,42 @@ function KnowledgeGraph({
     }
   }, [hitKey, showHits])
 
+  // 실로 고른 두 태그 → 지금 그래프의 노드 id
+  const pairIds = useMemo(() => {
+    if (!selectedPair) return null
+    const a = idByName.get(String(selectedPair.a).toLowerCase())
+    const b = idByName.get(String(selectedPair.b).toLowerCase())
+    return a != null && b != null ? new Set([a, b]) : null
+  }, [selectedPair, idByName])
+
+  // 그래프 위 버튼: 확대·축소는 지금 보는 중심을 그대로 두고 카메라 거리만 바꾼다
+  useImperativeHandle(
+    controlsRef,
+    () => ({
+      zoomBy(factor) {
+        const fg = fgRef.current
+        if (!fg) return
+        const cam = fg.camera()
+        const t = fg.controls()?.target ?? { x: 0, y: 0, z: 0 }
+        const k = 1 / factor
+        fg.cameraPosition(
+          {
+            x: t.x + (cam.position.x - t.x) * k,
+            y: t.y + (cam.position.y - t.y) * k,
+            z: t.z + (cam.position.z - t.z) * k,
+          },
+          { x: t.x, y: t.y, z: t.z },
+          motionMs(ZOOM_MS)
+        )
+      },
+      fit() {
+        fgRef.current?.zoomToFit(motionMs(600), fitPadding(latestRef.current.nodeCount ?? 0))
+      },
+      step: ZOOM_STEP,
+    }),
+    []
+  )
+
   // 노드 크기 배율: 선택한 노드 > 찾은 노드 > 보통
   const valScale = useCallback(
     (id) => (id === selectedId ? SELECTED_VAL_SCALE : isHit(id) ? HIT_VAL_SCALE : 1),
@@ -366,10 +492,11 @@ function KnowledgeGraph({
   const isLit = useCallback(
     (id) => {
       if (focusId != null) return id === focusId || neighbors.get(focusId)?.has(id)
+      if (pairIds) return pairIds.has(id)
       if (revealedIds) return revealedIds.has(id)
       return true
     },
-    [focusId, neighbors, revealedIds]
+    [focusId, neighbors, pairIds, revealedIds]
   )
 
   // 양 끝 노드가 모두 켜지면 그 실이 밝아지고 입자가 흐른다
@@ -378,50 +505,125 @@ function KnowledgeGraph({
       const a = endId(l.source)
       const b = endId(l.target)
       if (focusId != null) return a === focusId || b === focusId
+      if (pairIds) return pairIds.has(a) && pairIds.has(b)
       if (revealedIds) return revealedIds.has(a) && revealedIds.has(b)
       return false
     },
-    [focusId, revealedIds]
+    [focusId, pairIds, revealedIds]
   )
 
   // 입자: 밝은 실에 흐른다. 검색 연출 중에는 검색 실만 끈다 (마우스 올림·선택 실은 평소처럼)
   const particlesOn = !revealing || focusId != null
 
-  const focusing = focusId != null || revealedIds != null
+  const focusing = focusId != null || pairIds != null || revealedIds != null
+
+  // 점 색: 카테고리 그래프는 그 카테고리 색, 전체 그래프는 그 태그를 가장 많이 쓴 카테고리 색
+  const colorOf = useCallback((node) => categoryColor(category ?? node.category ?? node.name), [category])
 
   // 색: 찾은 노드는 어떤 강조 중에도 라임 계열을 유지한다
   function nodeColorOf(node) {
     const lit = isLit(node.id)
     if (isHit(node.id)) return lit ? HIT_COLOR : HIT_DIM
-    return lit ? categoryColor(category ?? node.name) : NODE_DIM
+    return lit ? colorOf(node) : NODE_DIM
   }
 
-  // 글자는 three.js 객체라 색 함수로 못 바꾸므로 직접 바꾼다
+  // 글자와 빛 번짐은 three.js 객체라 색 함수로 못 바꾸므로 직접 바꾼다
   // 색은 바뀔 때만 넣는다 (SpriteText는 색을 넣을 때마다 글자 그림을 다시 그린다)
   useEffect(() => {
     for (const [id, sprite] of labelsRef.current) {
       const strong = id === selectedId || isHit(id)
-      const color = strong ? LABEL_STRONG : LABEL_COLOR
+      // 전체 그래프의 카테고리 이름은 카테고리 색 그대로 둔다
+      const color = strong ? LABEL_STRONG : sprite.userData.baseColor
       if (sprite.color !== color) sprite.color = color
       sprite.position.y = labelY(sprite.userData.baseRadius, valScale(id))
       sprite.material.opacity = isLit(id) ? 1 : 0.15
     }
+    for (const [id, cat] of catLabelsRef.current) cat.material.opacity = isLit(id) ? 1 : 0.15
+    for (const [id, glow] of glowsRef.current) {
+      const lit = isLit(id)
+      const color = isHit(id) ? HIT_COLOR : glow.userData.baseColor
+      glow.material.color.set(color)
+      glow.material.opacity = lit ? (isHit(id) || id === selectedId ? 0.8 : GLOW_OPACITY) : GLOW_DIM_OPACITY
+      const r = glow.userData.baseRadius * Math.cbrt(valScale(id)) * GLOW_SCALE
+      glow.scale.set(r, r, 1)
+    }
   }, [isLit, isHit, valScale, selectedId])
 
-  // 의존성이 없어야 강조할 때 글자 객체가 다시 만들어지지 않는다
-  const makeLabel = useCallback((node) => {
-    const sprite = new SpriteText(node.name)
-    sprite.color = LABEL_COLOR
-    sprite.textHeight = 4
-    sprite.fontFace = "Pretendard, system-ui, sans-serif"
-    sprite.fontWeight = "600"
-    sprite.fontSize = 120
-    sprite.userData.baseRadius = Math.cbrt(node.val || 1) * NODE_REL_SIZE
-    sprite.position.y = labelY(sprite.userData.baseRadius, 1)
-    sprite.material.depthWrite = false
-    labelsRef.current.set(node.id, sprite)
-    return sprite
-  }, [])
+  // 노드 하나에 붙는 것: 빛 번짐 + 이름 (+ 전체 그래프에서는 무리마다 카테고리 이름)
+  // 전체 그래프는 자료가 많은 태그에만 이름을 단다 (node.showLabel). 카테고리 그래프는 모두
+  // category가 바뀔 때만 다시 만든다 (강조할 때마다 다시 만들지 않게)
+  const makeLabel = useCallback(
+    (node) => {
+      const baseRadius = Math.cbrt(node.val || 1) * NODE_REL_SIZE
+      const color = colorOf(node)
+      const group = new Group()
+
+      const glow = new Sprite(
+        new SpriteMaterial({
+          map: getGlowTexture(),
+          color,
+          transparent: true,
+          opacity: GLOW_OPACITY,
+          blending: AdditiveBlending,
+          depthWrite: false,
+        })
+      )
+      glow.scale.set(baseRadius * GLOW_SCALE, baseRadius * GLOW_SCALE, 1)
+      glow.userData.baseRadius = baseRadius
+      glow.userData.baseColor = color
+      group.add(glow)
+      glowsRef.current.set(node.id, glow)
+
+      if (category || node.showLabel !== false) {
+        const label = new SpriteText(node.name)
+        label.userData.baseColor = LABEL_COLOR
+        label.color = LABEL_COLOR
+        label.textHeight = 4
+        label.fontFace = 'Pretendard, "Noto Sans KR", system-ui, sans-serif'
+        label.fontWeight = "500"
+        label.fontSize = 120
+        label.userData.baseRadius = baseRadius
+        label.position.y = labelY(baseRadius, 1)
+        label.material.depthWrite = false
+        group.add(label)
+        labelsRef.current.set(node.id, label)
+      } else {
+        labelsRef.current.delete(node.id)
+      }
+
+      // 카테고리 이름: 그 카테고리에서 가장 큰 태그 위에 카테고리 색 명조로
+      if (!category && node.catLabel) {
+        const cat = new SpriteText(node.catLabel)
+        cat.color = categoryColor(node.catLabel)
+        cat.textHeight = 6
+        cat.fontFace = '"Noto Serif KR", "Nanum Myeongjo", Georgia, serif'
+        cat.fontWeight = "400"
+        cat.fontSize = 120
+        cat.position.y = baseRadius + LABEL_GAP + 4
+        cat.material.depthWrite = false
+        group.add(cat)
+        catLabelsRef.current.set(node.id, cat)
+      } else {
+        catLabelsRef.current.delete(node.id)
+      }
+      return group
+    },
+    [category, colorOf]
+  )
+
+  // 배경 먼지: 그래프가 만들어질 때 한 번 넣는다
+  const hasGraph = nodeCount > 0 && size.w > 0
+  useEffect(() => {
+    const fg = fgRef.current
+    if (!hasGraph || !fg) return
+    const dust = makeDust()
+    fg.scene().add(dust)
+    return () => {
+      fg.scene().remove(dust)
+      dust.geometry.dispose()
+      dust.material.dispose()
+    }
+  }, [hasGraph])
 
   function handleNodeHover(node) {
     if (draggingRef.current) return
@@ -441,10 +643,32 @@ function KnowledgeGraph({
     setHoverId(null)
   }
 
-  // 카테고리 그래프에서 태그를 누르면 카메라가 그 노드 쪽으로 다가간다
+  // 평소 실: 출발 노드의 카테고리 색을 어둡게 (전체 그래프는 카테고리마다, 카테고리 그래프는 한 색)
+  function linkBaseColor(l) {
+    const src = typeof l.source === "object" ? l.source : { name: l.source }
+    return dimHex(colorOf(src), LINK_BASE_LEVEL)
+  }
+
+  // 실 위에 올리면 손가락 모양
+  // 전체 그래프도 이제 태그 그래프라 실 = 두 태그를 함께 가진 자료
+  const linkClickable = !!onLinkClick
+  function handleLinkHover(link) {
+    if (!linkClickable || draggingRef.current || hoverId != null) return
+    if (boxRef.current) boxRef.current.style.cursor = link ? "pointer" : ""
+  }
+
+  // 실 위 안내: 두 태그를 함께 쓴 자료 수
+  function linkLabelOf(l) {
+    if (!linkClickable) return ""
+    const name = (end) => (typeof end === "object" ? end.name : end)
+    const n = l.weight ?? 1
+    return `<div style="padding:6px 10px;border-radius:10px;background:rgba(10,10,12,.9);border:1px solid rgba(255,255,255,.16);font:13px Pretendard,'Noto Sans KR',sans-serif;color:#f2f2f0">${escapeHtml(name(l.source))} + ${escapeHtml(name(l.target))}<br><span style="color:#a3a3a0">함께 쓴 자료 ${n}건. 누르면 모아 봅니다</span></div>`
+  }
+
+  // 태그를 누르면 카메라가 그 노드 쪽으로 다가간다
   function handleNodeClick(node) {
     const fg = fgRef.current
-    if (category && fg) focusCamera(fg, node, motionMs(800))
+    if (fg) focusCamera(fg, node, motionMs(800))
     onNodeClick(node)
   }
 
@@ -458,13 +682,13 @@ function KnowledgeGraph({
           onEngineStop={handleEngineStop}
           width={size.w}
           height={size.h}
-          backgroundColor="#09090b"
+          backgroundColor="#000000"
           showNavInfo={false}
           nodeLabel={() => ""}
           nodeVal={(node) => (node.val || 1) * valScale(node.id)}
           nodeRelSize={NODE_REL_SIZE}
           nodeResolution={24}
-          nodeOpacity={0.95}
+          nodeOpacity={0.9}
           nodeColor={nodeColorOf}
           nodeThreeObject={makeLabel}
           nodeThreeObjectExtend={true}
@@ -473,10 +697,14 @@ function KnowledgeGraph({
           onBackgroundClick={onBackgroundClick}
           onNodeDrag={handleNodeDrag}
           onNodeDragEnd={handleNodeDragEnd}
+          onLinkClick={linkClickable ? onLinkClick : undefined}
+          onLinkHover={handleLinkHover}
+          linkLabel={linkLabelOf}
+          linkHoverPrecision={6}
           linkCurvature={0.12}
           linkOpacity={0.7}
-          linkWidth={(l) => (isLinkLit(l) ? 1.2 : 0)}
-          linkColor={(l) => (!focusing ? LINK_BASE : isLinkLit(l) ? LINK_LIT : LINK_DIM)}
+          linkWidth={(l) => (isLinkLit(l) ? (pairIds ? 2 : 1.2) : 0)}
+          linkColor={(l) => (!focusing ? linkBaseColor(l) : isLinkLit(l) ? LINK_LIT : LINK_DIM)}
           linkDirectionalParticles={(l) => (particlesOn && isLinkLit(l) ? 2 : 0)}
           linkDirectionalParticleWidth={1.6}
           linkDirectionalParticleSpeed={0.006}
