@@ -16,6 +16,35 @@
   overflow-wrap: anywhere;
 }
 
+/* AI가 질문을 어떻게 해석했는지: 왼쪽 이름, 오른쪽 값 */
+.interpret {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-1) 0;
+  font-size: 13px;
+}
+
+.interpretRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.interpretLabel {
+  flex: none;
+  min-width: 88px;
+  color: var(--color-text-muted);
+}
+
+.interpretValues {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
 .muted {
   margin: 0;
   font-size: var(--text-sm);
@@ -38,11 +67,15 @@
   color: var(--color-danger);
 }
 
+/* 일치 표시. 태그 이름이 길면(Vision-Language Model 등) … 로 줄인다 (전체는 마우스를 올리면 보임) */
 .badge {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  max-width: 50%;
   padding: 2px var(--space-2);
   font-size: 12px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--color-text-muted);
   background: rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-pill);
