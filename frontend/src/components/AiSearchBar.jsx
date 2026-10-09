@@ -1,10 +1,13 @@
-import { useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import styles from "./AiSearchBar.module.css"
 
 // 부스에서 긴 글을 붙여넣어도 LLM에 그대로 보내지 않게 (질문 한두 문장이면 충분한 길이)
 const MAX_LENGTH = 200
 // 길게 쓰면 아래로 줄이 늘어나다가 이 줄 수를 넘으면 칸 안에서 스크롤한다
 const MAX_ROWS = 4
+// 글자를 모두 지운 뒤 이 시간(ms) 동안 다시 안 치면 결과를 지운다
+// (새 질문을 쓰려고 지웠다가 바로 치는 경우에는 결과·카메라가 그대로 남는다)
+const CLEAR_DELAY = 700
 
 function SearchIcon() {
   return (
@@ -33,7 +36,11 @@ function EnterIcon() {
 function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
   const [text, setText] = useState("")
   const inputRef = useRef(null)
+  const clearTimerRef = useRef(null) // 글자를 다 지웠을 때 결과를 지우는 타이머
   const query = text.trim()
+
+  // 화면을 떠나면 남은 타이머를 정리한다
+  useEffect(() => () => clearTimeout(clearTimerRef.current), [])
 
   // 글자가 칸을 넘으면 다음 줄로 넘어가도록 높이를 내용에 맞춘다 (최대 MAX_ROWS줄)
   useLayoutEffect(() => {
@@ -48,6 +55,7 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
 
   function submit() {
     if (!query) return
+    clearTimeout(clearTimerRef.current)
     onSubmit(query)
   }
 
@@ -72,15 +80,22 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
   }
 
   // 붙여넣은 글의 줄바꿈은 띄어쓰기로 바꾼다
-  // 글자를 모두 지우면 결과와 강조도 같이 지운다 (빈 검색창인데 그래프만 강조된 상태를 막는다)
-  // 찾는 중이었으면 요청도 취소된다 (onClear가 search.reset을 부른다)
+  // 글자를 모두 지우고 CLEAR_DELAY 동안 그대로 두면 결과와 강조도 지운다
+  // (빈 검색창인데 그래프만 강조된 상태를 막는다. 찾는 중이었으면 요청도 취소된다)
+  // 그 사이에 다시 치면 지우지 않는다
   function handleChange(e) {
     const next = e.target.value.replace(/[\r\n]+/g, " ")
     setText(next)
-    if (next.trim() === "" && (hasResult || loading)) onClear()
+    clearTimeout(clearTimerRef.current)
+    if (next.trim() === "" && (hasResult || loading)) {
+      clearTimerRef.current = setTimeout(onClear, CLEAR_DELAY)
+    }
   }
 
+  // × 버튼·Esc: 바로 지운다. 지울 것이 없으면 아무것도 하지 않는다
   function handleClear() {
+    clearTimeout(clearTimerRef.current)
+    if (!text && !hasResult && !loading) return
     setText("")
     onClear()
   }

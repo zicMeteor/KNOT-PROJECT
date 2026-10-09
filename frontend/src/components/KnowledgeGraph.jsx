@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import ForceGraph3D from "react-force-graph-3d"
 import SpriteText from "three-spritetext"
 import { categoryColor } from "../constants/categories"
@@ -36,11 +36,18 @@ const MIN_HIT_DISTANCE = 140 // 묶음 중심에서 카메라까지 최소 거�
 // 검색 연출: 카메라 이동이 끝난 뒤 찾은 노드가 결과 순서대로 하나씩 켜진다
 // 카메라가 움직이는 동안 화면을 다시 그리면 끊겨 보여서, 이동이 끝난 다음에 시작한다
 const REVEAL_DELAY = HIT_CAMERA_MS + 50 // 첫 노드가 켜질 때까지(ms)
-const REVEAL_STEP = 120 // 노드가 하나씩 켜지는 간격(ms)
+const REVEAL_STEP = 120 // 켜지는 간격(ms)
+// 찾은 노드가 많아도 화면을 다시 그리는 횟수는 이만큼만 (넘으면 여러 개씩 묶어서 켠다)
+const MAX_REVEAL_STEPS = 8
 
-// 기기에서 "동작 줄이기"를 켜 두었으면 연출 없이 한 번에 보여준다
+// 기기에서 "동작 줄이기"를 켜 두었으면 연출 없이 한 번에 보여준다 (카메라도 바로 이동)
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+}
+
+// 움직임 시간: 동작 줄이기면 0 (애니메이션 없이 바로)
+function motionMs(ms) {
+  return prefersReducedMotion() ? 0 : ms
 }
 
 // 노드가 적으면 여백을 크게 줘서 과하게 확대되지 않게 한다
@@ -60,27 +67,30 @@ function focusCamera(fg, node, ms) {
   fg.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, ms)
 }
 
-// 검색으로 찾은 노드들이 한 화면에 들어오게 카메라를 옮긴다
-// 지금 보는 방향은 그대로 두고 묶음 중심 쪽으로 다가간다
-// 묶음이 작아도(노드 1~2개) MIN_HIT_DISTANCE보다 가까이 가지 않는다
-// (라이브러리의 zoomToFit은 최소 거리가 없어서 노드 안으로 들어가 버릴 수 있다)
-function fitToHits(fg, ids, nodes, ms) {
-  if (!fg || !ids || ids.size === 0) return
-  const hits = nodes.filter((n) => ids.has(n.id) && Number.isFinite(n.x))
-  if (hits.length === 0) return
+// 검색 결과로 카메라를 옮긴다
+// - 화면 중심: centerIds(질문 태그, 없으면 찾은 노드 전체)의 가운데
+// - 거리: coverIds(찾은 노드 전체)가 모두 화면에 들어오도록. 단 MIN_HIT_DISTANCE보다 가까이 가지 않는다
+// - 지금 보는 방향은 그대로 둔다
+// 카메라를 실제로 옮겼으면 true (그래프가 아직 없거나 위치가 정해지지 않았으면 false)
+function fitToHits(fg, centerIds, coverIds, nodes, ms) {
+  if (!fg || !centerIds || centerIds.size === 0) return false
+  const placed = (n) => Number.isFinite(n.x) && Number.isFinite(n.y) && Number.isFinite(n.z)
+  const centers = nodes.filter((n) => centerIds.has(n.id) && placed(n))
+  if (centers.length === 0) return false
+  const covers = nodes.filter((n) => coverIds.has(n.id) && placed(n))
 
-  // 묶음 중심과, 중심에서 가장 먼 노드까지의 거리 (+ 노드 크기와 글자 여유)
   const c = { x: 0, y: 0, z: 0 }
-  for (const n of hits) {
-    c.x += n.x / hits.length
-    c.y += n.y / hits.length
-    c.z += n.z / hits.length
+  for (const n of centers) {
+    c.x += n.x / centers.length
+    c.y += n.y / centers.length
+    c.z += n.z / centers.length
   }
+  // 중심에서 가장 먼 찾은 노드까지 (+ 노드 크기와 글자 여유)
   let r = 0
-  for (const n of hits) r = Math.max(r, Math.hypot(n.x - c.x, n.y - c.y, n.z - c.z))
+  for (const n of [...centers, ...covers]) r = Math.max(r, Math.hypot(n.x - c.x, n.y - c.y, n.z - c.z))
   r += 12
 
-  // 세로·가로 시야 중 좁은 쪽에 묶음이 다 들어오는 거리
+  // 세로·가로 시야 중 좁은 쪽에 다 들어오는 거리
   const cam = fg.camera()
   const vHalf = (cam.fov * Math.PI) / 360
   const hHalf = Math.atan(Math.tan(vHalf) * cam.aspect)
@@ -102,6 +112,7 @@ function fitToHits(fg, ids, nodes, ms) {
     c,
     ms
   )
+  return true
 }
 
 // 시뮬레이션이 시작되면 link.source/target이 id에서 노드 객체로 바뀐다
@@ -131,11 +142,12 @@ function KnowledgeGraph({
   const draggingRef = useRef(false) // 드래그 중에는 마우스 강조가 다른 노드로 바뀌지 않게
   const labelsRef = useRef(new Map()) // 노드 id → 글자 객체 (흐리게 만들 때 사용)
   const hadHitsRef = useRef(false) // 직전에 검색 결과가 있었는지 (검색을 지울 때 전체로 돌아가기용)
-  const revealTimerRef = useRef(null) // 하나씩 켜지는 연출의 타이머
+  const revealTimerRef = useRef(null) // 하나씩 켜지는 연출의 타이머 (돌고 있지 않으면 null)
+  const latestRef = useRef({}) // 타이머·effect 안에서 쓸 최신 값 (렌더마다 갱신)
   const [size, setSize] = useState({ w: 0, h: 0 })
   const [hoverId, setHoverId] = useState(null)
-  // 하나씩 켜지는 연출 상태: ids는 어떤 검색 결과에 대한 것인지, count는 지금까지 켜진 개수
-  const [reveal, setReveal] = useState({ ids: null, count: 0 })
+  // 하나씩 켜지는 연출 상태: key는 어떤 검색 결과에 대한 것인지, count는 지금까지 켜진 개수
+  const [reveal, setReveal] = useState({ key: null, count: 0 })
 
   const nodeCount = data?.nodes.length ?? 0
 
@@ -151,6 +163,8 @@ function KnowledgeGraph({
 
   // 새 데이터를 받으면 화면 맞춤과 강조를 초기화
   // (아래 검색 카메라 effect보다 먼저 선언되어야 fittedRef가 먼저 false가 된다)
+  // 연출 타이머는 여기서 멈추지 않는다. 검색 결과가 바뀌면 아래 effect의 정리 함수가 멈추고,
+  // 결과가 같으면(재분류로 그래프만 다시 불러온 경우) 이어서 켜는 게 맞다
   useEffect(() => {
     fittedRef.current = false
     draggingRef.current = false
@@ -171,7 +185,7 @@ function KnowledgeGraph({
   useEffect(() => {
     if (fitKey === 0) return
     const id = setTimeout(() => {
-      fgRef.current?.zoomToFit(600, fitPadding(nodeCount))
+      fgRef.current?.zoomToFit(motionMs(600), fitPadding(nodeCount))
     }, 100)
     return () => clearTimeout(id)
   }, [fitKey])
@@ -190,78 +204,114 @@ function KnowledgeGraph({
     return map
   }, [data])
 
+  // 노드 이름(소문자) → id. 이름으로 노드를 찾는 곳은 모두 이것을 쓴다
+  const idByName = useMemo(
+    () => new Map((data?.nodes ?? []).map((n) => [String(n.name).toLowerCase(), n.id])),
+    [data]
+  )
+
   // 선택한 태그 이름 → 지금 그래프의 노드 id. 카테고리 그래프에서만 의미가 있다
   const selectedId = useMemo(() => {
-    if (!selectedName || !category || !data) return null
-    const key = String(selectedName).toLowerCase()
-    return data.nodes.find((n) => String(n.name).toLowerCase() === key)?.id ?? null
-  }, [selectedName, category, data])
+    if (!selectedName || !category) return null
+    return idByName.get(String(selectedName).toLowerCase()) ?? null
+  }, [selectedName, category, idByName])
 
   // 검색 강조: 이름이 맞는 노드 id 집합. 지금 그래프에 맞는 노드가 하나도 없으면 강조하지 않는다
   // (모든 노드가 흐려져 고장 난 것처럼 보이는 것을 막는다)
   const highlightIds = useMemo(() => {
-    if (!highlightNames || highlightNames.size === 0 || !data) return null
+    if (!highlightNames || highlightNames.size === 0) return null
     const ids = new Set()
-    for (const n of data.nodes) {
-      if (highlightNames.has(String(n.name).toLowerCase())) ids.add(n.id)
+    for (const name of highlightNames) {
+      const id = idByName.get(name)
+      if (id != null) ids.add(id)
     }
     return ids.size > 0 ? ids : null
-  }, [highlightNames, data])
+  }, [highlightNames, idByName])
 
   // 카메라가 중심으로 잡을 노드: 찾은 노드 중 질문에서 뽑은 태그와 이름이 같은 것
-  // (예: "트랜스포머" → Transformer, 자연어처리, 어텐션 메커니즘)
-  // 하나도 없으면 null → 찾은 노드 전체에 맞춘다
+  // (예: "트랜스포머" → Transformer). 하나도 없으면 null → 찾은 노드 전체의 가운데
   const focusIds = useMemo(() => {
     if (!highlightIds || !focusNames || focusNames.size === 0) return null
     const ids = new Set()
-    for (const n of data.nodes) {
-      if (highlightIds.has(n.id) && focusNames.has(String(n.name).toLowerCase())) ids.add(n.id)
+    for (const name of focusNames) {
+      const id = idByName.get(name)
+      if (id != null && highlightIds.has(id)) ids.add(id)
     }
     return ids.size > 0 ? ids : null
-  }, [highlightIds, focusNames, data])
+  }, [highlightIds, focusNames, idByName])
 
   // 찾은 노드를 켤 순서: 질문 태그(카메라 중심)가 먼저, 그다음 검색 결과 순서
   const hitOrder = useMemo(() => {
     if (!highlightIds) return []
-    const idByName = new Map(data.nodes.map((n) => [String(n.name).toLowerCase(), n.id]))
     const order = []
+    const seen = new Set()
     for (const name of [...(focusNames ?? []), ...highlightNames]) {
       const id = idByName.get(name)
-      if (id != null && highlightIds.has(id) && !order.includes(id)) order.push(id)
+      if (id == null || !highlightIds.has(id) || seen.has(id)) continue
+      seen.add(id)
+      order.push(id)
     }
     return order
-  }, [highlightIds, highlightNames, focusNames, data])
+  }, [highlightIds, highlightNames, focusNames, idByName])
+
+  // 검색 결과를 나타내는 값. 내용이 같으면 같은 값이라, 재분류 등으로 그래프만 다시 불러와도
+  // 연출을 처음부터 다시 하지 않는다 (Set 객체가 새로 만들어져도 내용으로 비교)
+  const hitKey = highlightIds ? `${category ?? ""}|${hitOrder.join(",")}` : null
 
   // 지금까지 켜진 찾은 노드. 새 검색 결과로 바뀐 직후에는 연출이 시작되기 전이라 비어 있다
-  // (ids로 어느 결과의 연출인지 확인해서, 새 결과가 한 프레임 전부 켜졌다 꺼지는 깜빡임을 막는다)
   const revealedIds = useMemo(() => {
     if (!highlightIds) return null
-    if (reveal.ids !== highlightIds) return new Set()
+    if (reveal.key !== hitKey) return new Set()
     return new Set(hitOrder.slice(0, reveal.count))
-  }, [highlightIds, hitOrder, reveal])
+  }, [highlightIds, hitKey, hitOrder, reveal])
 
   const isHit = useCallback((id) => revealedIds?.has(id) ?? false, [revealedIds])
 
-  // 하나씩 켜지는 중인지. 켜지는 동안에는 실 위 입자를 끈다
-  // (입자는 바뀔 때마다 새로 만들어져서, 켜질 때마다 바뀌면 화면이 끊긴다)
+  // 하나씩 켜지는 중인지 (켜지는 동안에는 검색 실의 입자를 끈다)
   const revealing = revealedIds != null && revealedIds.size < hitOrder.length
 
-  // 연출 시작: REVEAL_DELAY 뒤부터 REVEAL_STEP 간격으로 하나씩 켠다
-  function startReveal(ids, total) {
+  // 타이머·effect 안에서 읽을 최신 값
+  useLayoutEffect(() => {
+    latestRef.current = { data, nodeCount, highlightIds, focusIds, hitOrder, hitKey, revealKey: reveal.key }
+  })
+
+  // 연출 시작: REVEAL_DELAY 뒤부터 REVEAL_STEP 간격으로 켠다
+  // 찾은 노드가 MAX_REVEAL_STEPS보다 많으면 한 번에 여러 개씩 켠다 (다시 그리는 횟수를 줄이려고)
+  const startReveal = useCallback((key, total) => {
     clearTimeout(revealTimerRef.current)
-    if (prefersReducedMotion()) {
-      setReveal({ ids, count: Infinity })
+    revealTimerRef.current = null
+    if (prefersReducedMotion() || total <= 0) {
+      setReveal({ key, count: Infinity })
       return
     }
-    setReveal({ ids, count: 0 })
+    setReveal({ key, count: 0 })
+    const perStep = Math.ceil(total / Math.min(total, MAX_REVEAL_STEPS))
     let n = 0
     const step = () => {
-      n += 1
-      setReveal({ ids, count: n })
-      if (n < total) revealTimerRef.current = setTimeout(step, REVEAL_STEP)
+      n = Math.min(total, n + perStep)
+      setReveal({ key, count: n })
+      revealTimerRef.current = n < total ? setTimeout(step, REVEAL_STEP) : null
     }
     revealTimerRef.current = setTimeout(step, REVEAL_DELAY)
-  }
+  }, [])
+
+  // 검색 결과 쪽으로 카메라를 옮기고 연출을 시작한다
+  // - 같은 결과를 이미 보여줬으면(그래프만 다시 불러온 경우) 카메라만 옮기고 연출은 다시 하지 않는다
+  // - 카메라를 못 옮겼으면(위치가 아직 없음) 어두운 채로 기다리지 않게 바로 모두 켠다
+  const showHits = useCallback(() => {
+    const v = latestRef.current
+    if (!v.highlightIds) return
+    const moved = fitToHits(
+      fgRef.current,
+      v.focusIds ?? v.highlightIds,
+      v.highlightIds,
+      v.data?.nodes ?? [],
+      motionMs(HIT_CAMERA_MS)
+    )
+    if (v.revealKey === v.hitKey) return
+    if (moved) startReveal(v.hitKey, v.hitOrder.length)
+    else setReveal({ key: v.hitKey, count: Infinity })
+  }, [startReveal])
 
   // 화면을 떠나면 남은 타이머를 정리한다
   useEffect(() => () => clearTimeout(revealTimerRef.current), [])
@@ -271,37 +321,30 @@ function KnowledgeGraph({
   function handleEngineStop() {
     if (fittedRef.current) return
     fittedRef.current = true
-    const fg = fgRef.current
-    if (highlightIds) {
-      fitToHits(fg, focusIds ?? highlightIds, data.nodes, HIT_CAMERA_MS)
-      startReveal(highlightIds, hitOrder.length)
-    } else {
-      fg?.zoomToFit(400, fitPadding(nodeCount))
-    }
+    if (highlightIds) showHits()
+    else fgRef.current?.zoomToFit(motionMs(400), fitPadding(nodeCount))
   }
 
-  // 같은 그래프에서 검색 결과가 바뀌면 질문 태그(없으면 찾은 노드 전체) 쪽으로 다가가며 하나씩 켜고,
+  // 같은 그래프에서 검색 결과가 바뀌면 찾은 노드 쪽으로 다가가며 하나씩 켜고,
   // 검색을 지우면 전체가 보이게 카메라를 옮긴다
   // 그래프가 아직 자리 잡는 중이면(fittedRef가 false) handleEngineStop이 대신 한다
   // 오른쪽 사이드바가 열리며 캔버스 크기가 바뀌므로 조금 늦게 실행한다
-  // (의존성은 highlightIds만 둔다. 검색 결과가 바뀔 때만 실행되어야 한다)
+  // 결과가 바뀌거나 사라지면(정리 함수) 이전 결과의 연출 타이머도 멈춘다
   useEffect(() => {
     const hadHits = hadHitsRef.current
-    hadHitsRef.current = highlightIds != null
+    hadHitsRef.current = hitKey != null
     if (!fittedRef.current) return
-    if (!highlightIds && !hadHits) return
+    if (hitKey == null && !hadHits) return
     const id = setTimeout(() => {
-      const fg = fgRef.current
-      if (highlightIds) {
-        fitToHits(fg, focusIds ?? highlightIds, data?.nodes ?? [], HIT_CAMERA_MS)
-        startReveal(highlightIds, hitOrder.length)
-      } else {
-        clearTimeout(revealTimerRef.current) // 연출 도중에 지웠으면 남은 타이머를 멈춘다
-        fg?.zoomToFit(800, fitPadding(nodeCount))
-      }
+      if (latestRef.current.hitKey != null) showHits()
+      else fgRef.current?.zoomToFit(motionMs(HIT_CAMERA_MS), fitPadding(latestRef.current.nodeCount))
     }, 100)
-    return () => clearTimeout(id)
-  }, [highlightIds])
+    return () => {
+      clearTimeout(id)
+      clearTimeout(revealTimerRef.current)
+      revealTimerRef.current = null
+    }
+  }, [hitKey, showHits])
 
   // 노드 크기 배율: 선택한 노드 > 찾은 노드 > 보통
   const valScale = useCallback(
@@ -334,6 +377,9 @@ function KnowledgeGraph({
     },
     [focusId, revealedIds]
   )
+
+  // 입자: 밝은 실에 흐른다. 검색 연출 중에는 검색 실만 끈다 (마우스 올림·선택 실은 평소처럼)
+  const particlesOn = !revealing || focusId != null
 
   const focusing = focusId != null || highlightIds != null
 
@@ -392,7 +438,7 @@ function KnowledgeGraph({
   // 카테고리 그래프에서 태그를 누르면 카메라가 그 노드 쪽으로 다가간다
   function handleNodeClick(node) {
     const fg = fgRef.current
-    if (category && fg) focusCamera(fg, node, 800)
+    if (category && fg) focusCamera(fg, node, motionMs(800))
     onNodeClick(node)
   }
 
@@ -425,7 +471,7 @@ function KnowledgeGraph({
           linkOpacity={0.7}
           linkWidth={(l) => (isLinkLit(l) ? 1.2 : 0)}
           linkColor={(l) => (!focusing ? LINK_BASE : isLinkLit(l) ? LINK_LIT : LINK_DIM)}
-          linkDirectionalParticles={(l) => (!revealing && isLinkLit(l) ? 2 : 0)}
+          linkDirectionalParticles={(l) => (particlesOn && isLinkLit(l) ? 2 : 0)}
           linkDirectionalParticleWidth={1.6}
           linkDirectionalParticleSpeed={0.006}
           linkDirectionalParticleColor={() => LINK_LIT}
