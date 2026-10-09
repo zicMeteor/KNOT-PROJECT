@@ -245,7 +245,7 @@ function GraphPage() {
 
         <AiSearchBar
           loading={search.status === "loading"}
-          hasResult={search.result != null}
+          hasResult={search.result != null || search.status === "error"}
           onSubmit={handleSearch}
           onClear={handleClearSearch}
         />

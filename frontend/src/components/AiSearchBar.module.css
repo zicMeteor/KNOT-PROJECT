@@ -138,3 +138,10 @@
     opacity: 0.6;
   }
 }
+
+
+/* 찾는 동안: 글자를 고칠 수 없음을 흐리게 보여준다 (Esc·×로 취소는 가능) */
+.input:read-only {
+  color: var(--color-text-muted);
+  cursor: default;
+}

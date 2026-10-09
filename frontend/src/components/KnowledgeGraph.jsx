@@ -339,10 +339,14 @@ function KnowledgeGraph({
       if (latestRef.current.hitKey != null) showHits()
       else fgRef.current?.zoomToFit(motionMs(HIT_CAMERA_MS), fitPadding(latestRef.current.nodeCount))
     }, 100)
+    
     return () => {
       clearTimeout(id)
       clearTimeout(revealTimerRef.current)
       revealTimerRef.current = null
+      // 결과가 바뀌거나 사라지면 연출 상태도 비운다
+      // (안 비우면 같은 질문을 다시 검색했을 때 이전 연출이 멈춘 자리에서 그대로 남는다)
+      setReveal({ key: null, count: 0 })
     }
   }, [hitKey, showHits])
 

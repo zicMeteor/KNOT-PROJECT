@@ -31,16 +31,36 @@ function EnterIcon() {
 }
 
 // 그래프 화면 하단의 AI 검색창
-// loading: 찾는 중 / hasResult: 결과가 있으면 지우기 버튼을 보여준다
+// loading: 찾는 중 / hasResult: 지울 결과(성공 또는 오류)가 있으면 true. 지우기 버튼을 보여준다
 // onSubmit(query): 검색 실행 / onClear(): 결과와 강조 지우기
 function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
   const [text, setText] = useState("")
   const inputRef = useRef(null)
   const clearTimerRef = useRef(null) // 글자를 다 지웠을 때 결과를 지우는 타이머
+  const onClearRef = useRef(onClear) // 타이머가 실행될 때 최신 onClear를 부르려고
   const query = text.trim()
+
+  useLayoutEffect(() => {
+    onClearRef.current = onClear
+  })
 
   // 화면을 떠나면 남은 타이머를 정리한다
   useEffect(() => () => clearTimeout(clearTimerRef.current), [])
+  
+  // 찾는 중에는 포커스가 입력칸 밖에 있어도 Esc로 취소한다
+  // (⏎ 버튼을 마우스로 누르면 버튼이 비활성화되면서 포커스가 사라져 입력칸의 Esc가 안 먹는다)
+  useEffect(() => {
+    if (!loading) return
+    function handleWindowKeyDown(e) {
+      if (e.key !== "Escape" || e.defaultPrevented) return
+      if (e.target === inputRef.current) return // 입력칸 안의 Esc는 handleKeyDown이 처리한다
+      clearTimeout(clearTimerRef.current)
+      setText("")
+      onClearRef.current()
+    }
+    window.addEventListener("keydown", handleWindowKeyDown)
+    return () => window.removeEventListener("keydown", handleWindowKeyDown)
+  }, [loading])
 
   // 글자가 칸을 넘으면 다음 줄로 넘어가도록 높이를 내용에 맞춘다 (최대 MAX_ROWS줄)
   useLayoutEffect(() => {
@@ -66,7 +86,7 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
 
   // Enter는 검색, 줄바꿈은 넣지 않는다 (질문은 한 문장이라 줄바꿈이 필요 없다)
   // 한글 입력 중(조합 중) Enter는 글자 확정용이라 무시한다. 안 그러면 마지막 글자가 빠진 채 검색된다
-  // Esc는 × 버튼과 같다 (글자, 결과, 강조를 모두 지운다)
+  // Esc는 × 버튼과 같다 (글자, 결과, 강조를 모두 지운다. 찾는 중이면 취소)
   function handleKeyDown(e) {
     if (e.nativeEvent.isComposing) return
     if (e.key === "Escape") {
@@ -76,19 +96,18 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
     }
     if (e.key !== "Enter") return
     e.preventDefault()
-    submit()
+    if (!loading) submit()
   }
 
   // 붙여넣은 글의 줄바꿈은 띄어쓰기로 바꾼다
-  // 글자를 모두 지우고 CLEAR_DELAY 동안 그대로 두면 결과와 강조도 지운다
-  // (빈 검색창인데 그래프만 강조된 상태를 막는다. 찾는 중이었으면 요청도 취소된다)
-  // 그 사이에 다시 치면 지우지 않는다
+  // 글자를 모두 지우고 CLEAR_DELAY 동안 다시 안 치면 결과와 강조도 지운다
+  // (찾는 중에는 입력칸이 읽기 전용이라 여기로 오지 않는다. 취소는 Esc·×로)
   function handleChange(e) {
     const next = e.target.value.replace(/[\r\n]+/g, " ")
     setText(next)
     clearTimeout(clearTimerRef.current)
-    if (next.trim() === "" && (hasResult || loading)) {
-      clearTimerRef.current = setTimeout(onClear, CLEAR_DELAY)
+    if (next.trim() === "" && hasResult) {
+      clearTimerRef.current = setTimeout(() => onClearRef.current(), CLEAR_DELAY)
     }
   }
 
@@ -112,18 +131,19 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
         value={text}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        readOnly={loading}
         placeholder="예: Transformer 관련 논문 보여줘"
         aria-label="AI로 자료 찾기"
         maxLength={MAX_LENGTH}
         enterKeyHint="search"
       />
-      {(text || hasResult) && (
+      {(text || hasResult || loading) && (
         <button
           type="button"
           className={styles.clear}
           onClick={handleClear}
-          aria-label="검색 지우기"
-          title="지우기"
+          aria-label={loading ? "검색 취소" : "검색 지우기"}
+          title={loading ? "취소 (Esc)" : "지우기 (Esc)"}
         >
           ×
         </button>
@@ -131,7 +151,7 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear }) {
       <button
         type="submit"
         className={styles.submit}
-        disabled={!query}
+        disabled={!query || loading}
         aria-label={loading ? "AI로 찾는 중" : "AI로 찾기"}
         aria-busy={loading}
         title="AI로 찾기 (Enter)"
