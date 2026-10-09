@@ -9,14 +9,17 @@ const MENU = [
 
 // 여백 없이 화면 전체를 쓰는 페이지
 const FULL_PAGES = ["/graph"]
+// 메뉴를 첫 화면 위에 투명하게 겹치는 페이지 (첫 화면 배경이 메뉴 뒤까지 이어진다)
+const OVER_PAGES = ["/"]
 
 function Layout() {
   const { pathname } = useLocation()
   const full = FULL_PAGES.includes(pathname)
+  const over = OVER_PAGES.includes(pathname)
 
   return (
     <div className={full ? styles.appFull : undefined}>
-      <nav className={styles.nav} aria-label="주 메뉴">
+      <nav className={over ? `${styles.nav} ${styles.over}` : styles.nav} aria-label="주 메뉴">
         {/* 서비스 이름. 누르면 홈으로 (홈 메뉴를 대신한다) */}
         <NavLink to="/" end className={styles.brand} aria-label="KNOT 홈">
           KNOT

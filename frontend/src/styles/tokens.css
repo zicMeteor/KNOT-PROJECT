@@ -39,6 +39,8 @@
   --font-sans: "Pretendard", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
   /* 큰 제목에만 쓴다. 본문과 버튼은 --font-sans */
   --font-serif: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif;
+  /* 주소, 날짜처럼 글자 폭이 고르면 읽기 쉬운 곳 */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --text-sm: 14px;
   --text-md: 16px;
   --text-xl: 24px;

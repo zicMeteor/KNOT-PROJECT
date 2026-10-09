@@ -11,6 +11,20 @@
   background: var(--color-bg);
 }
 
+/* 홈: 첫 화면 위에 겹친다. 첫 화면의 별과 빛이 메뉴 뒤까지 이어지게 배경과 밑줄을 뺀다 */
+.over {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.over .brand {
+  letter-spacing: 1em;
+}
+
 /* 서비스 이름: 명조, 넓은 자간 */
 .brand {
   flex: none;
@@ -88,6 +102,10 @@
   .brand {
     font-size: 17px;
     letter-spacing: 0.2em;
+  }
+
+  .over .brand {
+    letter-spacing: 0.5em;
   }
 
   .links {

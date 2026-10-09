@@ -154,7 +154,10 @@ function easeOut(t) {
 }
 
 /* 그래프 하나를 canvas에 붙인다
-   opts: data {nodes, links}, scale(반지름 비율), speed(회전), labels('all'|'big'|'none'),
+   opts: data {nodes, links}, scale(반지름 비율), speed(회전), labels('all'|'big'|'lit'|'none'),
+         ('lit': 강조한 태그와 마우스를 올린 태그에만 이름을 단다)
+         avoid(): 이름을 피해서 달 영역 [{l,r,t,b}] (canvas 기준 px). 노드 오른쪽이 막히면 왼쪽에, 둘 다 막히면 뺀다
+         labelTint: 강조한 태그 이름을 카테고리 색으로
          interactive, onHover(node|link|null), onClick(node|link|null), dust(배경 먼지 수), seed */
 export function create(canvas, opts) {
   opts = opts || {}
@@ -426,7 +429,7 @@ export function create(canvas, opts) {
         )
           pr = 0
         else if (nb[n.id] || (hi && hi.has(n.id))) pr = 1
-        else if (focusing2) return
+        else if (focusing2 || lab === "lit") return
         else if (lab === "all" || (n.count || 1) >= (opts.labelMin || 2)) pr = 2
         else return
         cand.push({ n: n, pr: pr })
@@ -436,7 +439,8 @@ export function create(canvas, opts) {
       })
       var limit = opts.labelMax || 12,
         placed = [],
-        shown = 0
+        shown = 0,
+        avoid = opts.avoid ? opts.avoid() || [] : []
       ctx.textBaseline = "middle"
       ctx.lineJoin = "round"
       cand.forEach(function (c) {
@@ -450,13 +454,25 @@ export function create(canvas, opts) {
           (c.pr === 0 ? "600 " : "500 ") +
           size +
           'px "Noto Sans KR", Pretendard, system-ui, sans-serif'
-        var x = p.x + nodeR(n) * p.s + 7,
+        var gap = nodeR(n) * p.s + 7,
           w = ctx.measureText(n.label).width
-        var box = { l: x - 3, r: x + w + 3, t: p.y - size / 2 - 3, b: p.y + size / 2 + 3 }
-        var hit = placed.some(function (q) {
-          return box.l < q.r && box.r > q.l && box.t < q.b && box.b > q.t
-        })
-        if (hit && c.pr > 0) return
+        function boxAt(x) {
+          return { x: x, l: x - 3, r: x + w + 3, t: p.y - size / 2 - 3, b: p.y + size / 2 + 3 }
+        }
+        function overlaps(box, list) {
+          return list.some(function (q) {
+            return box.l < q.r && box.r > q.l && box.t < q.b && box.b > q.t
+          })
+        }
+        // 오른쪽에 먼저, 피할 영역에 걸리면 왼쪽에 단다
+        var box = boxAt(p.x + gap)
+        if (overlaps(box, avoid)) {
+          var left = boxAt(p.x - gap - w)
+          if (!overlaps(left, avoid)) box = left
+          else if (c.pr > 0) return
+        }
+        var x = box.x
+        if (overlaps(box, placed) && c.pr > 0) return
         placed.push(box)
         shown++
         var a =
@@ -468,7 +484,10 @@ export function create(canvas, opts) {
         ctx.lineWidth = 4
         ctx.strokeStyle = "rgba(0,0,0," + 0.85 * a + ")"
         ctx.strokeText(n.label, x, p.y)
-        ctx.fillStyle = "rgba(242,242,240," + a + ")"
+        ctx.fillStyle =
+          opts.labelTint && c.pr === 1 && n.cat
+            ? hexA(categoryColor(n.cat), a)
+            : "rgba(242,242,240," + a + ")"
         ctx.fillText(n.label, x, p.y)
       })
     }
