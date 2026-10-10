@@ -80,7 +80,7 @@
   bottom: 14px;
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-faint);
   pointer-events: none;
 }

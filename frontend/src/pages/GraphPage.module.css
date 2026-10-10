@@ -109,6 +109,15 @@
   color: var(--color-text-muted);
 }
 
+
+/* 고른 태그의 자료 수와 이웃 수: 위 숫자보다 밝게 */
+.hudSel {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
 /* 그래프 오른쪽 위: 축소, 확대, 전체 보기, 선택 해제 */
 .tools {
   display: flex;

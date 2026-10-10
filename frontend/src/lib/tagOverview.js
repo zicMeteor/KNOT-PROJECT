@@ -4,12 +4,12 @@
 // 노드 = 태그. id와 name은 서버의 태그 이름 그대로 (카테고리 그래프, 태그 자료 조회와 같은 이름)
 //   val: 그 태그를 가진 자료 수 (점 크기)
 //   category: 그 태그를 가장 많이 쓴 카테고리 (점 색)
-//   showLabel: 자료가 많은 태그 몇 개만 이름을 단다 (다 달면 글자가 겹쳐 읽히지 않는다)
+//   showLabel: 평소에 이름을 달 태그. 자료가 많은 순으로 labelMax개 (그 외 태그는 선택·호버 시 표시)
 //   catLabel: 카테고리마다 가장 큰 태그 위에 카테고리 이름을 띄운다
 // 엣지 = 두 태그를 함께 가진 자료 수 (weight)
 import { tagName } from "./contentMeta"
 
-export function buildTagOverview(contents, labelMax = 14) {
+export function buildTagOverview(contents, labelMax = 30) {
   const nodes = new Map()
   const links = new Map()
 

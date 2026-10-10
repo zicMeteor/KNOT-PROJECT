@@ -102,15 +102,20 @@
 }
 
 .more {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-faint);
 }
 
 .labels {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-faint);
   text-align: center;
+}
+
+/* 날짜는 한 줄로. 이름표는 하루걸러 달려 있어서 칸보다 길어도 빈 옆 칸으로 넘친다 */
+.labels span {
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -124,6 +129,6 @@
   }
 
   .labels {
-    font-size: 10px;
+    font-size: 11px;
   }
 }

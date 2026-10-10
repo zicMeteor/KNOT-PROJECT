@@ -30,10 +30,13 @@ function GraphPage() {
   // dataCategory: 지금 화면에 보이는 데이터의 카테고리 (불러오는 동안은 category와 다를 수 있다)
   const { data, dataCategory, loading, error } = useGraphData(category, reloadKey)
   const search = useAiSearch()
-  const { contents, reload: reloadContents } = useContents() // 전체 그래프와 위쪽 숫자(자료 수)용
+  const { contents, loading: contentsLoading, reload: reloadContents } = useContents() // 전체 그래프와 위쪽 숫자(자료 수)용
   // 전체 그래프: 서버의 카테고리 그래프 대신 모든 태그를 한 그래프로 (디자인 시안)
   const overview = useMemo(() => buildTagOverview(contents), [contents])
   const graphData = dataCategory ? data : overview
+  // 불러오는 중: 카테고리 그래프를 받는 중이거나, "전체"인데 자료 목록을 아직 못 받았을 때
+  // (전체 그래프는 자료 목록으로 만들어서, 받기 전에는 빈 그래프가 "자료 0건"으로 보인다)
+  const busy = loading || (!dataCategory && contentsLoading)
   const controlsRef = useRef(null) // 확대·축소·전체 보기
 
   // 홈의 "AI에게" 칸에서 넘겨받은 질문은 바로 찾는다
@@ -204,7 +207,7 @@ function GraphPage() {
 
   let status = null
   if (error) status = "오류: " + error
-  else if (loading) status = "불러오는 중…"
+  else if (busy) status = "불러오는 중…"
   else if (graphData && graphData.nodes.length === 0)
     status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
   else if (notice) status = notice
@@ -235,8 +238,26 @@ function GraphPage() {
   const itemCount = dataCategory
     ? contents.filter((c) => c.category === dataCategory).length
     : contents.length
-  const hudCounts = graphData
-    ? `자료 ${itemCount}건, 태그 ${graphData.nodes.length}개, 연결 ${graphData.links.length}개`
+  const hudCounts =
+    graphData && !busy
+      ? `자료 ${itemCount}건, 태그 ${graphData.nodes.length}개, 연결 ${graphData.links.length}개`
+      : ""
+
+  // 고른 태그: 자료 수와 이웃 태그 수를 그래프 위에 바로 보여 준다 (오른쪽 패널을 보지 않아도 읽히게)
+  // 링크의 source/target은 그래프가 그리기 시작하면 노드 객체로 바뀌므로 둘 다 받는다
+  const endId = (x) => (typeof x === "object" ? x.id : x)
+  const selNode = selectedName ? graphData?.nodes.find((n) => n.name === selectedName) : null
+  const selNeighbors = selNode
+    ? new Set(
+        graphData.links.flatMap((l) => {
+          const s = endId(l.source)
+          const t = endId(l.target)
+          return s === selNode.id ? [t] : t === selNode.id ? [s] : []
+        })
+      ).size
+    : 0
+  const selCounts = selNode
+    ? `#${selNode.name}: 자료 ${selNode.val ?? 0}건, 이어진 태그 ${selNeighbors}개`
     : ""
 
   return (
@@ -296,6 +317,7 @@ function GraphPage() {
             <div className={styles.hud}>
               <h1 className={styles.hudTitle}>{dataCategory ?? "전체"}</h1>
               {hudCounts && <p className={styles.hudCounts}>{hudCounts}</p>}
+              {selCounts && <p className={styles.hudSel}>{selCounts}</p>}
               {status && <p className={styles.status}>{status}</p>}
             </div>
           </div>

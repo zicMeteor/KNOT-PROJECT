@@ -7,7 +7,7 @@
 .section {
   margin: var(--space-4) 0 var(--space-1);
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-faint);
 }
@@ -96,7 +96,7 @@
 }
 
 .count {
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-faint);
 }

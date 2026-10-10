@@ -31,11 +31,11 @@ const HIT_DIM = "#3f5a14" // 다른 강조 중에도 찾은 노드인 건 알아
 const HIT_VAL_SCALE = 3 // 찾은 노드 → 약 1.44배
 const SELECTED_VAL_SCALE = 4 // 선택한 노드 → 약 1.59배 (찾은 노드보다 크게 해서 무엇을 골랐는지 보이게)
 
-const NODE_REL_SIZE = 3 // 반지름 = val의 세제곱근 × 이 값 (ForceGraph3D nodeRelSize와 같아야 함)
+const NODE_REL_SIZE = 4 // 반지름 = val의 세제곱근 × 이 값 (ForceGraph3D nodeRelSize와 같아야 함)
 const LABEL_GAP = 9 // 공 아래쪽 끝과 글자 중심 사이 거리
 
 // 연결 없는 노드가 멀리 밀려나지 않게 반발력이 미치는 거리를 제한한다
-const CHARGE_RANGE = 150
+const CHARGE_RANGE = 140
 
 // 태그 노드를 눌렀을 때 카메라가 노드에서 떨어지는 거리
 const FOCUS_DISTANCE = 100
@@ -537,6 +537,8 @@ function KnowledgeGraph({
       if (sprite.color !== color) sprite.color = color
       sprite.position.y = labelY(sprite.userData.baseRadius, valScale(id))
       sprite.material.opacity = isLit(id) ? 1 : 0.15
+      // 평소에 이름을 달지 않는 태그도 선택·호버·검색으로 강조되면 이름을 보인다
+      sprite.visible = sprite.userData.always || (focusing && isLit(id))
     }
     for (const [id, cat] of catLabelsRef.current) cat.material.opacity = isLit(id) ? 1 : 0.15
     for (const [id, glow] of glowsRef.current) {
@@ -547,7 +549,7 @@ function KnowledgeGraph({
       const r = glow.userData.baseRadius * Math.cbrt(valScale(id)) * GLOW_SCALE
       glow.scale.set(r, r, 1)
     }
-  }, [isLit, isHit, valScale, selectedId])
+  }, [isLit, isHit, valScale, selectedId, focusing])
 
   // 노드 하나에 붙는 것: 빛 번짐 + 이름 (+ 전체 그래프에서는 무리마다 카테고리 이름)
   // 전체 그래프는 자료가 많은 태그에만 이름을 단다 (node.showLabel). 카테고리 그래프는 모두
@@ -574,11 +576,13 @@ function KnowledgeGraph({
       group.add(glow)
       glowsRef.current.set(node.id, glow)
 
-      if (category || node.showLabel !== false) {
+      {
         const label = new SpriteText(node.name)
+        label.userData.always = !!category || node.showLabel !== false
+        label.visible = label.userData.always
         label.userData.baseColor = LABEL_COLOR
         label.color = LABEL_COLOR
-        label.textHeight = 4.5
+        label.textHeight = 5.5
         label.fontFace = 'Pretendard, "Noto Sans KR", system-ui, sans-serif'
         label.fontWeight = "500"
         label.fontSize = 120
@@ -587,8 +591,6 @@ function KnowledgeGraph({
         label.material.depthWrite = false
         group.add(label)
         labelsRef.current.set(node.id, label)
-      } else {
-        labelsRef.current.delete(node.id)
       }
 
       // 카테고리 이름: 그 카테고리에서 가장 큰 태그 위에 카테고리 색 명조로
