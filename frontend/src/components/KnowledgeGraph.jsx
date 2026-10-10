@@ -585,7 +585,7 @@ function KnowledgeGraph({
         label.textHeight = 5.5
         label.fontFace = 'Pretendard, "Noto Sans KR", system-ui, sans-serif'
         label.fontWeight = "500"
-        label.fontSize = 120
+        label.fontSize = 64
         label.userData.baseRadius = baseRadius
         label.position.y = labelY(baseRadius, 1)
         label.material.depthWrite = false
@@ -600,7 +600,7 @@ function KnowledgeGraph({
         cat.textHeight = 6
         cat.fontFace = '"Noto Serif KR", "Nanum Myeongjo", Georgia, serif'
         cat.fontWeight = "400"
-        cat.fontSize = 120
+        cat.fontSize = 64
         cat.position.y = baseRadius + LABEL_GAP + 4
         cat.material.depthWrite = false
         group.add(cat)
