@@ -414,7 +414,7 @@ export function create(canvas, opts) {
     order.forEach(function (n) {
       var p = n._p,
         on = lit(n),
-        rr = nodeR(n) * p.s * (0.4 + 0.6 * n._k)
+        rr = Math.max(0, nodeR(n) * p.s * (0.4 + 0.6 * n._k)) // 반지름이 음수면 캔버스가 예외를 던져 그래프가 멈춘다
       var near = inside ? Math.max(0, 1 - Math.hypot(mx - p.x, my - p.y) / 140) : 0
       var pl = n.pulse ? Math.max(0, 1 - (t - n.pulse) / 900) : 0
       var boost = hover === n || sel === n.id ? 1 : Math.max(near * 0.6, pl * 1.6)

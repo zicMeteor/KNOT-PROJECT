@@ -20,14 +20,15 @@ function HomePage() {
     () => tagGraph(contents.map((c) => ({ cat: c.category, tags: c.tags ?? [] }))),
     [contents]
   )
-  // 첫 화면 그래프: 오른쪽 카드 더미(최근 RECENT_CARDS건)의 태그만 그린다
-  // 화면의 점이 모두 카드 중 하나와 이어지고, 자료가 늘어도 점 수가 거의 일정하다 (보통 30~45개)
+
+  // 첫 화면 그래프: 자료가 많은 태그 40개 + 오른쪽 카드 더미(최근 RECENT_CARDS건)의 태그
+  // 태그가 40개 이하면 전체 그래프를 그대로 그린다
   const heroGraph = useMemo(() => {
     const recent = [...contents].sort(byNewest).slice(0, RECENT_CARDS)
     const keep = recent.flatMap((c) => (c.tags ?? []).map((t) => String(t).toLowerCase()))
-    return topTags(graph, 0, keep)
+    return topTags(graph, 40, keep)
   }, [contents, graph])
-
+  
   return (
     <div className={styles.page}>
       <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} />
