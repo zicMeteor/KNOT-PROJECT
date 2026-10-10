@@ -28,7 +28,7 @@ function HomePage() {
     const keep = recent.flatMap((c) => (c.tags ?? []).map((t) => String(t).toLowerCase()))
     return topTags(graph, 40, keep)
   }, [contents, graph])
-  
+
   return (
     <div className={styles.page}>
       <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} />
