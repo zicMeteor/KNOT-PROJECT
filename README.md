@@ -70,7 +70,7 @@ MySQL 저장 ─ 자료(content) + 태그(tag) + 자료-태그 연결(contenttag
 ```text
 KNOT/
 ├── requirements.txt          # 백엔드 의존성
-├── .env                      # 백엔드 환경 변수 (직접 만들어야 함, Git에 올리지 않음)
+├── .env.example              # 백엔드 환경 변수 예시 (복사해서 .env로 사용)
 ├── src/                      # FastAPI 백엔드 — 반드시 src/ 안에서 실행
 │   ├── main.py               # 앱 생성, CORS, 라우터 등록, 테이블 자동 생성
 │   ├── api/                  # 라우터
@@ -82,7 +82,7 @@ KNOT/
 │   ├── pipeline/             # URL/PDF 본문 추출, LLM 프롬프트와 응답 검증
 │   └── database/             # DB 연결(database.py), 테이블 정의(models.py)
 └── frontend/                 # React 프론트엔드
-    ├── .env                  # VITE_API_URL (직접 만들어야 함)
+    ├── .env.example          # 프론트엔드 환경 변수 예시 (복사해서 .env로 사용)
     ├── vite.config.js
     └── src/
         ├── api/              # 백엔드 API 호출 함수 (content, graph, aiSearch, reclassify)
@@ -121,24 +121,35 @@ INSERT INTO users (users_id) VALUES (1);
 
 ### 2. 백엔드 (Backend) 설정
 
+**① 가상환경과 의존성 설치** (프로젝트 루트 `KNOT/`에서)
+
 ```powershell
-# 1. 가상환경 생성 및 활성화 (프로젝트 루트 KNOT/에서)
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-
-# 2. 의존성 설치
 pip install -r requirements.txt
 playwright install chromium
+```
 
-# 3. 환경 변수 설정: 프로젝트 루트(KNOT/)에 .env 파일을 만들고 아래 내용을 입력합니다
+**② 환경 변수 파일 만들기**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+만들어진 `.env`를 편집기로 열어 값을 채웁니다. (`.env`는 Git에 올라가지 않습니다)
+
+```text
 ANTHROPIC_API_KEY=발급받은_API_키
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=MySQL_비밀번호
 DB_NAME=KNOT
+```
 
-# 4. 서버 실행 (반드시 src/ 폴더에서)
+**③ 서버 실행** (반드시 `src/` 폴더에서)
+
+```powershell
 cd src
 uvicorn main:app --reload
 ```
@@ -149,17 +160,28 @@ uvicorn main:app --reload
 
 ### 3. 프론트엔드 (Frontend) 설정
 
+**① 패키지 설치** (새 PowerShell 창에서)
+
 ```powershell
-# 1. 새 PowerShell 창에서 프론트엔드 디렉토리로 이동
 cd frontend
-
-# 2. 패키지 설치
 npm install
+```
 
-# 3. 환경 변수 설정: frontend/.env 파일을 만들고 아래 내용을 입력합니다
+**② 환경 변수 파일 만들기**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+`frontend/.env`에는 백엔드 주소가 들어 있습니다. 백엔드를 기본 주소로 실행했다면 고칠 필요가 없습니다.
+
+```text
 VITE_API_URL=http://127.0.0.1:8000
+```
 
-# 4. 개발 서버 실행
+**③ 개발 서버 실행**
+
+```powershell
 npm run dev
 ```
 
