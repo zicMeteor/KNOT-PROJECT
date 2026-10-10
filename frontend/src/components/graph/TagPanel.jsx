@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { fetchTagContents } from "../api/graph"
+import { fetchTagContents } from "../../api/graph"
 import ContentListView from "./ContentListView"
 import styles from "./TagPanel.module.css"
 

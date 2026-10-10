@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { useReclassify } from "../hooks/useReclassify"
-import Button from "./ui/Button"
+import { useReclassify } from "../../hooks/useReclassify"
+import Button from "../ui/Button"
 import styles from "./ReclassifyModal.module.css"
 
 const EXAMPLES = [

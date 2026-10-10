@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
-import Button from "./ui/Button"
+import Button from "../ui/Button"
 import ContentDetail from "./ContentDetail"
-import { categoryColor } from "../constants/categories"
+import { categoryColor } from "../../constants/categories"
 import styles from "./ContentListView.module.css"
 
 function tagName(t) {

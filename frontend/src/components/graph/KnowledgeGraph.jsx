@@ -2,7 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, 
 import ForceGraph3D from "react-force-graph-3d"
 import SpriteText from "three-spritetext"
 import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Group, Points, PointsMaterial, Sprite, SpriteMaterial } from "three"
-import { categoryColor } from "../constants/categories"
+import { categoryColor } from "../../constants/categories"
 import styles from "./KnowledgeGraph.module.css"
 
 const LABEL_COLOR = "#d4d4d8"

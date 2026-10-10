@@ -87,7 +87,13 @@ KNOT/
     └── src/
         ├── api/              # 백엔드 API 호출 함수 (content, graph, aiSearch, reclassify)
         ├── pages/            # 홈, 자료 추가, 지식 그래프, 전체 자료
-        ├── components/       # 그래프, 분석 결과, AI 검색, 재분류 창, 홈·목록 화면 구성 요소
+        ├── components/       # 화면별 구성 요소
+        │   ├── home/         # 홈 화면 (카드 더미, 그래프, 타임라인)
+        │   ├── add/          # 자료 추가 화면 (분석 결과)
+        │   ├── graph/        # 지식 그래프 화면 (그래프, 태그 패널, AI 검색, 재분류 창)
+        │   ├── library/      # 전체 자료 화면
+        │   ├── ui/           # 공용 버튼, 알림
+        │   └── Layout.jsx    # 상단 메뉴와 화면 틀
         ├── hooks/            # 자료·그래프·AI 검색·재분류 상태 관리
         ├── lib/              # 홈 그래프 엔진(threadGraph), 태그 그래프 계산
         ├── constants/        # 카테고리 목록과 색

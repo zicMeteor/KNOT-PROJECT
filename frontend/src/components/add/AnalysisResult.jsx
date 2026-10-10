@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
-import Button from "./ui/Button"
-import { categoryColor } from "../constants/categories"
-import { hostOf } from "../lib/contentMeta"
-import { reducedMotion } from "../lib/threadGraph"
+import Button from "../ui/Button"
+import { categoryColor } from "../../constants/categories"
+import { hostOf } from "../../lib/contentMeta"
+import { reducedMotion } from "../../lib/threadGraph"
 import styles from "./AnalysisResult.module.css"
 
 // 요약이 써지는 속도: 한 번에 몇 글자, 몇 ms마다

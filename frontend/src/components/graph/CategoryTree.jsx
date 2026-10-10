@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
-import { useContents } from "../hooks/useContents"
-import { CATEGORY_COLORS, categoryColor } from "../constants/categories"
+import { useContents } from "../../hooks/useContents"
+import { CATEGORY_COLORS, categoryColor } from "../../constants/categories"
 import styles from "./CategoryTree.module.css"
 
 const CATEGORY_ORDER = Object.keys(CATEGORY_COLORS)
