@@ -70,23 +70,3 @@ def extract_url_text_playwright(url):
         brower.close()
     return {"text": text, "title": None}
 
-
-## extract_url_text
-if __name__ == "__main__":
-    text = extract_url_text("https://github.com/bilawalsidhu/gods-eye-view")
-    print(text[:500])
-    print(f"총 길이: {len(text)}자")
-    print("LLM 호출 시작")
-    result = analyze_content(text, [])
-    print("LLM 호출 완료")
-    print(result)
-
-## extract_url_text_playwright
-# if __name__ == "__main__":
-#     text = extract_url_text_playwright("https://github.com/bilawalsidhu/gods-eye-view")
-#     print(text[:500])
-#     print(f"총 길이: {len(text)}자")
-#     print("LLM 호출 시작")
-#     result = analyze_content(text, [])
-#     print("LLM 호출 완료")
-#     print(result)

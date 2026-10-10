@@ -123,12 +123,3 @@ def analyze_content(text: str, tag_pool: list[str]) -> dict:
     result["category_fallback"] = category_fallback
     return result
     
-
-
-# 테스트
-if __name__ == "__main__":
-    sample_text = "여기에 분석할 텍스트를 넣으세요"
-    tag_pool = []
-
-    result = analyze_content(sample_text, tag_pool)
-    print(json.dumps(result, ensure_ascii=False, indent=2))

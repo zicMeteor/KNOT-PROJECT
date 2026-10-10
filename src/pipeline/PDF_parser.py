@@ -43,10 +43,3 @@ def _clean_text(text):
     text = "\n".join(result)
     text = re.sub(r"(\n\s*){3,}", "\n\n", text)
     return text
-
-if __name__ == "__main__":
-    text = extract_pdf_text("테스트 PDF 경로를 입력하세요")
-    print("텍스트 추출 완료")
-    result = analyze_content(text, [])
-    print("분석 완료")
-    print(result)
