@@ -1,7 +1,7 @@
 // 홈 세 번째 구역: 저장한 날짜 순서대로 그래프를 다시 그린다
 // 화면에 들어오면 한 번 저절로 재생한다. 재생 버튼이나 막대로 직접 움직일 수도 있다
 import { useEffect, useMemo, useRef, useState } from "react"
-import { create, reducedMotion, tagGraph } from "../../lib/threadGraph"
+import { create, reducedMotion, tagGraph, topTags } from "../../lib/threadGraph"
 import ways from "./HomeWays.module.css"
 import styles from "./HomeTimeline.module.css"
 
@@ -23,6 +23,9 @@ function toItems(list) {
   return list.map((c) => ({ cat: c.category, tags: c.tags ?? [] }))
 }
 
+// 그릴 태그 수 상한. 보고 있는 날짜에 저장한 자료의 태그는 수와 상관없이 남긴다 (그날 새로 자라는 점이 보이게)
+const TIMELINE_MAX_TAGS = 80
+
 function HomeTimeline({ contents }) {
   // 자료를 저장한 날짜 (오래된 순)
   const days = useMemo(
@@ -42,7 +45,11 @@ function HomeTimeline({ contents }) {
     const d = days[shown]
     return d ? contents.filter((c) => (dayOf(c.createdAt) ?? "") <= d) : []
   }, [contents, days, shown])
-  const graph = useMemo(() => tagGraph(toItems(upto)), [upto])
+  const graph = useMemo(() => {
+    const today = upto.filter((c) => dayOf(c.createdAt) === days[shown])
+    const keep = today.flatMap((c) => (c.tags ?? []).map((t) => String(t).toLowerCase()))
+    return topTags(tagGraph(toItems(upto)), TIMELINE_MAX_TAGS, keep)
+  }, [upto, days, shown])
 
   const boxRef = useRef(null)
   const canvasRef = useRef(null)

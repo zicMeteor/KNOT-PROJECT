@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { analyzePdf, analyzeUrl, saveContent } from "../api/content"
+import { analyzePdf, analyzeUrl, logDiscard, saveContent } from "../api/content"
 import { useContents } from "../hooks/useContents"
 import { byNewest } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
@@ -166,7 +166,9 @@ function AddPage() {
     }
   }
 
+  // 저장하지 않고 닫는다. 취소했다는 사실만 결과보고서용으로 서버에 기록한다
   function handleCancel() {
+    if (analysis) logDiscard(analysis)
     setAnalysis(null)
     setNotice(null)
   }

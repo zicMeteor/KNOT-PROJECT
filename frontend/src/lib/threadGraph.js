@@ -53,6 +53,38 @@ export function tagGraph(items) {
   }
 }
 
+// 태그가 max개를 넘으면 자료가 많은 태그 max개만 남긴다. keep(소문자 태그 id 목록)은 수와 상관없이 남긴다
+// 홈의 빛의 실 그래프는 매 프레임 모든 실을 다시 그리고, 배치 계산(layout)이 태그 수의 제곱에 비례해서
+// 자료가 100건을 넘으면 홈이 버벅인다 (120건 시험: 태그 189개, 가장 긴 멈춤 0.26초)
+export function topTags(graph, max, keep) {
+  if (graph.nodes.length <= max) return graph
+  var have = new Set(
+      graph.nodes.map(function (n) {
+        return n.id
+      }),
+    ),
+    ids = new Set()
+  ;(keep || []).forEach(function (k) {
+    if (have.has(k)) ids.add(k)
+  })
+  graph.nodes
+    .slice()
+    .sort(function (a, b) {
+      return b.count - a.count
+    })
+    .forEach(function (n) {
+      if (ids.size < max) ids.add(n.id)
+    })
+  return {
+    nodes: graph.nodes.filter(function (n) {
+      return ids.has(n.id)
+    }),
+    links: graph.links.filter(function (l) {
+      return ids.has(l.source) && ids.has(l.target)
+    }),
+  }
+}
+
 export function reducedMotion() {
   try {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches

@@ -67,3 +67,18 @@ export async function saveContent(content) {
   )
   return await res.json()
 }
+
+// 분석 결과를 저장하지 않고 취소했을 때 그 사실만 기록한다 (시연 결과보고서의 "분석 후 저장 비율"용)
+// DB의 자료는 바뀌지 않는다. 기록이 실패해도 화면 흐름은 막지 않는다 (기다리지 않고, 오류는 무시한다)
+export function logDiscard(analysis) {
+  request("/api/content/discard", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source: analysis.source ?? "url",
+      url: analysis.url ?? null,
+      title: analysis.title ?? null,
+    }),
+    keepalive: true,
+  }).catch(() => {})
+}

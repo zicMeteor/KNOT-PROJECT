@@ -3,11 +3,15 @@
 import { useMemo } from "react"
 import { Link } from "react-router-dom"
 import { useContents } from "../hooks/useContents"
-import { tagGraph } from "../lib/threadGraph"
+import { byNewest } from "../hooks/useLibraryFilter"
+import { tagGraph, topTags } from "../lib/threadGraph"
 import HomeHero from "../components/home/HomeHero"
 import HomeWays from "../components/home/HomeWays"
 import HomeTimeline from "../components/home/HomeTimeline"
 import styles from "./HomePage.module.css"
+
+// 첫 화면 카드 수. HomeHero의 CRATE_COUNT와 같아야 한다
+const RECENT_CARDS = 12
 
 function HomePage() {
   const { contents, loading, error } = useContents()
@@ -16,10 +20,17 @@ function HomePage() {
     () => tagGraph(contents.map((c) => ({ cat: c.category, tags: c.tags ?? [] }))),
     [contents]
   )
+  // 첫 화면 그래프: 오른쪽 카드 더미(최근 RECENT_CARDS건)의 태그만 그린다
+  // 화면의 점이 모두 카드 중 하나와 이어지고, 자료가 늘어도 점 수가 거의 일정하다 (보통 30~45개)
+  const heroGraph = useMemo(() => {
+    const recent = [...contents].sort(byNewest).slice(0, RECENT_CARDS)
+    const keep = recent.flatMap((c) => (c.tags ?? []).map((t) => String(t).toLowerCase()))
+    return topTags(graph, 0, keep)
+  }, [contents, graph])
 
   return (
     <div className={styles.page}>
-      <HomeHero contents={contents} graph={graph} loading={loading} error={error} />
+      <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} />
       {!loading && contents.length === 0 && !error && (
         <section className={styles.empty} aria-labelledby="empty-title">
           <p className={styles.eyebrow}>KNOT 시작하기</p>

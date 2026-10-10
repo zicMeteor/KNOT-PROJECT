@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useLibraryFilter } from "../../hooks/useLibraryFilter"
 import { categoryColor } from "../../constants/categories"
-import { create, reducedMotion } from "../../lib/threadGraph"
+import { create, reducedMotion, topTags as pickTags } from "../../lib/threadGraph"
 import styles from "./HomeWays.module.css"
 
 // 시연을 한 바퀴 돌리는 간격 (ms)과 글자 하나를 치는 간격 (ms)
@@ -13,6 +13,10 @@ const TICK_MS = 70
 const TICKS_PER_CYCLE = Math.round(CYCLE_MS / TICK_MS)
 // 시연에 쓰는 태그 수 (자료가 많은 순)
 const DEMO_TAGS = 5
+// 그래프 칸에 그릴 태그 수 (자료가 많은 순). 칸이 작고 한 태그를 확대해 보여 주므로 많을 필요가 없다
+// 시연 태그(DEMO_TAGS개)는 자료가 가장 많은 태그라 항상 이 안에 든다
+// 아래 "이웃 태그 n개"는 그리지 않은 태그까지 센 실제 수다 (그래프에 보이는 이웃은 그보다 적을 수 있다)
+const WAYS_MAX_TAGS = 12
 // 목록 칸에 보여 줄 결과 수
 const LIST_ROWS = 5
 
@@ -34,6 +38,9 @@ function HomeWays({ contents, graph }) {
     () => [...graph.nodes].sort((a, b) => b.count - a.count).slice(0, DEMO_TAGS),
     [graph]
   )
+
+  // 그래프 칸에 그릴 것: 자료가 많은 태그 WAYS_MAX_TAGS개
+  const drawGraph = useMemo(() => pickTags(graph, WAYS_MAX_TAGS), [graph])
 
   // 시연 시계: 한 칸이 TICK_MS. 몇 번째 바퀴인지와 지금까지 친 글자 수를 여기서 함께 얻는다
   const [tick, setTick] = useState(0)
@@ -63,10 +70,10 @@ function HomeWays({ contents, graph }) {
   const canvasRef = useRef(null)
   const graphRef = useRef(null)
   useEffect(() => {
-    if (!canvasRef.current || graph.nodes.length === 0) return
+    if (!canvasRef.current || drawGraph.nodes.length === 0) return
     if (!graphRef.current) {
       graphRef.current = create(canvasRef.current, {
-        data: graph,
+        data: drawGraph,
         scale: 0.36,
         cy: 0.46,
         labels: "big",
@@ -78,9 +85,9 @@ function HomeWays({ contents, graph }) {
         fontSize: 11,
       })
     } else {
-      graphRef.current.setData(graph, true)
+      graphRef.current.setData(drawGraph, true)
     }
-  }, [graph])
+  }, [drawGraph])
   useEffect(
     () => () => {
       graphRef.current?.destroy()
@@ -93,7 +100,7 @@ function HomeWays({ contents, graph }) {
     if (!g || !demo) return
     g.select(demo.id)
     g.view({ focus: demo.id, zoom: 1.5 })
-  }, [demo, graph])
+  }, [demo, drawGraph])
 
   const neighbors = demo
     ? graph.links.filter((l) => l.source === demo.id || l.target === demo.id).length
