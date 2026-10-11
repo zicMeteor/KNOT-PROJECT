@@ -27,31 +27,97 @@
 }
 
 .title {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .help {
-  margin: 0 0 12px;
+  max-width: 34em;
+  margin: 0 0 20px;
   color: var(--m-muted);
+  line-height: 1.6;
 }
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 자료 추가 화면의 메모 입력창과 같은 결: 옅은 흰 바탕, 누르면 테두리가 밝아진다 */
 .textarea {
+  display: block;
   width: 100%;
   box-sizing: border-box;
-  resize: vertical;
+  min-height: 96px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--color-text);
   font: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+  resize: none;
+  transition: border-color var(--dur-base) var(--ease-out);
 }
 
+.textarea::placeholder {
+  color: var(--color-text-faint);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* 예시: 눌러서 입력창을 채우는 알약 */
 .examples {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .example {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 0;
+  /* 높이의 절반: 한 줄이면 알약, 좁은 화면에서 두 줄로 접히면 둥근 사각형 */
+  border-radius: 17px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
   text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.example:hover {
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.example:focus-visible {
+  outline: 2px solid var(--color-text-faint);
+  outline-offset: 2px;
+}
+
+.example[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  color: var(--color-text);
 }
 
 .list {
@@ -76,6 +142,7 @@
 }
 
 .error {
+  margin: 12px 0 0;
   color: var(--m-danger);
 }
 
@@ -84,7 +151,7 @@
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 24px;
 }
 
 /* 미리보기 로딩 화면 */

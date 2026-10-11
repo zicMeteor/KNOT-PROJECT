@@ -59,30 +59,80 @@
 
 /* 왼쪽 아래: 읽는 법과 재분류 */
 .legend {
+  display: flex;
   flex-shrink: 0;
-  padding: 16px var(--space-6) 22px var(--space-4);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) 20px;
   border-top: 1px solid var(--color-border);
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--color-text-faint);
 }
 
-.recl {
-  margin-top: 12px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+/* 말풍선을 띄우는 기준. 안의 버튼에 마우스를 올리거나 키보드로 가리키면 위쪽에 설명이 뜬다 */
+.hintWrap {
+  position: relative;
+}
+
+.hint {
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  padding: 10px 12px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    visibility var(--dur-fast);
+  pointer-events: none;
+}
+
+.hintWrap:hover .hint,
+.hintWrap:has(:focus-visible) .hint {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint {
+    transform: none;
+  }
+}
+
+.legendBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin-left: -6px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-faint);
   font: inherit;
   font-size: 13px;
-  text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  cursor: pointer;
+  cursor: help;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
-.recl:hover {
+.legendBtn:hover,
+.legendBtn:focus-visible {
   color: var(--color-text);
+}
+
+.legendBtn:focus-visible {
+  outline: 2px solid var(--color-text-faint);
+  outline-offset: 2px;
 }
 
 /* 그래프 왼쪽 위: 지금 보는 그래프 이름과 숫자 */

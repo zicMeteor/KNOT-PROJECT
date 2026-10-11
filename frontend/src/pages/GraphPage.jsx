@@ -4,6 +4,7 @@ import { useGraphData } from "../hooks/useGraphData"
 import { useContents } from "../hooks/useContents"
 import { buildTagOverview } from "../lib/tagOverview"
 import { useAiSearch } from "../hooks/useAiSearch"
+import Button from "../components/ui/Button"
 import SidebarIcon from "../components/ui/SidebarIcon"
 import CategoryTree from "../components/graph/CategoryTree"
 import KnowledgeGraph from "../components/graph/KnowledgeGraph"
@@ -287,15 +288,27 @@ function GraphPage() {
               onSelectTag={selectTag}
             />
           </div>
+          {/* 설명은 마우스를 올리거나 키보드로 가리킬 때만 말풍선으로 보인다 */}
           <div className={styles.legend}>
-            <p>
-              점이 클수록 자료가 많은 태그이고, 색은 카테고리입니다. 실을 누르면 두 태그를 함께 쓴 자료만
-              모아 봅니다.
-            </p>
+            <div className={styles.hintWrap}>
+              <button type="button" className={styles.legendBtn} aria-describedby="graph-legend-hint">
+                <InfoIcon />
+                그래프 보는 법
+              </button>
+              <span id="graph-legend-hint" role="tooltip" className={styles.hint}>
+                점이 클수록 자료가 많은 태그이고, 색은 카테고리입니다. 실을 누르면 두 태그를 함께 쓴 자료만
+                모아 봅니다.
+              </span>
+            </div>
             {/* 재분류는 자주 쓰는 기능이 아니라 그래프 위가 아닌 여기에 둔다. 적용 전에 바뀌는 내용을 먼저 보여 준다 */}
-            <button type="button" className={styles.recl} onClick={() => setModalOpen(true)}>
-              분류 다시 검토 (적용 전에 바뀌는 내용을 보여 줍니다)
-            </button>
+            <div className={styles.hintWrap}>
+              <Button size="sm" block aria-describedby="recl-hint" onClick={() => setModalOpen(true)}>
+                분류 다시 검토
+              </Button>
+              <span id="recl-hint" role="tooltip" className={styles.hint}>
+                목적에 맞게 최근 자료의 분류를 AI가 다시 검토합니다. 적용 전에 바뀌는 내용을 먼저 보여 줍니다.
+              </span>
+            </div>
           </div>
         </aside>
       )}
@@ -450,3 +463,13 @@ function GraphPage() {
 }
 
 export default GraphPage
+
+function InfoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 7.25V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="5" r="0.9" fill="currentColor" />
+    </svg>
+  )
+}

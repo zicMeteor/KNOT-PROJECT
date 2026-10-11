@@ -4,6 +4,7 @@ import Button from "../ui/Button"
 import styles from "./ReclassifyModal.module.css"
 
 const EXAMPLES = [
+  "시험 공부용으로 다시 분류해줘",
   "학습으로 분류된 자료 중 도구 사용법에 가까운 것을 도구로 옮겨줘",
   "같은 개념인데 표기가 다른 태그를 하나로 통일해줘",
   "기타로 분류된 자료를 다시 검토해줘",
@@ -59,22 +60,29 @@ function ReclassifyModal({ onClose, onApplied }) {
         {step === "input" && (
           <>
             <p className={styles.help}>
-              목적을 적으면 최근 자료부터 일부를 검토해 변경안을 보여줍니다.
-              적용 전에 확인 화면이 나옵니다.
+              목적을 적으면 AI가 최근 자료 15건을 다시 검토해 바꿀 내용을 보여 줍니다.
+              적용하기 전까지 자료는 바뀌지 않습니다.
             </p>
+            <label className={styles.srOnly} htmlFor="reclassify-purpose">
+              재분류 목적
+            </label>
             <textarea
+              id="reclassify-purpose"
               className={styles.textarea}
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
               rows={3}
-              placeholder="재분류 목적을 입력하세요"
+              placeholder="예: 시험 공부용으로 다시 분류해줘"
+              autoFocus
             />
-            <div className={styles.examples}>
+            {/* 예시를 누르면 입력창이 그 문장으로 채워진다. 지금 입력과 같은 예시는 눌린 상태로 보인다 */}
+            <div className={styles.examples} role="group" aria-label="목적 예시">
               {EXAMPLES.map((ex) => (
                 <button
                   key={ex}
                   type="button"
                   className={styles.example}
+                  aria-pressed={purpose.trim() === ex}
                   onClick={() => setPurpose(ex)}
                 >
                   {ex}
@@ -86,7 +94,7 @@ function ReclassifyModal({ onClose, onApplied }) {
               <Button variant="ghost" onClick={handleClose}>
                 닫기
               </Button>
-              <Button variant="primary" onClick={runPreview}>
+              <Button variant="primary" onClick={runPreview} disabled={!purpose.trim()}>
                 미리보기
               </Button>
             </div>
