@@ -3,13 +3,18 @@ import { request } from "./client"
 const PREVIEW_FAILURE = "재분류 미리보기를 만들지 못했습니다. 잠시 후 다시 시도하세요"
 const EXECUTE_FAILURE = "재분류를 적용하지 못했습니다. 잠시 후 다시 시도하세요"
 
-export async function previewReclassify(purpose, signal) {
+// category를 비우면 전체 자료가 대상. beforeId는 앞 미리보기의 next_before_id (다음 묶음을 볼 때)
+export async function previewReclassify({ purpose, category, beforeId }, signal) {
   const res = await request(
     "/api/agent/reclassify/preview",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ purpose }),
+      body: JSON.stringify({
+        purpose,
+        categories: category ? [category] : [],
+        before_id: beforeId ?? null,
+      }),
       signal,
     },
     { showDetail: true, fallback: PREVIEW_FAILURE }

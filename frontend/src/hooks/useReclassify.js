@@ -5,6 +5,8 @@ import { previewReclassify, executeReclassify } from "../api/reclassify"
 export function useReclassify({ onApplied, onClose }) {
   const [step, setStep] = useState("input")
   const [purpose, setPurpose] = useState("")
+  // 검토 범위: null이면 전체, 아니면 카테고리 이름
+  const [category, setCategory] = useState(null)
   const [error, setError] = useState(null)
   const [plan, setPlan] = useState(null)
   const [result, setResult] = useState(null)
@@ -20,7 +22,8 @@ export function useReclassify({ onApplied, onClose }) {
     return () => clearInterval(id)
   }, [step])
 
-  async function runPreview() {
+  // beforeId가 있으면 같은 목적·범위로 다음 묶음을 본다
+  async function runPreview(beforeId = null) {
     const text = purpose.trim()
     if (!text) {
       setError("목적을 입력하세요.")
@@ -29,16 +32,21 @@ export function useReclassify({ onApplied, onClose }) {
     const ctrl = new AbortController()
     abortRef.current = ctrl
     setError(null)
+    setResult(null)
     setElapsed(0)
     setStep("loading")
     try {
-      const data = await previewReclassify(text, ctrl.signal)
+      const data = await previewReclassify({ purpose: text, category, beforeId }, ctrl.signal)
       setPlan(data)
       setStep("review")
     } catch (e) {
       if (e.name !== "AbortError") setError(e.message)
-      setStep("input")
+      setStep(beforeId ? "review" : "input")
     }
+  }
+
+  function nextBatch() {
+    if (plan?.next_before_id) runPreview(plan.next_before_id)
   }
 
   function cancelPreview() {
@@ -53,7 +61,8 @@ export function useReclassify({ onApplied, onClose }) {
     try {
       const data = await executeReclassify(changes)
       if (data.success_count > 0) onApplied(data.success_count)
-      if (data.fail_count === 0) {
+      // 실패도 없고 남은 자료도 없으면 바로 닫는다. 남았으면 결과 화면에서 다음 묶음으로 넘어갈 수 있다
+      if (data.fail_count === 0 && !plan.next_before_id) {
         onClose()
         return
       }
@@ -75,11 +84,14 @@ export function useReclassify({ onApplied, onClose }) {
     step,
     purpose,
     setPurpose,
+    category,
+    setCategory,
     error,
     plan,
     result,
     elapsed,
     runPreview,
+    nextBatch,
     cancelPreview,
     apply,
     backToInput,
