@@ -1,11 +1,15 @@
 // src/pages/HomePage.jsx
-// 홈: 첫 화면(링크 입력과 자료 상자) → 찾는 길 세 가지 → 지식이 자라는 모습
-import { useMemo } from "react"
+// 홈: 첫 화면(링크 입력과 자료 상자) → 숫자로 보는 지식 → 링크 하나가 지식이 되기까지 → 찾고 다시 묶는 길 → 지식이 자라는 모습
+// 넓은 화면에서는 구역마다 스크롤에 맞춰 장면이 진행된다 (스크롤리텔링)
+import { useMemo, useRef } from "react"
 import { Link } from "react-router-dom"
 import { useContents } from "../hooks/useContents"
 import { byNewest } from "../hooks/useLibraryFilter"
 import { tagGraph, topTags } from "../lib/threadGraph"
+import { useViewProgress } from "../lib/scrollPin"
 import HomeHero from "../components/home/HomeHero"
+import HomeStats from "../components/home/HomeStats"
+import HomeStory from "../components/home/HomeStory"
 import HomeWays from "../components/home/HomeWays"
 import HomeTimeline from "../components/home/HomeTimeline"
 import styles from "./HomePage.module.css"
@@ -29,6 +33,10 @@ function HomePage() {
     return topTags(graph, 40, keep)
   }, [contents, graph])
 
+  // 맨 아래 KNOT 글자가 모이는 정도
+  const endRef = useRef(null)
+  const endP = useViewProgress(endRef, { startAt: 1, span: 0.9 })
+
   return (
     <div className={styles.page}>
       <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} />
@@ -46,15 +54,31 @@ function HomePage() {
       )}
       {contents.length > 0 && (
         <>
+          <HomeStats contents={contents} graph={graph} />
+          <HomeStory contents={contents} />
           <HomeWays contents={contents} graph={graph} />
           <HomeTimeline contents={contents} />
         </>
       )}
-      <footer className={styles.end}>
+      <footer ref={endRef} className={styles.end} style={{ "--k": endP }}>
         <p className={styles.big} aria-hidden="true">
           KNOT
         </p>
-        <p className={styles.foot}>KNOT, 읽은 것을 잇는 개인 지식 그래프</p>
+        <div className={styles.endRow}>
+          <p className={styles.foot}>KNOT, 읽은 것을 잇는 개인 지식 그래프</p>
+          {/* 맨 아래까지 내려온 사람이 바로 다음 일을 고를 수 있게 */}
+          <nav className={styles.endLinks} aria-label="홈 끝 바로가기">
+            <Link to="/add" className={styles.emptyAction}>
+              자료 추가
+            </Link>
+            <Link to="/graph" className={styles.endGhost}>
+              지식 그래프 열기
+            </Link>
+            <Link to="/library" className={styles.endGhost}>
+              전체 자료
+            </Link>
+          </nav>
+        </div>
       </footer>
     </div>
   )

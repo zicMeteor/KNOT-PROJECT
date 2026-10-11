@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { byNewest } from "../../hooks/useLibraryFilter"
 import { categoryColor } from "../../constants/categories"
+import { canPin } from "../../lib/scrollPin"
 import { create, reducedMotion } from "../../lib/threadGraph"
 import { hostOf, kindOf, tagName } from "../../lib/contentMeta"
 import styles from "./HomeHero.module.css"
@@ -49,10 +50,6 @@ function shortUrl(url) {
   }
 }
 
-// 스크롤 고정은 넓은 화면에서만 쓴다 (좁은 화면은 카드가 설명 아래로 내려가서 의미가 없다)
-function canPin() {
-  return !reducedMotion() && window.matchMedia("(min-width: 901px)").matches
-}
 
 function HomeHero({ contents, graph, loading, error }) {
   const navigate = useNavigate()

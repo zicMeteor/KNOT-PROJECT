@@ -1,4 +1,13 @@
+/* 들어올 때: 제목은 아래에서 떠오르고, 상자는 작게 접혀 있다가 펼쳐진다 */
+.enterH {
+  opacity: min(1, calc(var(--in, 1) * 1.6));
+  transform: translateY(calc((1 - min(1, var(--in, 1) * 1.6)) * 40px));
+}
+
 .box {
+  opacity: clamp(0, calc(var(--in, 1) * 1.6 - 0.3), 1);
+  transform: scale(calc(0.88 + 0.12 * var(--in, 1)));
+  transform-origin: 50% 0;
   margin-top: 64px;
   position: relative;
   height: 620px;
@@ -93,4 +102,28 @@
   .date b {
     font-size: 52px;
   }
+}
+
+/* ---------- 스크롤 고정 (넓은 화면) ---------- */
+/* 제목과 그래프 상자가 화면 한 장에 들어가게 고정한다 */
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 640px;
+  padding: clamp(48px, 8svh, 88px) var(--gut) clamp(32px, 5svh, 56px);
+  display: flex;
+  flex-direction: column;
+}
+
+.stage .box {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  margin-top: 36px;
+}
+
+/* 재생 버튼이 없으면 날짜 눈금을 막대 폭에 맞춘다 */
+.ticksWide {
+  left: 32px;
 }

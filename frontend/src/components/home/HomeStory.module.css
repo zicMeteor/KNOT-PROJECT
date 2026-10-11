@@ -1,0 +1,358 @@
+/* 홈 스크롤리텔링 구역. 아래쪽 구역들(HomeWays)과 같은 제목, 여백, 배경을 쓴다 */
+.sec {
+  --gut: clamp(24px, 5vw, 72px);
+  --pad: clamp(56px, 9svh, 96px);
+  position: relative;
+  background: #000;
+  padding: 112px var(--gut) 40px;
+}
+
+/* 넓은 화면: 구역 전체가 고정 구간이 되고, 여백은 화면에 고정되는 stage가 갖는다 */
+.pinned {
+  padding: 0;
+}
+
+.stage {
+  display: grid;
+  gap: 48px;
+}
+
+.pinned .stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 640px;
+  padding: var(--pad) var(--gut);
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.25fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: center;
+}
+
+.h2 {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: clamp(32px, 3.2vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+/* 단계 목록. 왼쪽 세로줄이 지금까지 내려온 만큼 밝아진다 */
+.steps {
+  --p: 0;
+  position: relative;
+  margin: 40px 0 0;
+  padding: 0 0 0 22px;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.steps::before,
+.steps::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.steps::after {
+  bottom: auto;
+  height: calc((100% - 16px) * var(--p));
+  background: var(--color-text);
+}
+
+.steps button,
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 7px 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-faint);
+  font: inherit;
+  text-align: left;
+}
+
+.steps button {
+  cursor: pointer;
+  transition: color var(--dur-base) var(--ease-out);
+}
+
+.steps button:hover {
+  color: var(--color-text-muted);
+}
+
+.steps button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.num {
+  flex: none;
+  width: 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.steps b {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+
+.steps p {
+  overflow: hidden;
+  margin: 0 0 0 30px;
+  max-width: 25em;
+  max-height: 0;
+  opacity: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+  transition:
+    max-height var(--dur-slow) var(--ease-out),
+    opacity var(--dur-slow) var(--ease-out);
+}
+
+.on button,
+.on .head {
+  color: var(--color-text);
+}
+
+.on p {
+  max-height: 6em;
+  opacity: 1;
+  padding-bottom: 10px;
+}
+
+/* 오른쪽 장면: 뒤에 그래프, 앞에 자료 카드, 아래에 질문 입력 */
+.view {
+  position: relative;
+  height: 460px;
+  border-radius: 28px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  background: radial-gradient(90% 70% at 62% 45%, rgba(255, 255, 255, 0.04), transparent 70%);
+}
+
+.pinned .view {
+  height: min(600px, calc(100svh - 2 * var(--pad)));
+  min-height: 460px;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.45;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.lit {
+  opacity: 1;
+}
+
+.card {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  width: min(400px, calc(100% - 56px));
+  padding: 20px 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(14, 14, 18, 0.86);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: grid;
+  gap: 12px;
+  transform: translateY(-50%);
+  transform-origin: left top;
+  transition:
+    top var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out),
+    border-color var(--dur-slow) var(--ease-out),
+    box-shadow var(--dur-slow) var(--ease-out);
+}
+
+/* 저장한 뒤: 카드가 왼쪽 위로 비켜서 그래프가 보이게 한다 */
+.aside {
+  top: 24px;
+  transform: scale(0.84);
+}
+
+.found {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+}
+
+.url {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 22px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.ph {
+  color: var(--color-text-faint);
+}
+
+.title {
+  font-family: "Noto Serif KR", serif;
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+}
+
+.sum {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat,
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+}
+
+.cat {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cat i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.tag {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  animation: pop var(--dur-slow) var(--ease-out);
+}
+
+.tag small {
+  font-size: 11px;
+  color: var(--color-text-faint);
+}
+
+/* 새로 만든 태그는 점선 테두리 */
+.new {
+  border-style: dashed;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.status {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.ask {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  width: min(520px, calc(100% - 48px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 22px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(14, 14, 18, 0.86);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.askOn {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.ask span {
+  min-width: 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: 17px;
+  font-weight: 300;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ask em {
+  flex: none;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: #000;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 900px) {
+  .sec {
+    padding: 96px var(--gut) 24px;
+  }
+
+  .view {
+    height: 520px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag {
+    animation: none;
+  }
+}

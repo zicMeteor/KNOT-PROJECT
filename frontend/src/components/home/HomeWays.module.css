@@ -1,8 +1,13 @@
-/* 홈 아래쪽 구역 공통: 제목과 설명 */
+/* 홈 아래쪽 구역 공통: 제목과 설명 (HomeTimeline도 이 클래스를 쓴다) */
 .sec {
   --gut: clamp(24px, 5vw, 72px);
   padding: 112px var(--gut);
   background: #000;
+}
+
+/* 스크롤 고정 구간이 되는 구역: 여백은 화면에 고정되는 stage가 갖는다 */
+.pinned {
+  padding: 0;
 }
 
 .h2 {
@@ -25,189 +30,139 @@
   word-break: keep-all;
 }
 
-.grid {
-  margin-top: 64px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
-  gap: 20px;
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.tile {
+/* 제목: 화면에 들어오는 만큼 떠오르고, 설명은 조금 늦게 */
+.head {
+  --in: 0;
+}
+
+.head .h2 {
+  opacity: min(1, calc(var(--in) * 2));
+  transform: translateY(calc((1 - min(1, var(--in) * 2)) * 48px));
+}
+
+.head .lead {
+  opacity: clamp(0, calc(var(--in) * 2 - 0.5), 1);
+  transform: translateY(calc((1 - clamp(0, var(--in) * 2 - 0.5, 1)) * 32px));
+}
+
+/* ---------- 줄: 그림과 설명이 좌우를 번갈아 바꾼다 ---------- */
+.rows {
+  --t: 0;
+  position: relative;
+  margin-top: 88px;
+  display: grid;
+  gap: clamp(96px, 14svh, 160px);
+}
+
+/* 줄 사이를 잇는 실: 스크롤한 만큼 위에서 아래로 그려진다 (그림 뒤로 지나간다) */
+.rows::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: calc(var(--t) * 100%);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.45) 12%, rgba(255, 255, 255, 0.45));
+}
+
+/* 실 끝의 빛 구슬. 처음과 끝에서는 숨는다 */
+.rows::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 4px);
+  top: calc(var(--t) * 100% - 4px);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px 4px rgba(150, 190, 255, 0.55);
+  opacity: min(1, calc(var(--t) * 20), calc((1 - var(--t)) * 20));
+}
+
+.row {
+  --p: 0;
+  /* 들어오는 정도: 줄이 화면 아래에서 조금 올라오면 1 (스크롤을 올리면 다시 빠진다) */
+  --in: min(1, calc(var(--p) * 2.2));
+  /* 그림이 들어오는 방향. 뒤집힌 줄은 반대쪽에서 */
+  --dx: -96px;
+  --dy: 0px;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: clamp(32px, 5vw, 88px);
+  align-items: center;
+}
+
+.flip {
+  --dx: 96px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.flip .visual {
+  order: 2;
+}
+
+.visual {
   position: relative;
   height: 460px;
   border-radius: 24px;
   border: 1px solid var(--color-border);
   overflow: hidden;
-  background: radial-gradient(100% 80% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 70%);
-  display: flex;
-  flex-direction: column;
+  /* 실이 그림 뒤로 지나가도록 바탕을 채운다 */
+  background:
+    radial-gradient(100% 80% at 50% 0%, rgba(255, 255, 255, 0.045), transparent 70%),
+    #050507;
+  opacity: var(--in);
+  transform: translate(calc((1 - var(--in)) * var(--dx)), calc((1 - var(--in)) * var(--dy)))
+    scale(calc(0.9 + 0.1 * var(--in)));
+  /* 다 들어오면 테두리가 살짝 밝아진다 */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, calc(0.08 * var(--in))), 0 30px 80px rgba(0, 0, 0, 0.5);
 }
 
-.top {
-  position: relative;
-  z-index: 2;
-  padding: 24px 26px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
+/* 설명은 그림과 반대쪽에서, 조금 늦게 들어온다 */
+.text {
+  --t-in: clamp(0, calc(var(--in) * 1.4 - 0.4), 1);
+  opacity: var(--t-in);
+  transform: translate(calc((1 - var(--t-in)) * var(--dx) * -0.6), calc((1 - var(--t-in)) * var(--dy)));
 }
 
-.top h3 {
-  margin: 0;
-  font-family: "Noto Serif KR", serif;
-  font-weight: 400;
-  font-size: 26px;
-  letter-spacing: -0.02em;
-}
-
-.top span {
+.num {
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--color-text-faint);
-  text-align: right;
 }
 
-.body {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  padding: 18px 26px 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.cap {
-  position: absolute;
-  left: 26px;
-  right: 26px;
-  bottom: 8px;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.cap b {
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-.input,
-.ask {
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-}
-
-.input {
-  height: 44px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill);
-  font-size: 15px;
-}
-
-.ask {
-  resize: none;
-  padding: 0;
-  border: 0;
+.text h3 {
+  margin: 10px 0 0;
   font-family: "Noto Serif KR", serif;
-  font-size: 22px;
   font-weight: 300;
-  line-height: 1.4;
+  font-size: clamp(28px, 2.6vw, 36px);
+  letter-spacing: -0.03em;
+  word-break: keep-all;
 }
 
-.input:focus-visible,
-.ask:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 3px;
-  border-radius: var(--radius-sm);
-}
-
-.input:focus-visible {
-  border-radius: var(--radius-pill);
-}
-
-.input::placeholder,
-.ask::placeholder {
-  color: var(--color-text-faint);
-}
-
-.askForm {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.askBtn {
-  height: 40px;
-  padding: 0 18px;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.askBtn:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.askBtn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.askBtn:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 3px;
-}
-
-.n {
-  margin-top: 12px;
-  font-size: 13px;
+.text p {
+  margin-top: 16px;
+  max-width: 26em;
+  font-size: 16px;
+  line-height: 1.75;
   color: var(--color-text-muted);
-}
-
-.list {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 3px minmax(0, 1fr);
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--color-border);
-  font-size: var(--text-sm);
-}
-
-.row i {
-  border-radius: 2px;
-}
-
-.row span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: keep-all;
 }
 
 .more {
-  position: relative;
-  z-index: 2;
-  align-self: flex-start;
-  margin: 0 26px 22px;
+  display: inline-block;
+  margin-top: 24px;
   font-size: var(--text-sm);
   color: var(--color-text);
   text-decoration: none;
@@ -223,17 +178,399 @@
   outline-offset: 3px;
 }
 
-.sr {
+/* ---------- 그림 안쪽 공통 ---------- */
+.canvas {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
+.pad {
+  position: relative;
+  height: 100%;
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cap {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: 22px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.cap b {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  height: 46px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+.n {
+  margin-top: 14px;
+  min-height: 1.5em;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 결과 줄은 하나씩 차례로 들어온다 */
+.item {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr);
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  animation: rise var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.item i {
+  border-radius: 2px;
+}
+
+.item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- 3. AI에게 ---------- */
+/* 질문을 치는 동안 그래프는 어둡고, 찾으면 밝아진다 */
+.dim {
+  opacity: 0.35;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.dimIn {
+  opacity: 1;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.askTop {
+  position: absolute;
+  z-index: 2;
+  left: 28px;
+  right: 28px;
+  top: 26px;
+}
+
+.bubble {
+  display: inline-block;
+  max-width: 100%;
+  min-height: 1.4em;
+  padding: 14px 20px;
+  border-radius: 18px 18px 18px 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: 20px;
+  line-height: 1.4;
+  backdrop-filter: blur(8px);
+}
+
+.caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--color-text);
+}
+
+.chips {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.chipsOn {
+  opacity: 1;
+  transform: none;
+}
+
+.chipLabel {
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+}
+
+.chip i,
+.cat i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.found {
+  position: absolute;
+  z-index: 2;
+  left: 28px;
+  bottom: 22px;
+  width: min(340px, calc(100% - 56px));
+  padding: 4px 16px 6px;
+  border-radius: 14px;
+  background: rgba(7, 7, 11, 0.78);
+  border: 1px solid var(--color-border);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.foundOn {
+  opacity: 1;
+  transform: none;
+}
+
+.found .n {
+  margin-top: 10px;
+}
+
+.found .item {
+  animation: none;
+}
+
+.askForm {
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+  max-width: 26em;
+}
+
+.askBtn {
+  flex: none;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  border: 0;
+  background: var(--color-text);
+  color: #000;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.askBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.askBtn:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+/* ---------- 4. 다시 묶기 ---------- */
+.goal {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-height: 1.4em;
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: 22px;
+  line-height: 1.4;
+}
+
+.goalLabel {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.regroup {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 안이 나온 줄만 밝아지고 바뀔 카테고리가 나타난다 */
+.regroup li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  opacity: 0.35;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+.regroup li.rgOn {
+  opacity: 1;
+}
+
+.rgTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rgCats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.arrow,
+.catNew,
+.keep {
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+
+.rgOn .arrow,
+.rgOn .catNew,
+.rgOn .keep {
+  opacity: 1;
+  transform: none;
+}
+
+.arrow {
+  color: var(--color-text-faint);
+}
+
+.catNew {
+  color: var(--color-text);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.keep {
+  font-size: 12.5px;
+  color: var(--color-text-faint);
+}
+
+.note {
+  margin-top: auto;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-faint);
+}
+
+/* ---------- 좁은 화면: 그림 위, 설명 아래 ---------- */
 @media (max-width: 900px) {
   .sec {
     padding: 96px var(--gut);
+  }
+
+  .rows {
+    margin-top: 56px;
+    gap: 72px;
+  }
+
+  .row,
+  .flip {
+    --dx: 0px;
+    --dy: 48px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .flip .visual {
+    order: 0;
+  }
+
+  .visual {
+    height: 400px;
+  }
+
+  .bubble {
+    font-size: 17px;
+  }
+
+  .goal {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual,
+  .text,
+  .head .h2,
+  .head .lead {
+    opacity: 1;
+    transform: none;
+  }
+
+  .rows::before {
+    height: 100%;
+  }
+
+  .rows::after {
+    display: none;
   }
 }

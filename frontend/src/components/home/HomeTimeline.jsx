@@ -1,7 +1,9 @@
 // 홈 세 번째 구역: 저장한 날짜 순서대로 그래프를 다시 그린다
 // 화면에 들어오면 한 번 저절로 재생한다. 재생 버튼이나 막대로 직접 움직일 수도 있다
+// 넓은 화면: 구역이 화면에 고정되고, 스크롤한 만큼 날짜가 넘어간다 (내리면 자라고, 올리면 줄어든다)
 import { useEffect, useMemo, useRef, useState } from "react"
 import { create, reducedMotion, tagGraph, topTags } from "../../lib/threadGraph"
+import { usePinProgress, useViewProgress } from "../../lib/scrollPin"
 import ways from "./HomeWays.module.css"
 import styles from "./HomeTimeline.module.css"
 
@@ -9,6 +11,8 @@ import styles from "./HomeTimeline.module.css"
 const TICK_COUNT = 5
 // 전체 재생에 쓰는 시간 (ms). 날짜가 많으면 한 칸이 짧아진다
 const PLAY_TOTAL_MS = 9000
+// 스크롤 고정 구간 길이 (화면 높이의 배수)
+const TIMELINE_SCREENS = 3
 
 function dayOf(s) {
   const m = String(s ?? "").match(/^\d{4}-\d{2}-\d{2}/)
@@ -35,7 +39,15 @@ function HomeTimeline({ contents }) {
   const last = days.length - 1
   const [cur, setCur] = useState(null) // 보고 있는 날짜 순번. null이면 마지막 날 (처음에는 전체를 보여 준다)
   const [playing, setPlaying] = useState(false)
-  const shown = cur == null ? last : Math.min(cur, last)
+
+  const trackRef = useRef(null)
+  const stageRef = useRef(null)
+  const pin = usePinProgress(trackRef, stageRef, TIMELINE_SCREENS)
+  // 구역이 화면에 들어오는 정도: 제목이 떠오르고 그래프 상자가 펼쳐진다
+  const enter = useViewProgress(trackRef, { startAt: 1, span: 0.18 })
+
+  // 스크롤 고정이면 스크롤 위치가 날짜를 정한다
+  const shown = pin.on ? Math.round(pin.p * last) : cur == null ? last : Math.min(cur, last)
   const shownRef = useRef(shown) // 재생 타이머가 지금 날짜를 읽는 용도
   useEffect(() => {
     shownRef.current = shown
@@ -101,10 +113,10 @@ function HomeTimeline({ contents }) {
     return () => clearInterval(id)
   }, [playing, last])
 
-  // 화면에 처음 들어오면 한 번 재생한다
+  // 화면에 처음 들어오면 한 번 재생한다 (스크롤 고정이면 스크롤이 재생을 대신한다)
   useEffect(() => {
     const el = boxRef.current
-    if (!el || reducedMotion() || last < 1) return
+    if (!el || pin.on || reducedMotion() || last < 1) return
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return
@@ -116,7 +128,7 @@ function HomeTimeline({ contents }) {
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [last])
+  }, [last, pin.on])
 
   function togglePlay() {
     if (playing) {
@@ -135,13 +147,20 @@ function HomeTimeline({ contents }) {
   if (days.length < 2) return null
 
   return (
-    <section className={ways.sec} style={{ paddingTop: 40 }} aria-labelledby="grow-title">
-      <h2 className={ways.h2} id="grow-title">
+    <section
+      ref={trackRef}
+      className={pin.on ? `${ways.sec} ${ways.pinned}` : ways.sec}
+      style={pin.on ? { "--in": enter } : { paddingTop: 40, "--in": enter }}
+      aria-labelledby="grow-title"
+    >
+      <div ref={stageRef} className={pin.on ? styles.stage : undefined}>
+      <h2 className={`${ways.h2} ${styles.enterH}`} id="grow-title">
         지식이 자라는 모습
       </h2>
-      <p className={ways.lead}>
-        저장한 날짜 순서대로 그래프를 다시 그립니다. 재생을 누르거나 막대를 끌어 보세요. 새 태그가
-        생긴 날에는 그 자리에서 점이 자라납니다.
+      <p className={`${ways.lead} ${styles.enterH}`}>
+        {pin.on
+          ? "스크롤을 내리면 저장한 날짜 순서대로 그래프가 자랍니다. 새 태그가 생긴 날에는 그 자리에서 점이 자라납니다."
+          : "저장한 날짜 순서대로 그래프를 다시 그립니다. 재생을 누르거나 막대를 끌어 보세요. 새 태그가 생긴 날에는 그 자리에서 점이 자라납니다."}
       </p>
       <div ref={boxRef} className={styles.box}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
@@ -152,6 +171,7 @@ function HomeTimeline({ contents }) {
           </span>
         </div>
         <div className={styles.ctl}>
+          {!pin.on && (
           <button
             type="button"
             className={styles.play}
@@ -169,6 +189,7 @@ function HomeTimeline({ contents }) {
               )}
             </svg>
           </button>
+          )}
           <label className={ways.sr} htmlFor="grow-range">
             날짜
           </label>
@@ -182,16 +203,23 @@ function HomeTimeline({ contents }) {
             value={shown}
             aria-valuetext={shortDay(days[shown])}
             onChange={(e) => {
+              const v = Number(e.target.value)
+              // 스크롤 고정이면 막대를 끌면 그 날짜 위치로 스크롤한다
+              if (pin.on) {
+                pin.seek(last > 0 ? v / last : 0)
+                return
+              }
               setPlaying(false)
-              setCur(Number(e.target.value))
+              setCur(v)
             }}
           />
         </div>
-        <div className={styles.ticks} aria-hidden="true">
+        <div className={pin.on ? `${styles.ticks} ${styles.ticksWide}` : styles.ticks} aria-hidden="true">
           {ticks.map((d) => (
             <span key={d}>{shortDay(d)}</span>
           ))}
         </div>
+      </div>
       </div>
     </section>
   )

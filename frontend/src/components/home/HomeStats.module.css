@@ -1,0 +1,167 @@
+/* 숫자 네 개: 큰 명조 숫자, 아래 작은 이름 */
+.figs {
+  --g: 0;
+  margin: 64px 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--color-border);
+}
+
+.fig {
+  padding: 28px 24px 0 0;
+}
+
+.fig + .fig {
+  padding-left: 24px;
+  border-left: 1px solid var(--color-border);
+}
+
+.fig dt {
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+.fig dd {
+  margin: 10px 0 0;
+  font-family: "Noto Serif KR", serif;
+  font-weight: 300;
+  font-size: clamp(44px, 5vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fig small {
+  margin-left: 6px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.split {
+  margin-top: 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+}
+
+.h3 {
+  margin: 0 0 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-faint);
+}
+
+/* 카테고리 비율 막대: 진행도만큼 왼쪽에서 자란다 */
+.bar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  width: calc(var(--g) * 100%);
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+
+.bar span {
+  flex-basis: 0;
+  min-width: 4px;
+  box-shadow: 0 0 18px currentColor;
+}
+
+.legend {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend b {
+  color: var(--color-text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 많이 쓴 태그: 자료 수만큼 뒤 막대가 차오른다 */
+.tags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.tags li {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: var(--text-sm);
+}
+
+.tags li::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  right: auto;
+  width: calc(var(--w) * var(--g) * 100%);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: inherit;
+}
+
+.tags span,
+.tags b {
+  position: relative;
+}
+
+.tags span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tags b {
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .figs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fig:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .fig:nth-child(n + 3) {
+    margin-top: 12px;
+  }
+
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
