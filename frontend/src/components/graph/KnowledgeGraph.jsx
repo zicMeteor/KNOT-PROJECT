@@ -31,6 +31,9 @@ const HIT_DIM = "#3f5a14" // 다른 강조 중에도 찾은 노드인 건 알아
 const HIT_VAL_SCALE = 3 // 찾은 노드 → 약 1.44배
 const SELECTED_VAL_SCALE = 4 // 선택한 노드 → 약 1.59배 (찾은 노드보다 크게 해서 무엇을 골랐는지 보이게)
 
+// 빛 번짐과 글자는 클릭·호버 판정에서 뺀다. 공보다 훨씬 커서, 앞쪽 노드의 빛이 뒤쪽 노드 클릭을 가로챈다
+const skipRaycast = () => {}
+
 const NODE_REL_SIZE = 4 // 반지름 = val의 세제곱근 × 이 값 (ForceGraph3D nodeRelSize와 같아야 함)
 const LABEL_GAP = 9 // 공 아래쪽 끝과 글자 중심 사이 거리
 
@@ -573,6 +576,7 @@ function KnowledgeGraph({
       glow.scale.set(baseRadius * GLOW_SCALE, baseRadius * GLOW_SCALE, 1)
       glow.userData.baseRadius = baseRadius
       glow.userData.baseColor = color
+      glow.raycast = skipRaycast
       group.add(glow)
       glowsRef.current.set(node.id, glow)
 
@@ -589,6 +593,7 @@ function KnowledgeGraph({
         label.userData.baseRadius = baseRadius
         label.position.y = labelY(baseRadius, 1)
         label.material.depthWrite = false
+        label.raycast = skipRaycast
         group.add(label)
         labelsRef.current.set(node.id, label)
       }
@@ -603,6 +608,7 @@ function KnowledgeGraph({
         cat.fontSize = 64
         cat.position.y = baseRadius + LABEL_GAP + 4
         cat.material.depthWrite = false
+        cat.raycast = skipRaycast
         group.add(cat)
         catLabelsRef.current.set(node.id, cat)
       } else {
