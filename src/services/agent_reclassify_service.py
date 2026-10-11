@@ -4,7 +4,7 @@ from pipeline.tag_utils import find_or_create_tag
 
 REVIEW_LIMIT = 15
 
-def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
+def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str], before_id: int | None = None):
     query = db.query(content_class)
 
     if allowed_categories:
@@ -17,11 +17,24 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
         .distinct()
 
     total = query.count()
+
+    # 다음 묶음: 앞 묶음의 마지막 자료보다 오래된 것부터.
+    # 순번(offset) 대신 id로 이어서, 앞 묶음을 적용해 범위를 벗어난 자료가 생겨도 건너뛰는 자료가 없다
+    page = query
+    if before_id is not None:
+        page = page.filter(content_class.Content_id < before_id)
+
     reclassify__results = (
-        query.order_by(content_class.Content_id.desc())
+        page.order_by(content_class.Content_id.desc())
         .limit(REVIEW_LIMIT)
         .all()
     )
+
+    remaining = 0
+    if reclassify__results:
+        last_id = reclassify__results[-1].Content_id
+        remaining = query.filter(content_class.Content_id < last_id).count()
+    next_before_id = reclassify__results[-1].Content_id if remaining > 0 else None
 
     results = []
     for sea_cont in reclassify__results:
@@ -43,7 +56,13 @@ def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str]):
             "tags": tags,
             "memo": sea_cont.memo
         })
-    return {"contents": results, "count": len(results), "total": total}
+    return {
+        "contents": results,
+        "count": len(results),
+        "total": total,
+        "remaining": remaining,
+        "next_before_id": next_before_id,
+    }
 
 def CategoryTool(db, content_id: int, new_category: str):
     db.query(content_class)\

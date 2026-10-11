@@ -3,14 +3,19 @@ from pipeline.LLM_reclassify import reclassify_content, validate_action
 from services.agent_reclassify_service import Scope_Tool, CategoryTool, TagTool
 
 
-def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str], purpose: str) -> dict:
-    scope_result = Scope_Tool(db, allowed_categories, allowed_tags)
+def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str], purpose: str, before_id: int | None = None) -> dict:
+    scope_result = Scope_Tool(db, allowed_categories, allowed_tags, before_id)
     content_in_scope = scope_result["contents"]
-    total = scope_result["total"]
-    reviewed = scope_result["count"]
+    # 범위 전체 수, 이번에 검토한 수, 이번 묶음 뒤에 남은 수, 다음 묶음을 부를 때 넘길 값
+    page = {
+        "total": scope_result["total"],
+        "reviewed": scope_result["count"],
+        "remaining": scope_result["remaining"],
+        "next_before_id": scope_result["next_before_id"],
+    }
 
     if not content_in_scope:
-        return {"actions": [], "total": total, "reviewed": reviewed}
+        return {"actions": [], **page}
 
     tag_pool = []
     for tag_row in db.query(tag_class.Name).all():
@@ -33,7 +38,7 @@ def ReclassifyPreview(db, allowed_categories: list[str], allowed_tags: list[str]
             "tags": action["tags"]
         })
 
-    return {"actions": actions, "total": total, "reviewed": reviewed}
+    return {"actions": actions, **page}
 
 
 def ReclassifyExecute(db, actions: list) -> dict:
