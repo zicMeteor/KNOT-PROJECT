@@ -50,7 +50,8 @@ function HomePage() {
           <h2 id="empty-title">첫 자료를 추가해 보세요</h2>
           <p className={styles.emptyCopy}>
             아직 저장한 자료가 없어서, 아래는 <b>예시 자료 {SAMPLE_CONTENTS.length}건</b>으로 KNOT이 어떻게
-            쓰이는지 보여 줍니다. 첫 자료를 저장하면 모두 내 자료로 바뀝니다.
+            쓰이는지 보여 줍니다. 첫 자료를 저장하면 첫 화면과 숫자는 바로 내 자료로 바뀌고, 찾는 길은
+            자료가 조금 더 모이면 바뀝니다(다시 묶기 예시는 그대로).
           </p>
           <Link to="/add" className={styles.emptyAction}>
             자료 추가
@@ -61,7 +62,7 @@ function HomePage() {
         <>
           <HomeStats contents={contents} graph={graph} sample={sample} />
           <HomeStory contents={contents} sample={sample} />
-          <HomeWays contents={contents} graph={graph} sample={sample} />
+          <HomeWays mine={mine} />
           <HomeTimeline contents={contents} sample={sample} />
         </>
       )}

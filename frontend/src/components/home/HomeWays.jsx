@@ -2,12 +2,16 @@
 // 그림(시연)과 설명이 줄마다 좌우 자리를 바꾼다. 줄이 화면을 지나가는 만큼 그 줄의 시연이 진행된다
 // 네 줄 모두 가장 많이 쓴 태그 하나를 따라간다 (같은 자료에 여러 길로 닿는다는 이야기)
 // 입력칸을 누르면 시연을 멈추고 직접 쓸 수 있다. 움직임 줄이기 설정이면 처음부터 마지막 모습
+// 내 자료가 시연할 만큼 모이지 않았으면 예시 자료로 시연한다 (기준은 lib/waysDemo.js). 직접 입력한 검색은 언제나 내 자료에서 찾는다
+// 글자 표시: "예시"는 내 자료가 아닐 때만, "시연"은 내 자료로 움직임을 보여 줄 때
 // 스크롤 연출: 제목이 떠오르고, 줄 사이를 잇는 실이 내려온 만큼 그려지고, 그림과 설명이 양옆에서 들어온다
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useLibraryFilter, byNewest } from "../../hooks/useLibraryFilter"
 import { categoryColor } from "../../constants/categories"
 import { create, topTags as pickTags } from "../../lib/threadGraph"
+import { SAMPLE_DEMO, SAMPLE_GRAPH, SAMPLE_REGROUP, waysData } from "../../lib/waysDemo"
+import { SAMPLE_CONTENTS } from "../../constants/sampleContents"
 import { useViewProgress } from "../../lib/scrollPin"
 import styles from "./HomeWays.module.css"
 import SampleTag from "./SampleTag"
@@ -20,7 +24,6 @@ const ASK_MAX_TAGS = 30
 const LIST_ROWS = 5
 const ASK_ROWS = 3
 // 다시 묶기 줄에 보여 줄 자료 수
-const REGROUP_ROWS = 4
 const REGROUP_GOAL = "시험 공부용으로 다시 묶어 줘"
 
 // p(0~1)에서 [a, b] 구간의 진행도 (0~1)
@@ -67,7 +70,7 @@ function Item({ item, style }) {
 }
 
 // 1. 그래프로: 처음에는 전체 모습, 진행하면 태그 하나를 골라 확대한다
-function GraphVisual({ graph, demo, p }) {
+function GraphVisual({ graph, demo, p, sample }) {
   const draw = useMemo(() => pickTags(graph, WAYS_MAX_TAGS, demo ? [demo.id] : []), [graph, demo])
   const canvasRef = useRef(null)
   const graphRef = useRef(null)
@@ -113,6 +116,7 @@ function GraphVisual({ graph, demo, p }) {
     <>
       <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
       <p className={styles.cap} aria-live="polite">
+        {sample && "예시 자료 · "}
         {demo && focused ? (
           <>
             <b>#{demo.label}</b> 자료 {demo.count}건, 이웃 태그 {neighbors}개
@@ -126,18 +130,28 @@ function GraphVisual({ graph, demo, p }) {
 }
 
 // 2. 목록으로: 검색어를 쳐 가면서 목록이 줄어든다
-function ListVisual({ contents, demoWord, p }) {
+// contents: 시연에 쓰는 자료 / mine: 내 자료 (직접 입력하면 언제나 여기서 찾는다)
+function ListVisual({ contents, mine, sample, demoWord, p }) {
   const [query, setQuery] = useState("")
   const [touched, setTouched] = useState(false)
   const navigate = useNavigate()
   const shown = touched ? query : typed(demoWord, seg(p, 0.15, 0.55))
-  const items = useLibraryFilter(contents, shown, null)
+  // 직접 입력하면 내 자료에서 찾는다 (홈에서 본 건수와 전체 자료에서 본 건수가 같게)
+  const data = touched ? mine : contents
+  const items = useLibraryFilter(data, shown, null)
+  const empty = touched && mine.length === 0
 
   function submit(e) {
     e.preventDefault()
+    if (empty) return
     const q = shown.trim()
     navigate("/library", { state: q ? { q } : null })
   }
+
+  let caption
+  if (touched) caption = shown ? `내 자료에서 '${shown}' ${items.length}건` : `내 자료 ${mine.length}건`
+  else if (sample) caption = shown ? `예시 자료 · '${shown}' ${items.length}건` : `예시 자료 ${contents.length}건`
+  else caption = shown ? `시연: '${shown}' ${items.length}건` : `전체 ${contents.length}건`
 
   return (
     <div className={styles.pad}>
@@ -157,25 +171,35 @@ function ListVisual({ contents, demoWord, p }) {
             }
           }}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="단어를 입력하세요"
+          placeholder={
+            mine.length === 0 ? "자료를 추가하면 찾을 수 있습니다" : sample ? `내 자료 ${mine.length}건에서 찾기` : "단어를 입력하세요"
+          }
           autoComplete="off"
         />
       </form>
-      <p className={styles.n}>
-        {!touched && shown && "예시, "}
-        {shown ? `'${shown}' ${items.length}건` : `전체 ${contents.length}건`}
-      </p>
-      <ul className={styles.list}>
-        {items.slice(0, LIST_ROWS).map((it, i) => (
-          <Item key={it.id} item={it} style={{ "--i": i }} />
-        ))}
-      </ul>
+      {empty ? (
+        <p className={styles.n}>
+          아직 저장한 자료가 없습니다.{" "}
+          <Link to="/add" className={styles.inlineLink}>
+            자료 추가
+          </Link>
+        </p>
+      ) : (
+        <>
+          <p className={styles.n}>{caption}</p>
+          <ul className={styles.list}>
+            {items.slice(0, LIST_ROWS).map((it, i) => (
+              <Item key={it.id} item={it} style={{ "--i": i }} />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }
 
 // 3. AI에게: 질문 → 질문에서 뽑은 태그와 카테고리 → 찾은 자료가 그래프에서 빛난다
-function AskVisual({ contents, graph, demo, p }) {
+function AskVisual({ contents, graph, demo, p, sample }) {
   const question = demo ? `${demo.label} 관련해서 저장한 자료 찾아줘` : "지난주에 저장한 자료 찾아줘"
   const found = useMemo(() => {
     if (!demo) return []
@@ -253,7 +277,10 @@ function AskVisual({ contents, graph, demo, p }) {
         </div>
       </div>
       <div className={showFound ? `${styles.found} ${styles.foundOn}` : styles.found}>
-        <p className={styles.n}>예시, 찾은 자료 {found.length}건</p>
+        <p className={styles.n}>
+          {sample ? "예시 자료 · " : "시연: "}
+          {demo ? `#${demo.label} 태그로 찾은 자료 ${found.length}건` : `찾은 자료 ${found.length}건`}
+        </p>
         <ul className={styles.list}>
           {found.slice(0, ASK_ROWS).map((it, i) => (
             <Item key={it.id} item={it} style={{ "--i": i }} />
@@ -264,28 +291,27 @@ function AskVisual({ contents, graph, demo, p }) {
   )
 }
 
-// 4. 다시 묶기: 목적을 적으면 최근 자료마다 바꿀 안이 하나씩 나타난다 (예시)
-function RegroupVisual({ contents, p }) {
-  const rows = useMemo(() => {
-    return [...contents]
-      .sort(byNewest)
-      .slice(0, REGROUP_ROWS)
-      .map((c) => {
-        const change = ["참고", "도구", "기타"].includes(c.category)
-        return { item: c, to: change ? "학습" : c.category, change }
-      })
-  }, [contents])
+// 4. 다시 묶기: 목적을 적으면 자료마다 바꿀 안이 하나씩 나타난다
+// 언제나 예시 자료로 보여 준다. 바꿀 안은 AI가 만드는 것이라, 내 자료 제목에 지어낸 안을 붙이지 않는다
+const REGROUP_ROWS_DATA = SAMPLE_REGROUP.map((c) => {
+  const change = ["참고", "도구", "기타"].includes(c.category)
+  return { item: c, to: change ? "학습" : c.category, change }
+})
+
+function RegroupVisual({ p }) {
+  const rows = REGROUP_ROWS_DATA
   const changes = rows.filter((r) => r.change).length
   const g = seg(p, 0.05, 0.3)
 
   return (
     <div className={styles.pad}>
+      <SampleTag>예시 자료</SampleTag>
       <p className={styles.goal}>
         <span className={styles.goalLabel}>목적</span>
         {typed(REGROUP_GOAL, g) || " "}
       </p>
       <p className={styles.n}>
-        {p < 0.35 ? " " : p < 0.85 ? "최근 자료부터 15건씩 검토하는 중" : `예시, 바꿀 안 ${changes}건`}
+        {p < 0.35 ? " " : p < 0.85 ? "예시 자료 · 최근 자료부터 15건씩 검토하는 중" : `예시 자료 · 바꿀 안 ${changes}건`}
       </p>
       <ul className={styles.regroup}>
         {rows.map((r, i) => {
@@ -321,15 +347,19 @@ function RegroupVisual({ contents, p }) {
   )
 }
 
-function HomeWays({ contents, graph, sample }) {
+// mine: 내 자료 (홈이 불러온 그대로)
+function HomeWays({ mine }) {
   const navigate = useNavigate()
   const [question, setQuestion] = useState("")
 
-  // 네 줄이 함께 따라갈 태그: 자료가 가장 많은 태그
-  const demo = useMemo(
-    () => [...graph.nodes].sort((a, b) => b.count - a.count)[0] ?? null,
-    [graph]
-  )
+  // 내 자료가 시연할 만큼 모였으면 내 자료로, 아니면 예시 자료로 보여 준다
+  // 세 줄(그래프, 목록, AI)이 함께 따라갈 태그도 여기서 정한다
+  const real = useMemo(() => waysData(mine), [mine])
+  const sample = !real.rich
+  const contents = sample ? SAMPLE_CONTENTS : mine
+  const graph = sample ? SAMPLE_GRAPH : real.graph
+  const demo = sample ? SAMPLE_DEMO : real.demo
+  const noItems = mine.length === 0
 
   // 제목 떠오름, 실 그리기 진행도
   const headRef = useRef(null)
@@ -340,7 +370,8 @@ function HomeWays({ contents, graph, sample }) {
   function submitAsk(e) {
     e.preventDefault()
     const q = question.trim()
-    if (!q) return
+    // 자료가 없으면 찾을 것이 없어 AI 사용량만 쓴다
+    if (!q || noItems) return
     navigate("/graph", { state: { q } })
   }
 
@@ -355,6 +386,31 @@ function HomeWays({ contents, graph, sample }) {
           그래프에 익숙하지 않아도 됩니다. 목록에서 단어로 거르거나 기억나는 대로 AI에게 물어도 같은
           자료에 닿고, 쌓인 자료는 목적에 맞게 다시 묶을 수 있습니다.
         </p>
+        {/* 위 통계는 내 자료인데 여기만 예시인 이유와, 무엇이 채워지면 내 자료로 바뀌는지 */}
+        {sample && (
+          <div className={styles.why}>
+            {noItems ? (
+              <p>첫 자료를 저장하고 자료가 쌓이면 이 구간도 내 자료로 바뀝니다.</p>
+            ) : (
+              <>
+                <p>아직 예시 자료로 보여 줍니다. 아래가 모두 채워지면 내 자료로 바뀝니다.</p>
+                <ul className={styles.checks}>
+                  {real.checks.map((c) => (
+                    <li key={c.label} className={c.ok ? styles.ok : undefined}>
+                      <span aria-hidden="true">{c.ok ? "✓" : "·"}</span>
+                      <span>
+                        {c.label} <span className={styles.now}>지금 {c.now}</span>
+                        <span className="sr-only">{c.ok ? ", 채움" : ", 아직"}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p>목록 입력칸에 직접 쓰면 언제나 내 자료에서 찾습니다.</p>
+              </>
+            )}
+            <p>4번 다시 묶기는 AI가 안을 만들어야 해서 언제나 예시로 보여 줍니다.</p>
+          </div>
+        )}
       </div>
 
       <div ref={rowsRef} className={styles.rows} style={{ "--t": threadP }}>
@@ -364,11 +420,11 @@ function HomeWays({ contents, graph, sample }) {
           desc="태그를 고르면 그 태그와 이어진 이웃만 남습니다. 함께 붙은 태그를 따라가다 보면 잊고 있던 자료가 나옵니다."
           extra={
             <Link to="/graph" className={styles.more}>
-              지식 그래프 열기
+              {sample ? "내 지식 그래프 열기" : "지식 그래프 열기"}
             </Link>
           }
         >
-          {(p) => <GraphVisual graph={graph} demo={demo} p={p} />}
+          {(p) => <GraphVisual graph={graph} demo={demo} p={p} sample={sample} />}
         </Row>
 
         <Row
@@ -378,11 +434,13 @@ function HomeWays({ contents, graph, sample }) {
           desc="AI 없이 단어로 바로 거릅니다. 제목, 요약, 태그, 메모를 한 번에 찾습니다."
           extra={
             <Link to="/library" className={styles.more}>
-              전체 자료에서 보기
+              {sample ? "내 전체 자료에서 보기" : "전체 자료에서 보기"}
             </Link>
           }
         >
-          {(p) => <ListVisual contents={contents} demoWord={demo?.label ?? ""} p={p} />}
+          {(p) => (
+            <ListVisual contents={contents} mine={mine} sample={sample} demoWord={demo?.label ?? ""} p={p} />
+          )}
         </Row>
 
         <Row
@@ -400,16 +458,23 @@ function HomeWays({ contents, graph, sample }) {
                 maxLength={200}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder="기억나는 대로 물어보세요"
+                placeholder={
+                  noItems
+                    ? "자료를 추가하면 물어볼 수 있습니다"
+                    : sample
+                      ? `내 자료 ${mine.length}건에 물어보세요`
+                      : "기억나는 대로 물어보세요"
+                }
+                disabled={noItems}
                 autoComplete="off"
               />
-              <button type="submit" className={styles.askBtn} disabled={!question.trim()}>
+              <button type="submit" className={styles.askBtn} disabled={noItems || !question.trim()}>
                 찾기
               </button>
             </form>
           }
         >
-          {(p) => <AskVisual contents={contents} graph={graph} demo={demo} p={p} />}
+          {(p) => <AskVisual contents={contents} graph={graph} demo={demo} p={p} sample={sample} />}
         </Row>
 
         <Row
@@ -419,11 +484,11 @@ function HomeWays({ contents, graph, sample }) {
           desc="목적을 적으면 AI가 최근 자료부터 15건씩 다시 검토해 카테고리와 태그를 바꿀 안과 이유를 보여 줍니다. 적용을 누르기 전에는 아무것도 바뀌지 않습니다."
           extra={
             <Link to="/graph" className={styles.more}>
-              지식 그래프에서 재분류 열기
+              {sample ? "내 지식 그래프에서 재분류 열기" : "지식 그래프에서 재분류 열기"}
             </Link>
           }
         >
-          {(p) => <RegroupVisual contents={contents} p={p} />}
+          {(p) => <RegroupVisual p={p} />}
         </Row>
       </div>
     </section>

@@ -5,7 +5,7 @@ function tagName(t) {
 }
 
 // 자료 하나를 검색용 문자열 하나로 합친다 (제목·주소·요약·메모·태그, 소문자)
-function searchText(c) {
+export function searchText(c) {
   return [c.title, c.url, c.summary, c.memo, ...(c.tags ?? []).map(tagName)]
     .filter(Boolean)
     .join(" ")
@@ -16,6 +16,14 @@ function searchText(c) {
 export function byNewest(a, b) {
   const byDate = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))
   return byDate !== 0 ? byDate : b.id - a.id
+}
+
+// 같은 규칙으로 한 번만 거를 때 (훅 밖에서). 결과 순서는 넣은 순서 그대로
+export function filterContents(contents, query, category = null) {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  return contents.filter(
+    (c) => (!category || c.category === category) && words.every((w) => searchText(c).includes(w))
+  )
 }
 
 // 즉시 검색: 검색어를 띄어쓰기로 나눠, 모든 단어가 어딘가에 들어 있는 자료만 남긴다 (AND)

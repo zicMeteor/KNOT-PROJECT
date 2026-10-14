@@ -54,6 +54,73 @@
   transform: translateY(calc((1 - clamp(0, var(--in) * 2 - 0.5, 1)) * 32px));
 }
 
+/* 예시 자료로 보여 주는 이유 (내 자료가 적을 때만) */
+.why {
+  margin-top: 14px;
+  max-width: 40em;
+  padding-left: 12px;
+  border-left: 2px solid rgba(251, 191, 36, 0.45);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+}
+
+.why p {
+  margin: 0;
+}
+
+.why p + p,
+.why .checks + p {
+  margin-top: 6px;
+}
+
+.checks {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.checks li {
+  display: grid;
+  grid-template-columns: 1em minmax(0, 1fr);
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+
+.checks li > span:first-child {
+  width: 1em;
+  color: var(--color-text-faint);
+}
+
+.checks li.ok > span:first-child {
+  color: var(--color-success);
+}
+
+.checks .now {
+  margin-left: 4px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.head .why {
+  opacity: clamp(0, calc(var(--in) * 2 - 0.7), 1);
+}
+
+.inlineLink {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-text-faint);
+}
+
+.input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* ---------- 줄: 그림과 설명이 좌우를 번갈아 바꾼다 ---------- */
 .rows {
   --t: 0;
