@@ -57,8 +57,9 @@ export function useReclassify({ onApplied, onClose }) {
     abortRef.current?.abort()
   }
 
-  async function apply() {
-    const changes = plan.actions.filter((a) => a.change_needed)
+  // excluded: 사용자가 체크를 푼 안의 content_id. 고른 안만 보낸다
+  async function apply(excluded = new Set()) {
+    const changes = plan.actions.filter((a) => a.change_needed && !excluded.has(a.content_id))
     if (changes.length === 0) return
     setError(null)
     setStep("applying")

@@ -131,6 +131,7 @@
 .user {
   color: var(--color-text-faint);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .user {
@@ -159,14 +160,26 @@
   outline-offset: 3px;
 }
 
-/* 좁은 화면: 아이디와 사용량은 숨기고 로그아웃만 */
+/* 좁은 화면: 아이디는 숨기고 AI 사용량과 로그아웃만 (사용량은 테스터 안내문에서 보인다고 약속한 값) */
 @media (max-width: 760px) {
+  /* 사용량이 남는 만큼 간격을 줄여 메뉴가 한 줄에 들어가게 한다 (PC 창을 반으로 나눈 폭) */
+  .nav {
+    gap: var(--space-3) 24px;
+  }
+
+  .links {
+    gap: var(--space-2) 20px;
+  }
+
+  .over .brand {
+    letter-spacing: 0.5em;
+  }
+
   .me {
     padding-left: 0;
     border-left: 0;
   }
 
-  .usage,
   .user {
     display: none;
   }

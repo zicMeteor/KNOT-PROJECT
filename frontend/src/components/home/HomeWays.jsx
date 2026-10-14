@@ -24,7 +24,7 @@ const ASK_MAX_TAGS = 30
 const LIST_ROWS = 5
 const ASK_ROWS = 3
 // 다시 묶기 줄에 보여 줄 자료 수
-const REGROUP_GOAL = "시험 공부용으로 다시 묶어 줘"
+const REGROUP_GOAL = "시험 공부용으로 다시 분류해줘"
 
 // p(0~1)에서 [a, b] 구간의 진행도 (0~1)
 function seg(p, a, b) {
@@ -40,7 +40,7 @@ function lower(tags) {
 }
 
 // 한 줄: 그림과 설명. 짝수 줄은 좌우를 바꾼다. 그림은 진행도 p를 받아 그린다
-function Row({ n, flip, title, desc, extra, children }) {
+function Row({ flip, title, desc, extra, children }) {
   const ref = useRef(null)
   const p = useViewProgress(ref)
   return (
@@ -51,7 +51,6 @@ function Row({ n, flip, title, desc, extra, children }) {
     >
       <div className={styles.visual}>{children(p)}</div>
       <div className={styles.text}>
-        <span className={styles.num}>{n}</span>
         <h3>{title}</h3>
         <p>{desc}</p>
         {extra}
@@ -380,11 +379,11 @@ function HomeWays({ mine }) {
       <div ref={headRef} className={styles.head} style={{ "--in": headP }}>
         {sample && <SampleTag />}
         <h2 className={styles.h2} id="ways-title">
-          찾고, 다시 묶습니다
+          찾고, 다시 분류합니다
         </h2>
         <p className={styles.lead}>
           그래프에 익숙하지 않아도 됩니다. 목록에서 단어로 거르거나 기억나는 대로 AI에게 물어도 같은
-          자료에 닿고, 쌓인 자료는 목적에 맞게 다시 묶을 수 있습니다.
+          자료에 닿고, 쌓인 자료는 목적에 맞게 분류를 다시 검토할 수 있습니다.
         </p>
         {/* 위 통계는 내 자료인데 여기만 예시인 이유와, 무엇이 채워지면 내 자료로 바뀌는지 */}
         {sample && (
@@ -408,14 +407,13 @@ function HomeWays({ mine }) {
                 <p>목록 입력칸에 직접 쓰면 언제나 내 자료에서 찾습니다.</p>
               </>
             )}
-            <p>4번 다시 묶기는 AI가 안을 만들어야 해서 언제나 예시로 보여 줍니다.</p>
+            <p>분류 다시 검토는 AI가 안을 만들어야 해서 언제나 예시로 보여 줍니다.</p>
           </div>
         )}
       </div>
 
       <div ref={rowsRef} className={styles.rows} style={{ "--t": threadP }}>
         <Row
-          n={1}
           title="그래프로"
           desc="태그를 고르면 그 태그와 이어진 이웃만 남습니다. 함께 붙은 태그를 따라가다 보면 잊고 있던 자료가 나옵니다."
           extra={
@@ -428,7 +426,6 @@ function HomeWays({ mine }) {
         </Row>
 
         <Row
-          n={2}
           flip
           title="목록으로"
           desc="AI 없이 단어로 바로 거릅니다. 제목, 요약, 태그, 메모를 한 번에 찾습니다."
@@ -444,7 +441,6 @@ function HomeWays({ mine }) {
         </Row>
 
         <Row
-          n={3}
           title="AI에게"
           desc="기억나는 대로 물으면 AI가 질문에서 카테고리, 태그, 핵심어를 뽑아 찾습니다. 찾은 자료는 지식 그래프에서 빛납니다."
           extra={
@@ -478,13 +474,12 @@ function HomeWays({ mine }) {
         </Row>
 
         <Row
-          n={4}
           flip
-          title="목적에 맞게 다시 묶기"
+          title="분류 다시 검토"
           desc="목적을 적으면 AI가 최근 자료부터 15건씩 다시 검토해 카테고리와 태그를 바꿀 안과 이유를 보여 줍니다. 적용을 누르기 전에는 아무것도 바뀌지 않습니다."
           extra={
             <Link to="/graph" className={styles.more}>
-              {sample ? "내 지식 그래프에서 재분류 열기" : "지식 그래프에서 재분류 열기"}
+              {sample ? "내 지식 그래프에서 분류 다시 검토 열기" : "지식 그래프에서 분류 다시 검토 열기"}
             </Link>
           }
         >

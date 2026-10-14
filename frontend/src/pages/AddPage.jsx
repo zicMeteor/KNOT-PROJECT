@@ -363,7 +363,7 @@ function AddPage() {
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 disabled={locked}
-                placeholder="메모 (선택). 왜 저장하는지 적어 두면 재분류할 때 참고합니다"
+                placeholder="메모 (선택). 왜 저장하는지 적어 두면 분류를 다시 검토할 때 참고합니다"
                 rows={3}
               />
             </div>

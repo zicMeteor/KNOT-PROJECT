@@ -15,14 +15,6 @@
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
 }
 
-.eyebrow {
-  margin: 0 0 14px;
-  color: var(--color-text-faint);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .empty h2 {
   margin: 0;
   font-family: var(--font-serif);

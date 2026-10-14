@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useGraphData } from "../hooks/useGraphData"
 import { useContents } from "../hooks/useContents"
 import { buildTagOverview } from "../lib/tagOverview"
@@ -14,6 +14,7 @@ import AiSearchBar from "../components/graph/AiSearchBar"
 import AiSearchPanel from "../components/graph/AiSearchPanel"
 import ReclassifyModal from "../components/graph/ReclassifyModal"
 import { logEvent } from "../api/feedback"
+import btn from "../components/ui/Button.module.css"
 import styles from "./GraphPage.module.css"
 
 function GraphPage() {
@@ -206,15 +207,18 @@ function GraphPage() {
     setPair(null)
     setReloadKey((k) => k + 1)
     reloadContents()
-    setNotice(count + "건을 재분류했습니다")
+    setNotice(`분류 다시 검토 안 ${count}건을 적용했습니다`)
   }
 
   let status = null
   if (error) status = "오류: " + error
   else if (busy) status = "불러오는 중…"
-  else if (graphData && graphData.nodes.length === 0)
-    status = dataCategory ? "이 카테고리에 남은 자료가 없습니다" : "첫 자료를 추가해 보세요"
+  else if (graphData && graphData.nodes.length === 0 && dataCategory) status = "이 카테고리에 남은 자료가 없습니다"
   else if (notice) status = notice
+  // 그래프에 점이 하나도 없으면 상태 한 줄 대신 가운데에 무엇이 비었는지와 다음 행동을 보여 준다
+  // 태그 없이 메모로만 저장한 자료는 있어도 점이 없으므로, 자료가 아예 없는 경우와 문구를 나눈다
+  const empty = !error && !busy && graphData && graphData.nodes.length === 0 && !dataCategory
+  const untagged = empty && contents.length > 0
 
   // 검색과 태그가 둘 다 있을 때만 탭을 보여준다. 하나만 있으면 제목만
   const searchActive = search.status !== "idle"
@@ -303,7 +307,7 @@ function GraphPage() {
                 모아 봅니다.
               </span>
             </div>
-            {/* 재분류는 자주 쓰는 기능이 아니라 그래프 위가 아닌 여기에 둔다. 적용 전에 바뀌는 내용을 먼저 보여 준다 */}
+            {/* 분류 다시 검토는 자주 쓰는 기능이 아니라 그래프 위가 아닌 여기에 둔다. 적용 전에 바뀌는 내용을 먼저 보여 준다 */}
             <div className={styles.hintWrap}>
               <Button size="sm" block aria-describedby="recl-hint" onClick={() => setModalOpen(true)}>
                 분류 다시 검토
@@ -381,6 +385,40 @@ function GraphPage() {
           onLinkClick={handleLinkClick}
           controlsRef={controlsRef}
         />
+
+        {empty && (
+          <div className={styles.empty}>
+            <div className={styles.emptyBox}>
+              <svg className={styles.emptyMark} width="56" height="16" viewBox="0 0 56 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="5" fill="currentColor" />
+                <path d="M13 8h30" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 4" />
+                <circle cx="48" cy="8" r="5" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              {untagged ? (
+                <>
+                  <p className={styles.emptyTitle}>태그가 붙은 자료가 아직 없습니다</p>
+                  <p className={styles.emptyBody}>
+                    그래프는 태그를 점으로, 함께 붙은 태그를 실로 그립니다. 태그 없이 저장한 자료
+                    {` ${contents.length}건`}은 전체 자료에서 볼 수 있습니다.
+                  </p>
+                  <Link to="/library" className={`${btn.button} ${btn.primary}`}>
+                    전체 자료 보기
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className={styles.emptyTitle}>아직 저장한 자료가 없습니다</p>
+                  <p className={styles.emptyBody}>
+                    자료를 저장하면 태그가 점으로 생기고, 같은 자료에 함께 붙은 태그끼리 실로 이어집니다.
+                  </p>
+                  <Link to="/add" className={`${btn.button} ${btn.primary}`}>
+                    자료 추가
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <AiSearchBar
           loading={search.status === "loading"}

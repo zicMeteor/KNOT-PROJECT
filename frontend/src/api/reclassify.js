@@ -1,7 +1,7 @@
 import { request } from "./client"
 
-const PREVIEW_FAILURE = "재분류 미리보기를 만들지 못했습니다. 잠시 후 다시 시도하세요"
-const EXECUTE_FAILURE = "재분류를 적용하지 못했습니다. 잠시 후 다시 시도하세요"
+const PREVIEW_FAILURE = "분류 다시 검토 안을 만들지 못했습니다. 잠시 후 다시 시도하세요"
+const EXECUTE_FAILURE = "분류 다시 검토 안을 적용하지 못했습니다. 잠시 후 다시 시도하세요"
 
 // category를 비우면 전체 자료가 대상. beforeId는 앞 미리보기의 next_before_id (다음 묶음을 볼 때)
 export async function previewReclassify({ purpose, category, beforeId }, signal) {

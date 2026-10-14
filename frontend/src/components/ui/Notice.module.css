@@ -1,24 +1,41 @@
 /* src/components/ui/Notice.module.css */
+/* 사방 1px 테두리 + 글 앞의 작은 색 점. 종류(성공·주의·오류·안내)는 점 색으로, 내용은 글로 말한다 */
 .notice {
+  --dot: var(--color-text);
+
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   margin: 0;
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-left-width: 4px;
   border-radius: var(--radius-sm);
 }
 
+.notice::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot);
+  /* 첫 줄 글자 가운데에 맞춘다 */
+  transform: translateY(-1px);
+}
+
 .success {
-  border-left-color: var(--color-success);
+  --dot: var(--color-success);
 }
 
 .warn {
-  border-left-color: var(--color-warn);
+  --dot: var(--color-warn);
 }
 
 .error {
-  border-left-color: var(--color-danger);
+  --dot: var(--color-danger);
 }
+
 .info {
-  border-left-color: var(--color-text);
+  --dot: var(--color-text);
 }

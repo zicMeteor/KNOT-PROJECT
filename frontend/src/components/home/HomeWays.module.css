@@ -203,14 +203,8 @@
   transform: translate(calc((1 - var(--t-in)) * var(--dx) * -0.6), calc((1 - var(--t-in)) * var(--dy)));
 }
 
-.num {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--color-text-faint);
-}
-
 .text h3 {
-  margin: 10px 0 0;
+  margin: 0;
   font-family: "Noto Serif KR", serif;
   font-weight: 300;
   font-size: clamp(28px, 2.6vw, 36px);

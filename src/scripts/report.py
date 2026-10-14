@@ -253,7 +253,7 @@ def build(db, key, start, end, assist_override, show_names):
     sec.note("목록·그래프 열람 기록은 이 기능을 넣은 뒤부터 쌓인다")
 
     # 재분류
-    sec.h("목적에 맞게 다시 묶기")
+    sec.h("분류 다시 검토")
     previews = [e for e in by["reclassify_preview"] if e.ok]
     proposed = sum(e.d.get("proposed") or 0 for e in previews)
     applies = by["reclassify_apply"]
@@ -265,7 +265,7 @@ def build(db, key, start, end, assist_override, show_names):
     # 좋아요·싫어요
     sec.h("👍/👎")
     rows = []
-    for target, name in (("analysis", "분석 결과"), ("search", "AI 검색 결과"), ("reclassify", "재분류 제안")):
+    for target, name in (("analysis", "분석 결과"), ("search", "AI 검색 결과"), ("reclassify", "분류 다시 검토 제안")):
         f = [x for x in feedback if x.target == target]
         rows.append([name, sum(1 for x in f if x.value == 1), sum(1 for x in f if x.value == -1), pct(sum(1 for x in f if x.value == 1), len(f))])
     sec.table("좋아요_싫어요", ["대상", "👍", "👎", "👍 비율"], rows)

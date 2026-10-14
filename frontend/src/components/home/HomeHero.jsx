@@ -357,9 +357,9 @@ function HomeHero({ contents, graph, loading, error, sample }) {
           ) : (
             <p id="home-url-help" className={styles.help}>
               {sample
-                ? "오른쪽 카드와 그래프는 예시입니다. 첫 링크를 저장하면 내 자료로 바뀝니다."
+                ? "카드와 그래프는 예시입니다. 첫 링크를 저장하면 내 자료로 바뀝니다."
                 : total > 0
-                  ? "오른쪽 카드는 끌거나 화살표로 넘깁니다. 앞에 선 자료의 태그가 위 그래프에서 빛납니다."
+                  ? "카드는 끌거나 화살표로 넘깁니다. 앞에 선 자료의 태그가 그래프에서 빛납니다."
                   : "PDF는 자료 추가에서 올립니다."}
             </p>
           )}
