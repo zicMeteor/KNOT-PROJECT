@@ -22,8 +22,8 @@ function CloseIcon() {
 function ContentDrawer({ trail, contents, onGo, onClose, onDelete }) {
   const navigate = useNavigate()
   const closeRef = useRef(null)
-  // 삭제 확인을 띄운 자료 id. 다른 자료로 넘어가면 확인은 저절로 닫힌다
-  const [confirmId, setConfirmId] = useState(null)
+  // 삭제 확인: { id, step } (step 1 = 첫 확인, 2 = 마지막 확인). 다른 자료로 넘어가면 확인은 저절로 닫힌다
+  const [confirm, setConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
   const byId = useMemo(() => new Map(contents.map((c) => [c.id, c])), [contents])
@@ -57,11 +57,16 @@ function ContentDrawer({ trail, contents, onGo, onClose, onDelete }) {
     navigate("/graph", { state: { category: current.category, tag } })
   }
 
-  const confirming = confirmId === current.id
+  const step = confirm?.id === current.id ? confirm.step : 0
 
   function askDelete() {
     setDeleteError(null)
-    setConfirmId(current.id)
+    setConfirm({ id: current.id, step: 1 })
+  }
+
+  function cancelDelete() {
+    setConfirm(null)
+    setDeleteError(null)
   }
 
   async function confirmDelete() {
@@ -69,7 +74,7 @@ function ContentDrawer({ trail, contents, onGo, onClose, onDelete }) {
     setDeleteError(null)
     try {
       await onDelete(current.id)
-      setConfirmId(null)
+      setConfirm(null)
     } catch (e) {
       setDeleteError(e.message)
     } finally {
@@ -156,25 +161,40 @@ function ContentDrawer({ trail, contents, onGo, onClose, onDelete }) {
             >
               그래프에서 보기
             </button>
-            {onDelete && !confirming && (
+            {onDelete && step === 0 && (
               <button type="button" className={styles.danger} onClick={askDelete}>
                 삭제
               </button>
             )}
           </div>
 
-          {confirming && (
-            <div className={styles.confirm} role="alertdialog" aria-label="자료 삭제 확인">
+          {/* 두 번 확인한다. 마지막 확인에서는 버튼 자리를 바꿔, 같은 곳을 두 번 눌러도 지워지지 않게 한다 */}
+          {step === 1 && (
+            <div className={styles.confirm} role="alertdialog" aria-label="자료 삭제 확인 1/2">
+              <p>이 자료를 지울까요? 태그 연결도 함께 지워집니다.</p>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.danger} onClick={() => setConfirm({ id: current.id, step: 2 })}>
+                  계속
+                </button>
+                <button type="button" className={styles.secondary} onClick={cancelDelete}>
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
+          {step === 2 && (
+            <div className={`${styles.confirm} ${styles.confirmFinal}`} role="alertdialog" aria-label="자료 삭제 확인 2/2">
               <p>
-                이 자료를 지울까요? 태그 연결도 함께 지워지고, <strong>되돌릴 수 없습니다.</strong>
+                정말 지울까요? <strong>「{current.title || hostOf(current.url)}」</strong>이(가) 영구히 지워지고{" "}
+                <strong>되돌릴 수 없습니다.</strong>
               </p>
               {deleteError && <p className={styles.confirmError}>{deleteError}</p>}
               <div className={styles.confirmActions}>
-                <button type="button" className={styles.dangerSolid} onClick={confirmDelete} disabled={deleting}>
-                  {deleting ? "지우는 중…" : "지우기"}
-                </button>
-                <button type="button" className={styles.secondary} onClick={() => setConfirmId(null)} disabled={deleting}>
+                <button type="button" className={styles.secondary} onClick={cancelDelete} disabled={deleting}>
                   취소
+                </button>
+                <button type="button" className={styles.dangerSolid} onClick={confirmDelete} disabled={deleting}>
+                  {deleting ? "지우는 중…" : "영구 삭제"}
                 </button>
               </div>
             </div>

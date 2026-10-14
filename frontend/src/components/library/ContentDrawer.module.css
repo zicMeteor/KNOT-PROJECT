@@ -286,8 +286,11 @@
   cursor: pointer;
 }
 
-.danger {
+.actions .danger {
   margin-left: auto;
+}
+
+.danger {
   background: transparent;
   color: var(--color-danger);
   box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35);
@@ -330,4 +333,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.confirmFinal {
+  background: rgba(248, 113, 113, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.6);
 }
