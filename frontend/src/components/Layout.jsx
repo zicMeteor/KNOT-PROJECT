@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { useAuth } from "../hooks/useAuth"
 import styles from "./Layout.module.css"
@@ -13,7 +14,16 @@ const FULL_PAGES = ["/graph"]
 // 메뉴를 첫 화면 위에 투명하게 겹치는 페이지 (첫 화면 배경이 메뉴 뒤까지 이어진다)
 const OVER_PAGES = ["/"]
 
+// 로그인한 뒤 화면이 자리 잡으면 지식 그래프 화면(3D, 큰 파일)을 미리 받아 둔다. 그래프를 처음 열 때 기다리지 않게
+const PREFETCH_GRAPH_MS = 3000
+
 function Layout() {
+  useEffect(() => {
+    const id = setTimeout(() => {
+      import("../pages/GraphPage").catch(() => {})
+    }, PREFETCH_GRAPH_MS)
+    return () => clearTimeout(id)
+  }, [])
   const { pathname } = useLocation()
   const full = FULL_PAGES.includes(pathname)
   const over = OVER_PAGES.includes(pathname)

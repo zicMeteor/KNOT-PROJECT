@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 
 import settings
@@ -29,6 +30,8 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Error-Code"],
 )
+# 화면 파일(JS 1.8MB)과 API 응답을 압축해서 보낸다. 바깥 주소(Funnel)처럼 느린 길에서 차이가 크다
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/database")
 def database():
@@ -58,9 +61,13 @@ if settings.SERVE_FRONTEND and (DIST / "index.html").is_file():
         target = (DIST / full_path).resolve()
         # dist 밖의 파일은 내보내지 않는다
         if full_path and target.is_file() and DIST.resolve() in target.parents:
+            # assets/ 파일은 이름에 내용 해시가 붙어 있어, 바뀌면 이름도 바뀐다. 브라우저가 1년 동안 다시 받지 않게 한다
+            if full_path.startswith("assets/"):
+                return FileResponse(target, headers={"Cache-Control": "public, max-age=31536000, immutable"})
             return FileResponse(target)
         # 화면 안의 주소(/graph, /library 등)는 모두 index.html이 처리한다
-        return FileResponse(DIST / "index.html")
+        # index.html은 새로 빌드하면 바로 반영되도록 매번 확인하게 한다
+        return FileResponse(DIST / "index.html", headers={"Cache-Control": "no-cache"})
 
 else:
 
