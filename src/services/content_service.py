@@ -2,11 +2,11 @@ import os
 import tempfile
 
 import settings
-from database.models import content_class, contenttag_class
+from database.models import agenthistory_class, content_class, contenttag_class
 from pipeline.errors import ExtractionError
 from pipeline.LLM_prompt import analyze_content
 from pipeline.PDF_parser import extract_pdf_text
-from pipeline.tag_utils import find_or_create_tag, user_tag_pool
+from pipeline.tag_utils import find_or_create_tag, get_tags_by_content, user_tag_pool
 from pipeline.URL_parser import extract_url_text
 from services import ai_quota
 
@@ -20,6 +20,37 @@ def find_duplicate_url(db, url: str, users_id: int):
         content_class.users_id == users_id,
         content_class.URL.in_([base, base + "/"]),
     ).first()
+
+
+def delete_content(db, users_id: int, content_id: int) -> dict | None:
+    """내 자료 하나를 지운다. 남의 자료이거나 없으면 None
+    태그 연결은 지우고, 재분류 이력은 결과보고서용으로 남긴다 (자료 번호만 비운다)
+    지운 자료의 내용은 돌려줘서 기록에 남긴다"""
+    content = db.query(content_class)\
+        .filter(content_class.Content_id == content_id, content_class.users_id == users_id)\
+        .first()
+    if not content:
+        return None
+    removed = {
+        "content_id": content.Content_id,
+        "title": content.title,
+        "url": content.URL,
+        "category": content.category,
+        "tags": get_tags_by_content(db, [content_id]).get(content_id, []),
+        "analysis_status": content.analysis_status or "ai",
+        "is_seed": bool(content.is_seed),
+        "created_at": content.created_at.isoformat() if content.created_at else None,
+    }
+    try:
+        db.query(contenttag_class).filter(contenttag_class.Content_id == content_id).delete()
+        db.query(agenthistory_class).filter(agenthistory_class.Content_id == content_id)\
+            .update({agenthistory_class.Content_id: None})
+        db.delete(content)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise RuntimeError(f"삭제 실패: {e}")
+    return removed
 
 
 def s_content(url, db, users_id, memo=None, title=None, category=None, tags=None, summary=None,

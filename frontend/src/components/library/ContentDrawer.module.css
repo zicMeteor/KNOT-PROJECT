@@ -271,3 +271,63 @@
 .secondary:hover {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
+
+/* 삭제: 다른 버튼과 떨어뜨려 오른쪽 끝에 둔다 */
+.danger,
+.dangerSolid {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.danger {
+  margin-left: auto;
+  background: transparent;
+  color: var(--color-danger);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35);
+}
+
+.danger:hover {
+  box-shadow: inset 0 0 0 1px var(--color-danger);
+}
+
+.dangerSolid {
+  background: var(--color-danger);
+  color: #000;
+}
+
+.dangerSolid:disabled,
+.confirm .secondary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.confirm {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(248, 113, 113, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3);
+  font-size: var(--text-sm);
+}
+
+.confirm p {
+  margin: 0 0 12px;
+  color: var(--color-text);
+}
+
+.confirm .confirmError {
+  color: var(--color-danger);
+}
+
+.confirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

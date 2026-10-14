@@ -71,6 +71,16 @@ export async function saveContent(content) {
   return await res.json()
 }
 
+// 저장한 자료 하나를 지운다 (되돌릴 수 없다)
+export async function deleteContent(id) {
+  const res = await request(
+    `/api/content/${id}`,
+    { method: "DELETE" },
+    { fallback: "삭제에 실패했습니다. 잠시 후 다시 시도하세요" }
+  )
+  return await res.json()
+}
+
 // 분석 결과를 저장하지 않고 취소했을 때 그 사실만 기록한다 (시연 결과보고서의 "분석 후 저장 비율"용)
 // DB의 자료는 바뀌지 않는다. 기록이 실패해도 화면 흐름은 막지 않는다 (기다리지 않고, 오류는 무시한다)
 export function logDiscard(analysis) {

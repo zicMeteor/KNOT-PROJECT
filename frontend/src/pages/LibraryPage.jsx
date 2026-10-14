@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useContents } from "../hooks/useContents"
+import { deleteContent } from "../api/content"
 import { useLibraryFilter } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
 import { dayOf, shortDay } from "../lib/contentMeta"
@@ -14,7 +15,7 @@ const TRAIL_MAX = 5
 
 // 즉시 검색: 저장한 전체 자료를 글자로 바로 걸러 본다 (LLM 호출 없음)
 function LibraryPage() {
-  const { contents, loading, error } = useContents()
+  const { contents, loading, error, reload } = useContents()
   const navigate = useNavigate()
   // 홈의 "목록으로" 칸에서 넘겨받은 검색어로 시작한다
   const location = useLocation()
@@ -72,6 +73,16 @@ function LibraryPage() {
     setTrail([])
     openerRef.current?.focus?.()
   }, [])
+
+  // 지운 자료는 서랍 경로에서 뺀다. 경로가 비면 서랍을 닫는다
+  const removeItem = useCallback(
+    async (id) => {
+      await deleteContent(id)
+      await reload()
+      setTrail((t) => t.filter((x) => x !== id))
+    },
+    [reload]
+  )
 
   let body
   if (loading) {
@@ -211,7 +222,7 @@ function LibraryPage() {
       </section>
 
       {trail.length > 0 && (
-        <ContentDrawer trail={trail} contents={contents} onGo={goItem} onClose={closeDrawer} />
+        <ContentDrawer trail={trail} contents={contents} onGo={goItem} onClose={closeDrawer} onDelete={removeItem} />
       )}
     </div>
   )

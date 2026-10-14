@@ -1,6 +1,6 @@
 // 서랍: 목록을 벗어나지 않고 자료 하나를 자세히 본다
 // 같은 태그를 가진 자료를 누르면 이 서랍에서 이어서 열고, 지나온 자료는 위쪽 경로에 남는다
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { categoryColor } from "../../constants/categories"
 import { dayOf, fullDay, hostOf, kindOf, sharedTags, tagName } from "../../lib/contentMeta"
@@ -18,10 +18,14 @@ function CloseIcon() {
 }
 
 // trail: 지나온 자료 id 목록 (마지막이 지금 보는 자료) / contents: 전체 자료
-// onGo(id): 경로나 관련 자료를 눌렀을 때 / onClose(): 닫기
-function ContentDrawer({ trail, contents, onGo, onClose }) {
+// onGo(id): 경로나 관련 자료를 눌렀을 때 / onClose(): 닫기 / onDelete(id): 삭제 (Promise)
+function ContentDrawer({ trail, contents, onGo, onClose, onDelete }) {
   const navigate = useNavigate()
   const closeRef = useRef(null)
+  // 삭제 확인을 띄운 자료 id. 다른 자료로 넘어가면 확인은 저절로 닫힌다
+  const [confirmId, setConfirmId] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
   const byId = useMemo(() => new Map(contents.map((c) => [c.id, c])), [contents])
   const current = byId.get(trail[trail.length - 1])
 
@@ -51,6 +55,26 @@ function ContentDrawer({ trail, contents, onGo, onClose }) {
 
   function openInGraph(tag) {
     navigate("/graph", { state: { category: current.category, tag } })
+  }
+
+  const confirming = confirmId === current.id
+
+  function askDelete() {
+    setDeleteError(null)
+    setConfirmId(current.id)
+  }
+
+  async function confirmDelete() {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await onDelete(current.id)
+      setConfirmId(null)
+    } catch (e) {
+      setDeleteError(e.message)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -132,7 +156,29 @@ function ContentDrawer({ trail, contents, onGo, onClose }) {
             >
               그래프에서 보기
             </button>
+            {onDelete && !confirming && (
+              <button type="button" className={styles.danger} onClick={askDelete}>
+                삭제
+              </button>
+            )}
           </div>
+
+          {confirming && (
+            <div className={styles.confirm} role="alertdialog" aria-label="자료 삭제 확인">
+              <p>
+                이 자료를 지울까요? 태그 연결도 함께 지워지고, <strong>되돌릴 수 없습니다.</strong>
+              </p>
+              {deleteError && <p className={styles.confirmError}>{deleteError}</p>}
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.dangerSolid} onClick={confirmDelete} disabled={deleting}>
+                  {deleting ? "지우는 중…" : "지우기"}
+                </button>
+                <button type="button" className={styles.secondary} onClick={() => setConfirmId(null)} disabled={deleting}>
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </>

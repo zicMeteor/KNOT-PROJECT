@@ -11,7 +11,7 @@ from pipeline.tag_utils import get_tags_by_content
 from services.ai_quota import QuotaExceeded
 from services.auth import CurrentUser, current_user
 from services.content_service import (
-    s_content, analyze_content_preview, analyze_pdf_preview, analyze_pasted_preview,
+    s_content, delete_content, analyze_content_preview, analyze_pdf_preview, analyze_pasted_preview,
 )
 from services.event_log import log_event, ms_since
 from typing import Literal, Optional
@@ -103,6 +103,20 @@ def discard_content(request: Discard_Request, user: CurrentUser = Depends(curren
     # DB의 자료는 바꾸지 않는다. "분석했지만 저장하지 않고 취소함"만 기록한다
     log_event("discard", True, None, users_id=user.id, source=request.source, url=request.url, title=request.title)
     return {"ok": True}
+
+@router.delete("/content/{content_id}")
+def delete_content_route(content_id: int, db: Session = Depends(get_db),
+                         user: CurrentUser = Depends(current_user)):
+    started = time.perf_counter()
+    try:
+        removed = delete_content(db, user.id, content_id)
+    except RuntimeError as e:
+        _fail("delete", started, e, 500, user, content_id=content_id)
+    if removed is None:
+        # 남의 자료 번호도 "없음"으로 답한다 (있는지 없는지 알려 주지 않는다)
+        raise HTTPException(status_code=404, detail="없는 자료입니다.", headers={"X-Error-Code": "NOT_FOUND"})
+    log_event("delete", True, ms_since(started), users_id=user.id, **removed)
+    return {"ok": True, "content_id": content_id}
 
 @router.get("/content")
 def get_contents(db: Session = Depends(get_db), user: CurrentUser = Depends(current_user)):
