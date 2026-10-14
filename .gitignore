@@ -5,3 +5,6 @@ __pycache__/
 .vscode/
 test/
 CLAUDE.md
+
+# 결과보고서 집계 결과 (scripts.report). 기록에서 뽑은 것이라 올리지 않는다
+reports/

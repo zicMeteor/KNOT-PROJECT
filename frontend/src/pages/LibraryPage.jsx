@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useContents } from "../hooks/useContents"
 import { deleteContent } from "../api/content"
+import { logEvent } from "../api/feedback"
 import { useLibraryFilter } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
 import { dayOf, shortDay } from "../lib/contentMeta"
@@ -56,14 +57,26 @@ function LibraryPage() {
     setDay(null)
   }
 
+  // 목록에서 자료를 열었다는 기록 (단어 검색·카테고리·날짜로 거른 상태였는지)
   function openItem(id) {
     openerRef.current = document.activeElement
+    logEvent("library_open", {
+      content_id: id,
+      via: "list",
+      query: q || null,
+      category: category ?? null,
+      day: day ?? null,
+      rank: items.findIndex((c) => c.id === id) + 1,
+      shown: items.length,
+    })
     setTrail([id])
   }
 
   // 서랍 안에서 이어서 열기: 경로에 이미 있으면 거기까지 되돌아가고, 없으면 뒤에 붙인다
+  // 새 자료로 넘어가면 "같은 태그를 가진 자료"를 따라간 것으로 기록한다
   const goItem = useCallback((id) => {
     setTrail((t) => {
+      if (!t.includes(id)) logEvent("library_open", { content_id: id, via: "related" })
       const at = t.indexOf(id)
       return at >= 0 ? t.slice(0, at + 1) : [...t, id].slice(-TRAIL_MAX)
     })

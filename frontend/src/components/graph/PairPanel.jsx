@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { fetchTagContents } from "../../api/graph"
 import ContentListView from "./ContentListView"
+import { logEvent } from "../../api/feedback"
 import styles from "./TagPanel.module.css"
 
 function tagName(t) {
@@ -54,6 +55,9 @@ function PairPanel({ a, b, category, onPickTag }) {
       {items && (
         <ContentListView
           items={items}
+          onOpen={(c) =>
+            logEvent("graph_item_open", { content_id: c.id, tag: `${a}|${b}`, rank: items.indexOf(c) + 1, via: "pair" })
+          }
           header={
             <p className={styles.muted}>
               {items.length === 0 ? "두 태그를 함께 가진 자료가 없습니다" : `함께 쓴 자료 ${items.length}건`}

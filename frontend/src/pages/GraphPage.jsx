@@ -13,6 +13,7 @@ import PairPanel from "../components/graph/PairPanel"
 import AiSearchBar from "../components/graph/AiSearchBar"
 import AiSearchPanel from "../components/graph/AiSearchPanel"
 import ReclassifyModal from "../components/graph/ReclassifyModal"
+import { logEvent } from "../api/feedback"
 import styles from "./GraphPage.module.css"
 
 function GraphPage() {
@@ -59,7 +60,7 @@ function GraphPage() {
   const handoffCategory = location.state?.category
   const handoffTag = location.state?.tag
   const openHandoff = useEffectEvent((cat, t) => {
-    if (t) selectTag(cat, t)
+    if (t) selectTag(cat, t, "handoff")
     else selectCategory(cat)
   })
   useEffect(() => {
@@ -151,7 +152,9 @@ function GraphPage() {
     setRightOpen(false)
   }
 
-  function selectTag(cat, t) {
+  // via: 어디서 골랐는지 (node 그래프 점, tree 왼쪽 목록, pair 실 목록, handoff 다른 화면에서 넘어옴)
+  function selectTag(cat, t, via = "tree") {
+    logEvent("graph_tag_open", { tag: t, category: cat ?? null, via })
     setCategory(cat)
     setTag(t)
     setPair(null)
@@ -178,7 +181,7 @@ function GraphPage() {
   // 화면에 보이는 노드 기준으로 판단해야 불러오는 중에 눌러도 어긋나지 않는다
   // 전체 그래프에서 태그를 누르면 전체 그래프에 머문 채 그 태그의 모든 자료를 보여 준다
   function handleNodeClick(node) {
-    selectTag(dataCategory, node.name)
+    selectTag(dataCategory, node.name, "node")
   }
 
   // 빈 공간을 누르면 태그 선택을 푼다. 검색 결과가 있으면 검색 패널로 돌아간다
@@ -438,7 +441,7 @@ function GraphPage() {
                   a={pair.a}
                   b={pair.b}
                   category={dataCategory}
-                  onPickTag={(t) => selectTag(dataCategory, t)}
+                  onPickTag={(t) => selectTag(dataCategory, t, "pair")}
                 />
               ) : tag ? (
                 <TagPanel tag={tag} category={category} />

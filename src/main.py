@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -14,13 +15,54 @@ from api.feedback import router as feedback_router
 from api.graph import router as g_router
 from api.agent import router as agent_router
 from api.reclassify import router as reclass_router
+from services.event_log import log_event
 
 
 Base.metadata.create_all(bind=engine)
 
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _git_commit():
+    """지금 돌고 있는 코드의 커밋 (결과보고서에서 어느 버전으로 시험했는지 알려고). 모르면 None"""
+    try:
+        git = ROOT / ".git"
+        # 작업 트리(worktree)면 .git이 실제 위치를 적은 파일이다
+        if git.is_file():
+            git = (ROOT / git.read_text().split("gitdir:", 1)[1].strip()).resolve()
+        common = git
+        if (git / "commondir").is_file():
+            common = (git / (git / "commondir").read_text().strip()).resolve()
+        head = (git / "HEAD").read_text().strip()
+        if not head.startswith("ref:"):
+            return head[:7]
+        ref = head.split(" ", 1)[1]
+        for base in (git, common):
+            if (base / ref).is_file():
+                return (base / ref).read_text().strip()[:7]
+        for line in (common / "packed-refs").read_text().splitlines():
+            if line.endswith(" " + ref):
+                return line[:7]
+    except (OSError, IndexError):
+        pass
+    return None
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    # 서버가 켜질 때 설정을 한 줄 남긴다 (실패 처리를 언제 켰는지 등 결과보고서의 전후 비교 기준)
+    log_event(
+        "server_start", True, users_id=None, commit=_git_commit(),
+        auth=settings.AUTH_ENABLED, failure_assist=settings.FAILURE_ASSIST,
+        serve_frontend=settings.SERVE_FRONTEND, cookie_secure=settings.COOKIE_SECURE,
+        max_text_chars=settings.MAX_TEXT_CHARS, max_pdf_mb=settings.MAX_PDF_MB,
+    )
+    yield
+
+
 # 로그인을 켠(밖에 여는) 상태에서는 API 설명서(/docs)를 숨긴다. 버튼 몇 번으로 저장·재분류를 직접 부를 수 있어서
 _docs = {} if not settings.AUTH_ENABLED else {"docs_url": None, "redoc_url": None, "openapi_url": None}
-app = FastAPI(**_docs)
+app = FastAPI(lifespan=lifespan, **_docs)
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,7 +92,7 @@ app.include_router(feedback_router, prefix="/api")
 
 
 # 빌드한 화면(frontend/dist)을 이 서버가 함께 내보낸다: 주소 하나로 화면과 API를 연다
-DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+DIST = ROOT / "frontend" / "dist"
 
 if settings.SERVE_FRONTEND and (DIST / "index.html").is_file():
 
