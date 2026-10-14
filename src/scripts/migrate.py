@@ -2,7 +2,7 @@
 # 여러 번 실행해도 안전하다 (있는 칸은 건너뛴다). 자료는 지우거나 바꾸지 않는다
 #
 # 실행 (src 폴더에서):  python -m scripts.migrate
-# 실행 전에 백업을 권장:  mysqldump -u root -p KNOT > knot_backup.sql
+# 실행 전에 백업을 권장 (저장소 폴더 밖에 둔다):  mysqldump -u root -p KNOT > ../../KNOT-Backup/knot_backup.sql
 from sqlalchemy import inspect, text
 
 from database.database import Base, engine
