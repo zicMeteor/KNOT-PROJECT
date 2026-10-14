@@ -1,0 +1,143 @@
+/* 로그인 화면: 메뉴 없이 화면 가운데에 입력만 */
+.screen {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 48px var(--gut);
+  overflow: hidden;
+  background: #07070b;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 분류 색 오라: 홈 첫 화면과 같은 색 */
+.aura {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  background:
+    radial-gradient(30% 28% at 22% 20%, rgba(46, 230, 200, 0.14), transparent 70%),
+    radial-gradient(24% 26% at 84% 18%, rgba(255, 194, 61, 0.1), transparent 70%),
+    radial-gradient(28% 30% at 30% 88%, rgba(225, 92, 255, 0.09), transparent 70%),
+    radial-gradient(26% 30% at 92% 74%, rgba(91, 140, 255, 0.11), transparent 70%);
+}
+
+/* 입력 뒤는 어둡게: 그래프가 글자를 방해하지 않게 */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(38% 55% at 50% 50%, rgba(7, 7, 11, 0.92), rgba(7, 7, 11, 0.55) 60%, transparent 100%);
+}
+
+.box {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  gap: 22px;
+}
+
+.mark {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  letter-spacing: 0.6em;
+  padding-left: 0.6em;
+}
+
+.h1 {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+
+.sub {
+  margin-top: 6px;
+  text-align: center;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.fields {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.input {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.btn {
+  height: 48px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: #000;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+.foot {
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--color-text-faint);
+}
+
+.foot a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.foot a:hover {
+  color: var(--color-text);
+}

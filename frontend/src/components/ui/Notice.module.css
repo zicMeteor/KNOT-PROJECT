@@ -19,3 +19,6 @@
 .error {
   border-left-color: var(--color-danger);
 }
+.info {
+  border-left-color: var(--color-text);
+}

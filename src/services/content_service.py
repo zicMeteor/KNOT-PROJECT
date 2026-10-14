@@ -1,37 +1,51 @@
 import os
 import tempfile
-from pipeline.URL_parser import extract_url_text
-from pipeline.LLM_prompt import analyze_content
-from database.models import tag_class, content_class, contenttag_class
-from pipeline.tag_utils import find_or_create_tag
-from pipeline.PDF_parser import extract_pdf_text
 
-# URL 중복방지
-def find_duplicate_url(db, url: str):
+import settings
+from database.models import content_class, contenttag_class
+from pipeline.errors import ExtractionError
+from pipeline.LLM_prompt import analyze_content
+from pipeline.PDF_parser import extract_pdf_text
+from pipeline.tag_utils import find_or_create_tag, user_tag_pool
+from pipeline.URL_parser import extract_url_text
+from services import ai_quota
+
+ANALYSIS_STATUSES = ("ai", "ai_short", "manual", "pending")
+
+
+# URL 중복방지 (내 자료 안에서만)
+def find_duplicate_url(db, url: str, users_id: int):
     base = url.strip().rstrip("/")
     return db.query(content_class).filter(
-        content_class.URL.in_([base, base + "/"])
+        content_class.users_id == users_id,
+        content_class.URL.in_([base, base + "/"]),
     ).first()
 
-def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=None, source="url"):
+
+def s_content(url, db, users_id, memo=None, title=None, category=None, tags=None, summary=None,
+              source="url", analysis_status="ai"):
     # LLM 결과를 Content 테이블에 저장
     if source == "pdf":
         url = None  # PDF는 URL 없이 저장, 중복 검사도 하지 않음
     else:
         if not url or not url.strip():
             raise ValueError("URL이 필요합니다.")
-        if find_duplicate_url(db, url):
-            raise ValueError("이미 저장된 URL입니다.")
+        if find_duplicate_url(db, url, users_id):
+            raise ExtractionError("DUPLICATE", "이미 저장된 URL입니다.")
+    if analysis_status not in ANALYSIS_STATUSES:
+        analysis_status = "ai"
+    tags = tags or []
 
     try:
         content = content_class(
-            users_id=1,
+            users_id=users_id,
             title=title,
             category=category,
             source=source,
             summary=summary,
             URL=url,
-            memo=memo
+            memo=memo,
+            analysis_status=analysis_status,
         )
         db.add(content)
         db.flush()
@@ -57,13 +71,27 @@ def s_content(url, db, memo=None, title=None, category=None, tags=None, summary=
         "summary": summary
     }
 
-def analyze_text(text, title, db):
-    tag_pool = [tag.Name for tag in db.query(tag_class).all()]
 
-    try:
-        result = analyze_content(text, tag_pool)
-    except Exception as e:
-        raise RuntimeError(f"LLM 분석 실패: {str(e)}")
+def analyze_text(text, title, db, user, short=False):
+    """본문을 AI로 분석한다. 길면 앞부분만 보낸다 (MAX_TEXT_CHARS)"""
+    tag_pool = user_tag_pool(db, user.id)
+    truncated = len(text) > settings.MAX_TEXT_CHARS
+    if truncated:
+        text = text[: settings.MAX_TEXT_CHARS]
+
+    ai_quota.consume(db, user, "analyze")
+    # 실패 처리를 켜면 AI 오류(형식 오류 포함)는 한 번 더 시도한다. 사용량은 한 번만 센다
+    attempts = 2 if settings.FAILURE_ASSIST else 1
+    for attempt in range(attempts):
+        try:
+            result = analyze_content(text, tag_pool, short=short)
+            break
+        except Exception as e:
+            if attempt + 1 >= attempts:
+                raise RuntimeError(f"LLM 분석 실패: {str(e)}")
+            print(f"LLM 분석 실패, 다시 시도: {e}")
+    if result.get("insufficient"):
+        raise ExtractionError("NO_TEXT", "요약할 만한 본문이 없는 페이지입니다.")
 
     tag_pool_set = set(t.lower() for t in tag_pool)
     tags = []
@@ -78,23 +106,35 @@ def analyze_text(text, title, db):
         "summary": result["summary"],
         "category_fallback": result["category_fallback"],
         "char_count": len(text),
+        "truncated": truncated,
+        "analysis_status": "ai_short" if short else "ai",
     }
-    
-def analyze_content_preview(url, db, memo=None):
-    if find_duplicate_url(db, url):
-        raise ValueError("이미 저장된 URL입니다.")
+
+
+def analyze_content_preview(url, db, user, memo=None):
+    if find_duplicate_url(db, url, user.id):
+        raise ExtractionError("DUPLICATE", "이미 저장된 URL입니다.")
 
     try:
         result_url = extract_url_text(url)
-        text = result_url["text"]
-        title = result_url["title"]
+    except ExtractionError:
+        raise
     except Exception as e:
         print(f"URL 파싱 에러: {e}")
-        raise ValueError(str(e))
+        raise ExtractionError("FETCH_FAIL", str(e))
 
-    return analyze_text(text, title, db)
+    return analyze_text(result_url["text"], result_url["title"], db, user, short=result_url["short"])
 
-def analyze_pdf_preview(filename, data, db):
+
+def analyze_pasted_preview(text, title, db, user):
+    """실패한 페이지의 본문을 사용자가 붙여 넣었을 때"""
+    text = (text or "").strip()
+    if len(text) < 30:
+        raise ExtractionError("TOO_SHORT", "붙여 넣은 글이 너무 짧습니다 (30자 이상).")
+    return analyze_text(text, title, db, user, short=len(text) < 300)
+
+
+def analyze_pdf_preview(filename, data, db, user):
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -105,10 +145,12 @@ def analyze_pdf_preview(filename, data, db):
         # with 블록이 끝나 핸들이 닫힌 뒤에 pymupdf가 연다
 
         try:
-            text = extract_pdf_text(tmp_path)
+            extracted = extract_pdf_text(tmp_path)
+        except ExtractionError:
+            raise
         except Exception as e:
             print(f"PDF 파싱 에러: {e}")
-            raise ValueError(f"PDF를 읽을 수 없습니다: {e}")
+            raise ExtractionError("NO_TEXT", f"PDF를 읽을 수 없습니다: {e}")
     finally:
         if tmp_path:
             try:
@@ -117,4 +159,4 @@ def analyze_pdf_preview(filename, data, db):
                 print(f"임시 파일 삭제 실패: {e}")
 
     title = os.path.splitext(os.path.basename(filename))[0]
-    return analyze_text(text, title, db)
+    return analyze_text(extracted["text"], title, db, user, short=extracted["short"])

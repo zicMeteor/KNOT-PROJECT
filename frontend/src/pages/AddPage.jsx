@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { analyzePdf, analyzeUrl, logDiscard, saveContent } from "../api/content"
+import { useAuth } from "../hooks/useAuth"
 import { useContents } from "../hooks/useContents"
 import { byNewest } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
@@ -24,6 +25,11 @@ function previewText(url) {
   return `${hostOf(url)}, ${label}로 보입니다. 분석 시작을 누르면 본문을 읽습니다`
 }
 
+// AI가 처음 제안한 카테고리·태그 (저장할 때 함께 보내 수정 여부를 기록한다)
+function suggestedOf(result) {
+  return { category: result.category, tags: (result.tags ?? []).map((t) => t.name) }
+}
+
 function AddPage() {
   const { contents, loading, error, reload } = useContents()
 
@@ -43,6 +49,8 @@ function AddPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [secs, setSecs] = useState(0) // 분석에 걸린 시간 (초)
   const [analysis, setAnalysis] = useState(null)
+  // 분석 뒤 메뉴의 AI 사용 횟수를 새로 읽는다
+  const refreshMe = useAuth()?.refresh
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(null) // 방금 저장한 분석 결과 (저장 완료 화면용)
   const [notice, setNotice] = useState(null) // { type: "success" | "warn" | "error", text }
@@ -114,11 +122,12 @@ function AddPage() {
     try {
       if (usePdf) {
         const result = await analyzePdf(file, controller.signal)
-        setAnalysis({ ...result, url: null, source: "pdf", memo: memo })
+        setAnalysis({ ...result, url: null, source: "pdf", memo: memo, suggested: suggestedOf(result) })
       } else {
         const result = await analyzeUrl(u, memo, controller.signal)
-        setAnalysis({ ...result, url: u, source: "url", memo: memo })
+        setAnalysis({ ...result, url: u, source: "url", memo: memo, suggested: suggestedOf(result) })
       }
+      refreshMe?.()
     } catch (e) {
       if (e.name === "AbortError") return
       showError(e)

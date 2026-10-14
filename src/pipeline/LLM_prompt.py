@@ -53,6 +53,16 @@ summary는 콘텐츠의 핵심 내용을 한국어로 작성하세요.
 }}"""
 
 
+# 짧은 본문(제목·설명문을 더한 글)을 분석할 때 덧붙이는 지시
+SHORT_NOTE = """
+
+이번 글은 본문이 짧습니다. 쿠키 안내, 로그인 요청, 메뉴 글자처럼 요약할 내용이 없는 글이면
+summary에 정확히 "__INSUFFICIENT__"만 쓰고, category는 "기타", tags는 ["없음"]으로 답하세요.
+내용이 짧더라도 실제 정보가 있으면 원문에 있는 내용만으로 요약하세요."""
+
+INSUFFICIENT = "__INSUFFICIENT__"
+
+
 def validate_result(result: dict) -> bool:
     
     if not isinstance(result, dict):
@@ -87,11 +97,14 @@ def validate_result(result: dict) -> bool:
     return True
 
 
-def analyze_content(text: str, tag_pool: list[str]) -> dict:
+def analyze_content(text: str, tag_pool: list[str], short: bool = False) -> dict:
+    """short=True면 AI가 쓸 만한 글인지도 판단한다. 아니면 result["insufficient"]가 True"""
     client = anthropic.Anthropic()
     
     tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
     system = SYSTEM_PROMPT.format(tag_pool=tag_pool_str)
+    if short:
+        system += SHORT_NOTE
     raw = ""
 
     try:
@@ -112,6 +125,9 @@ def analyze_content(text: str, tag_pool: list[str]) -> dict:
     except Exception as e:
         raise RuntimeError(f"API 호출실패: {e}")
     
+    if isinstance(result, dict) and str(result.get("summary", "")).strip() == INSUFFICIENT:
+        return {"insufficient": True}
+
     category_fallback = False
     if isinstance(result, dict) and result.get("category") not in CATEGORIES:
         result["category"] = "기타"

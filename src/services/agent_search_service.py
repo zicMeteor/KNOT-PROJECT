@@ -2,12 +2,13 @@ from typing import Optional
 # from sqlalchemy import func
 from database.models import content_class, contenttag_class, tag_class
 from pipeline.LLM_search import analyze_search_query
-from pipeline.tag_utils import get_tags_by_content
+from pipeline.tag_utils import get_tags_by_content, user_tag_pool
+from services import ai_quota
 from sqlalchemy import text
 from sqlalchemy import or_
 
-def ContentTool(db, category: Optional[str], tags: list[str]):
-    query = db.query(content_class)
+def ContentTool(db, users_id: int, category: Optional[str], tags: list[str]):
+    query = db.query(content_class).filter(content_class.users_id == users_id)
     
     if category :
         query = query.filter(content_class.category == category)
@@ -32,7 +33,7 @@ def ContentTool(db, category: Optional[str], tags: list[str]):
         })
     return {"contents": contents, "count": len(contents)}
 
-def KeywordTool(db, keywords: list[str]):
+def KeywordTool(db, users_id: int, keywords: list[str]):
     if not keywords:
         return {"contents": [], "count": 0}
     
@@ -42,7 +43,7 @@ def KeywordTool(db, keywords: list[str]):
         conditions.append(content_class.summary.like(f"%{k}%"))
         conditions.append(content_class.memo.like(f"%{k}%"))
     
-    rows = db.query(content_class).filter(or_(*conditions)).all()
+    rows = db.query(content_class).filter(content_class.users_id == users_id, or_(*conditions)).all()
     
     contents = []
     for row in rows:
@@ -57,21 +58,23 @@ def KeywordTool(db, keywords: list[str]):
     
     return {"contents": contents, "count": len(contents)}
         
-def RelatedTagTool(db, tag_name: str):
+def RelatedTagTool(db, users_id: int, tag_name: str):
     sql = text("""
         SELECT t2.Name, COUNT(*) as co_count
         FROM contenttag ct1
         JOIN tag t1 ON t1.Tag_id = ct1.Tag_id
         JOIN contenttag ct2 ON ct2.Content_id = ct1.Content_id
         JOIN tag t2 ON t2.Tag_id = ct2.Tag_id
+        JOIN content c ON c.Content_id = ct1.Content_id
         WHERE t1.Name_lower = :tag_name
+        AND c.users_id = :uid
         AND t2.Tag_id != t1.Tag_id
         GROUP BY t2.Name
         ORDER BY co_count DESC
         LIMIT 3
     """)
     
-    results = db.execute(sql, {"tag_name": tag_name.lower()}).fetchall()
+    results = db.execute(sql, {"tag_name": tag_name.lower(), "uid": users_id}).fetchall()
     related_tags = [row[0] for row in results]
     return {"related_tags": related_tags}
 
@@ -101,12 +104,11 @@ def _build_response(db, items, analysis):
 
     return {"analysis": analysis, "contents": items, "count": len(items)}
 
-def AgentLoop(db, query: str):
+def AgentLoop(db, user, query: str):
+    uid = user.id
+    tag_pool = user_tag_pool(db, uid)
 
-    tag_pool = []
-    for tag_row in db.query(tag_class.Name).all():
-        tag_pool.append(tag_row[0])
-
+    ai_quota.consume(db, user, "search")
     llm_result = analyze_search_query(query, tag_pool=tag_pool)
     tags = llm_result["tags"]
     keywords = llm_result["keywords"]
@@ -124,7 +126,7 @@ def AgentLoop(db, query: str):
     if not tags and not keywords:
         analysis["category_applied"] = True
         merged = []
-        _merge(merged, set(), ContentTool(db, category, []), "category")
+        _merge(merged, set(), ContentTool(db, uid, category, []), "category")
         return _build_response(db, merged, analysis)
 
     # content_id로 중복 제거
@@ -132,13 +134,13 @@ def AgentLoop(db, query: str):
     seen_ids = set()
 
     if tags:
-        _merge(merged, seen_ids, ContentTool(db, None, tags), "tag")
+        _merge(merged, seen_ids, ContentTool(db, uid, None, tags), "tag")
     if keywords:
-        _merge(merged, seen_ids, KeywordTool(db, keywords), "keyword")
+        _merge(merged, seen_ids, KeywordTool(db, uid, keywords), "keyword")
 
     if len(merged) == 0 and tags:
-        related = RelatedTagTool(db, tag_name=tags[0])
+        related = RelatedTagTool(db, uid, tag_name=tags[0])
         expanded_tags = tags + related["related_tags"]
-        _merge(merged, seen_ids, ContentTool(db, None, expanded_tags), "expanded")
+        _merge(merged, seen_ids, ContentTool(db, uid, None, expanded_tags), "expanded")
 
     return _build_response(db, merged, analysis)

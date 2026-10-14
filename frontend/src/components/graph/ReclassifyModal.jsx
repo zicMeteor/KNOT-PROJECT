@@ -1,4 +1,5 @@
 import { useState } from "react"
+import Feedback from "../ui/Feedback"
 import { useReclassify } from "../../hooks/useReclassify"
 import Button from "../ui/Button"
 import { CATEGORY_COLORS } from "../../constants/categories"
@@ -206,6 +207,12 @@ function ReclassifyModal({ onClose, onApplied }) {
               {hasNext && <> · 남은 자료 {plan.remaining}건</>}
             </p>
             {changes.length === 0 && <p>변경할 항목이 없습니다.</p>}
+            <Feedback
+              target="reclassify"
+              refValue={purpose}
+              detail={{ reviewed: plan.reviewed, proposed: changes.length }}
+              label="제안이 목적에 맞나요?"
+            />
             <ul className={styles.list}>
               {changes.map((a) => {
                 const categoryChanged = a.category && a.category !== a.current_category

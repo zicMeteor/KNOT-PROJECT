@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { aiSearch } from "../api/aiSearch"
+import { useAuth } from "./useAuth"
 
 // AI 검색 상태. status: idle | loading | done | error
 export function useAiSearch() {
@@ -7,6 +8,8 @@ export function useAiSearch() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const abortRef = useRef(null)
+  // 검색 뒤 메뉴의 AI 사용 횟수를 새로 읽는다
+  const refreshMe = useAuth()?.refresh
 
   useEffect(() => {
     return () => abortRef.current?.abort()
@@ -24,6 +27,7 @@ export function useAiSearch() {
       const data = await aiSearch(text, ctrl.signal)
       setResult({ ...data, query: text })
       setStatus("done")
+      refreshMe?.()
     } catch (e) {
       if (e.name === "AbortError") return
       setError(e.message)

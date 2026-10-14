@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { useAuth } from "../hooks/useAuth"
 import styles from "./Layout.module.css"
 
 const MENU = [
@@ -16,6 +17,8 @@ function Layout() {
   const { pathname } = useLocation()
   const full = FULL_PAGES.includes(pathname)
   const over = OVER_PAGES.includes(pathname)
+  const { me, signOut } = useAuth() ?? {}
+  const ai = me?.ai
 
   return (
     <div className={full ? styles.appFull : undefined}>
@@ -37,6 +40,25 @@ function Layout() {
             </NavLink>
           ))}
         </div>
+        {/* 로그인을 켠 서버에서만: 설문, AI 사용량, 아이디, 로그아웃 */}
+        {me?.auth && (
+          <div className={styles.me}>
+            {me.survey_url && (
+              <a className={styles.link} href={me.survey_url} target="_blank" rel="noreferrer">
+                설문
+              </a>
+            )}
+            {ai?.limit != null && (
+              <span className={styles.usage} title={ai.period === "week" ? "이번 주 AI 사용 횟수" : "오늘 AI 사용 횟수"}>
+                AI {ai.used}/{ai.limit}
+              </span>
+            )}
+            <span className={styles.user}>{me.username}</span>
+            <button type="button" className={styles.logout} onClick={signOut}>
+              로그아웃
+            </button>
+          </div>
+        )}
       </nav>
       <main className={full ? styles.mainFull : styles.main}>
         <Outlet />

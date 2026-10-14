@@ -30,7 +30,7 @@ function formatDate(value) {
 // 카드 안 정보 순서: 제목 > 출처 줄(작게) > 요약 > 태그(글자)
 // 알약 모양은 누를 수 있는 것에만 쓰고, 태그처럼 정보만 있는 것은 글자로 둔다
 // compact: 한 줄 목록 (제목 + 출처 + 날짜만). 자료 추가 화면의 최근 자료처럼 훑어보는 곳에서 쓴다
-function ContentListView({ items, header, renderBadge, compact = false }) {
+function ContentListView({ items, header, renderBadge, compact = false, onOpen }) {
   const [selected, setSelected] = useState(null)
 
   // 목록이 바뀌면(다른 태그, 새 검색) 열려 있던 상세를 닫는다
@@ -63,7 +63,10 @@ function ContentListView({ items, header, renderBadge, compact = false }) {
                 <button
                   type="button"
                   className={`${styles.item} ${styles.itemCompact}`}
-                  onClick={() => setSelected(c)}
+                  onClick={() => {
+                    setSelected(c)
+                    onOpen?.(c)
+                  }}
                 >
                   <span className={styles.compactTitle}>{c.title || c.url || "제목 없음"}</span>
                   <span className={`${styles.meta} ${styles.compactMeta}`}>
@@ -76,7 +79,10 @@ function ContentListView({ items, header, renderBadge, compact = false }) {
           }
           return (
             <li key={c.id}>
-              <button type="button" className={styles.item} onClick={() => setSelected(c)}>
+              <button type="button" className={styles.item} onClick={() => {
+                    setSelected(c)
+                    onOpen?.(c)
+                  }}>
                 <span className={styles.titleRow}>
                   <span className={styles.itemTitle}>{c.title || c.url || "제목 없음"}</span>
                   {renderBadge?.(c)}

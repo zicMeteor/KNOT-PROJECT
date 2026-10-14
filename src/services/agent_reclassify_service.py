@@ -4,8 +4,8 @@ from pipeline.tag_utils import find_or_create_tag
 
 REVIEW_LIMIT = 15
 
-def Scope_Tool(db, allowed_categories: list[str], allowed_tags: list[str], before_id: int | None = None):
-    query = db.query(content_class)
+def Scope_Tool(db, users_id: int, allowed_categories: list[str], allowed_tags: list[str], before_id: int | None = None):
+    query = db.query(content_class).filter(content_class.users_id == users_id)
 
     if allowed_categories:
         query = query.filter(content_class.category.in_(allowed_categories))

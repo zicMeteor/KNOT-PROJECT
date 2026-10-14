@@ -3,10 +3,12 @@ from database.models import content_class, contenttag_class, tag_class
 from sqlalchemy.orm import aliased
 from pipeline.tag_utils import get_tags_by_content
 
-def get_category_overview(db):
+def get_category_overview(db, users_id):
     try:
         nodes = []
-        for g_node in db.query(content_class.category, func.count()).group_by(content_class.category).all():
+        for g_node in db.query(content_class.category, func.count())\
+                .filter(content_class.users_id == users_id)\
+                .group_by(content_class.category).all():
             nodes.append({"id": g_node[0], "name": g_node[0], "val": g_node[1]})
         
         ct1 = aliased(contenttag_class)
@@ -20,6 +22,7 @@ def get_category_overview(db):
             .join(c2, c2.Content_id == ct2.Content_id)\
             .filter(ct1.Content_id != ct2.Content_id)\
             .filter(c1.category != c2.category)\
+            .filter(c1.users_id == users_id, c2.users_id == users_id)\
             .all()
             
         seen = set()
@@ -34,12 +37,13 @@ def get_category_overview(db):
     except Exception as e:
         raise RuntimeError(f"그래프 데이터 조회 실패: {str(e)}")
 
-def get_tags_category(db, category):
+def get_tags_category(db, category, users_id):
     try:
         gtaph_tag = db.query(tag_class.Name, func.count())\
         .join(contenttag_class, contenttag_class.Tag_id == tag_class.Tag_id)\
         .join(content_class, content_class.Content_id == contenttag_class.Content_id)\
         .filter(content_class.category == category)\
+        .filter(content_class.users_id == users_id)\
         .group_by(tag_class.Name).all()
         
         tag_nodes = []
@@ -55,10 +59,11 @@ def get_tags_category(db, category):
             JOIN tag t2 ON t2.Tag_id = ct2.Tag_id
             JOIN content c ON c.Content_id = ct1.Content_id
             WHERE c.category = :category
+            AND c.users_id = :uid
             AND t1.Tag_id < t2.Tag_id
             GROUP BY t1.Name, t2.Name
         """)
-        link_rows = db.execute(sql, {"category": category}).fetchall()
+        link_rows = db.execute(sql, {"category": category, "uid": users_id}).fetchall()
         
         links = []
         for row in link_rows:
@@ -68,7 +73,7 @@ def get_tags_category(db, category):
     except Exception as e:
         raise RuntimeError(f"태그 조회 실패: {str(e)}")
     
-def get_contents_tag(db, tag_name):
+def get_contents_tag(db, tag_name, users_id):
     try:
         gtaph_content_graph = db.query(
             content_class.Content_id,
@@ -82,6 +87,7 @@ def get_contents_tag(db, tag_name):
         .join(contenttag_class, contenttag_class.Content_id == content_class.Content_id)\
         .join(tag_class, tag_class.Tag_id == contenttag_class.Tag_id)\
         .filter(tag_class.Name == tag_name)\
+        .filter(content_class.users_id == users_id)\
         .all()
         
         tags_map = get_tags_by_content(db, [row.Content_id for row in gtaph_content_graph])

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import Button from "../ui/Button"
+import Feedback from "../ui/Feedback"
 import { categoryColor } from "../../constants/categories"
 import { hostOf } from "../../lib/contentMeta"
 import { reducedMotion } from "../../lib/threadGraph"
@@ -80,6 +81,12 @@ function AnalysisResult({ analysis, saving, onSave, onCancel, chipsRef }) {
           취소
         </Button>
       </div>
+      <Feedback
+        target="analysis"
+        refValue={analysis.url ?? analysis.title}
+        detail={{ category: analysis.category, tags: analysis.tags.map((t) => t.name), source: analysis.source }}
+        label="AI 분석 결과가 적절했나요?"
+      />
     </section>
   )
 }

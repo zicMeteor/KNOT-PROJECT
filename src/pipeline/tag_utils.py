@@ -1,4 +1,4 @@
-from database.models import tag_class, contenttag_class
+from database.models import content_class, tag_class, contenttag_class
 
 def find_or_create_tag(db, tag_name: str) -> tag_class:
     normalized = tag_name.strip().lower()
@@ -31,3 +31,14 @@ def get_tags_by_content(db, content_ids: list[int]) -> dict[int, list[str]]:
         result[content_id].append(name)
         
     return result
+
+
+def user_tag_pool(db, users_id: int) -> list[str]:
+    """이 사용자의 자료에 붙은 태그 이름 (다른 계정의 태그는 섞지 않는다)"""
+    rows = db.query(tag_class.Name)\
+        .join(contenttag_class, contenttag_class.Tag_id == tag_class.Tag_id)\
+        .join(content_class, content_class.Content_id == contenttag_class.Content_id)\
+        .filter(content_class.users_id == users_id)\
+        .distinct()\
+        .all()
+    return [r[0] for r in rows]

@@ -21,6 +21,9 @@ AI가 붙인 요약·카테고리·태그는 **사용자가 확인한 뒤에만 
 * **목적 기반 재분류**: "시험 공부용으로 다시 묶어 줘"처럼 목적을 적고 검토 범위(전체 또는 카테고리 하나)를 고르면, 그 범위의 최근 자료부터 15건씩 AI가 다시 검토해 카테고리·태그 변경안과 이유를 보여 줍니다. 확인하고 **적용**을 눌러야 반영되며, 남은 자료가 있으면 **다음 15건**을 이어서 검토할 수 있습니다.
 * **전체 자료**: 저장한 날짜별 보기, 제목·요약·태그·출처·메모 단어 검색, 카테고리 필터를 제공합니다. 검색 결과가 없으면 같은 검색어로 AI 검색을 이어서 할 수 있습니다.
 * **홈 화면**: 최근 자료 카드와 그 태그가 빛나는 그래프, 저장한 날짜 순서대로 그래프가 자라나는 타임라인을 보여 줍니다.
+* **계정과 로그인** (v2, `AUTH_ENABLED=1`일 때): 관리자가 만든 계정으로 로그인합니다(공개 가입 없음). 자료·그래프·검색·태그 목록이 계정마다 따로이고, 계정마다 AI 사용 상한(하루 또는 주 단위)이 있습니다.
+* **AI 결과 평가** (v2): 분석 결과, AI 검색 결과, 재분류 제안마다 👍/👎를 누를 수 있습니다. 재분류를 적용하면 바꾸기 전·후가 이력으로 남습니다.
+* **실패 처리** (v2, `FAILURE_ASSIST=1`일 때): 본문이 짧은 페이지(80~299자)도 "짧은 본문"으로 분석하고, AI 호출이 실패하면 한 번 다시 시도합니다. 실패 이유는 응답의 `X-Error-Code`로 구분합니다. (붙여넣기·메모 저장 화면은 아직 없음)
 
 > 카테고리는 6개로 고정되어 있습니다: `학습`, `참고`, `연구`, `아이디어`, `도구`, `기타`
 
@@ -49,7 +52,7 @@ URL / PDF 입력
    │
    ▼
 본문 추출 ─ Trafilatura (실패하면 Playwright로 다시 시도) / PyMuPDF
-   │        본문이 300자 미만이면 분석하지 않음
+   │        본문이 300자 미만이면 분석하지 않음 (FAILURE_ASSIST=1이면 80자 이상은 "짧은 본문"으로 분석)
    ▼
 AI 분석 ─ Claude: 요약 + 카테고리 + 태그 (기존 태그 목록을 함께 전달)
    │
@@ -71,29 +74,36 @@ MySQL 저장 ─ 자료(content) + 태그(tag) + 자료-태그 연결(contenttag
 KNOT/
 ├── requirements.txt          # 백엔드 의존성
 ├── .env.example              # 백엔드 환경 변수 예시 (복사해서 .env로 사용)
+├── start.bat                 # 테스터용 실행 (DB 준비 → 서버 시작, "start.bat build"는 화면 빌드부터)
+├── LICENSE                   # AGPL-3.0
 ├── src/                      # FastAPI 백엔드 — 반드시 src/ 안에서 실행
-│   ├── main.py               # 앱 생성, CORS, 라우터 등록, 테이블 자동 생성
+│   ├── main.py               # 앱 생성, CORS, 라우터 등록, 테이블 자동 생성, 빌드한 화면 내보내기
+│   ├── settings.py           # .env의 v2 설정 (비우면 v1과 같음)
 │   ├── api/                  # 라우터
-│   │   ├── content.py        # 분석(URL·PDF), 저장, 목록, 취소 기록
+│   │   ├── auth.py           # 로그인·로그아웃·내 정보
+│   │   ├── content.py        # 분석(URL·PDF·붙여넣기), 저장, 목록, 취소 기록
 │   │   ├── graph.py          # 카테고리 그래프, 태그 공출현 그래프, 태그별 자료
 │   │   ├── agent.py          # AI로 찾기
-│   │   └── reclassify.py     # 재분류 미리보기·적용
-│   ├── services/             # 저장·그래프·검색·재분류 로직, 사용 기록
+│   │   ├── reclassify.py     # 재분류 미리보기·적용
+│   │   └── feedback.py       # 👍/👎, 화면에서 보내는 사용 기록
+│   ├── scripts/              # migrate.py (DB에 빠진 표·칸 추가), accounts.py (계정 관리)
+│   ├── services/             # 저장·그래프·검색·재분류 로직, 로그인, AI 사용량, 사용 기록
 │   ├── pipeline/             # URL/PDF 본문 추출, LLM 프롬프트와 응답 검증
 │   └── database/             # DB 연결(database.py), 테이블 정의(models.py)
 └── frontend/                 # React 프론트엔드
     ├── .env.example          # 프론트엔드 환경 변수 예시 (복사해서 .env로 사용)
     ├── vite.config.js
     └── src/
-        ├── api/              # 백엔드 API 호출 함수 (content, graph, aiSearch, reclassify)
-        ├── pages/            # 홈, 자료 추가, 지식 그래프, 전체 자료
+        ├── api/              # 백엔드 API 호출 함수 (auth, content, graph, aiSearch, reclassify, feedback)
+        ├── pages/            # 로그인, 홈, 자료 추가, 지식 그래프, 전체 자료
         ├── components/       # 화면별 구성 요소
         │   ├── home/         # 홈 화면 (카드 더미, 그래프, 타임라인)
         │   ├── add/          # 자료 추가 화면 (분석 결과)
         │   ├── graph/        # 지식 그래프 화면 (그래프, 태그 패널, AI 검색, 재분류 창)
         │   ├── library/      # 전체 자료 화면
-        │   ├── ui/           # 공용 버튼, 알림
-        │   └── Layout.jsx    # 상단 메뉴와 화면 틀
+        │   ├── ui/           # 공용 버튼, 알림, 👍/👎
+        │   ├── AuthGate.jsx  # 로그인 확인 (안 되어 있으면 로그인 화면)
+        │   └── Layout.jsx    # 상단 메뉴, 사용량·로그아웃, 화면 틀
         ├── hooks/            # 자료·그래프·AI 검색·재분류 상태 관리
         ├── lib/              # 홈 그래프 엔진(threadGraph), 태그 그래프 계산
         ├── constants/        # 카테고리 목록과 색
@@ -157,8 +167,11 @@ DB_NAME=KNOT
 
 ```powershell
 cd src
+python -m scripts.migrate
 uvicorn main:app --reload
 ```
+
+* `scripts.migrate`는 v1에서 쓰던 DB에 v2의 표와 칸을 더합니다. 이미 있으면 그냥 지나가므로 여러 번 실행해도 됩니다.
 
 * 모든 import가 `src/` 기준이므로 **반드시 `src/` 폴더에서** 실행합니다.
 * 확인: `http://127.0.0.1:8000/database` 가 `{"status":"ok"}`, API 문서(Swagger UI)는 `http://127.0.0.1:8000/docs`
@@ -179,10 +192,10 @@ npm install
 Copy-Item .env.example .env
 ```
 
-`frontend/.env`에는 백엔드 주소가 들어 있습니다. 백엔드를 기본 주소로 실행했다면 고칠 필요가 없습니다.
+`VITE_API_URL`은 **비워 둡니다**. 화면은 같은 주소의 `/api`를 부르고, 개발 서버(`vite.config.js`)가 이를 `http://127.0.0.1:8000`으로 넘깁니다. 로그인을 켰을 때 주소를 따로 적으면 로그인 쿠키가 전달되지 않습니다.
 
 ```text
-VITE_API_URL=http://127.0.0.1:8000
+VITE_API_URL=
 ```
 
 **③ 개발 서버 실행**
@@ -193,8 +206,54 @@ npm run dev
 
 브라우저에서 **`http://localhost:5173`** 을 엽니다.
 
-* 백엔드가 `http://localhost:5173`만 허용합니다(CORS). `127.0.0.1:5173`이나 다른 포트로 열면 API 호출이 막힙니다.
 * 3D 그래프는 WebGL을 사용하므로 브라우저 하드웨어 가속이 켜져 있어야 합니다.
+* `VITE_API_URL`에 백엔드 주소를 직접 적으면 백엔드가 `http://localhost:5173`만 허용하므로(CORS) 다른 주소로 열 때 API 호출이 막힙니다.
+
+### 4. 테스터에게 열기 (v2)
+
+로그인을 켜고, 빌드한 화면과 API를 서버 하나(`http://127.0.0.1:8000`)로 엽니다.
+
+**① `.env`에 설정 추가**
+
+```text
+AUTH_ENABLED=1
+SERVE_FRONTEND=1
+FAILURE_ASSIST=1      # 실패 처리를 켤 때
+COOKIE_SECURE=1       # HTTPS 주소(Tailscale Funnel)로 열 때
+SURVEY_URL=설문_주소   # 상단에 설문 링크를 걸 때
+```
+
+**② 계정 만들기** (`src/` 폴더에서, 가상환경을 켠 상태로)
+
+```powershell
+python -m scripts.migrate
+python -m scripts.accounts claim 1 demo --role admin   # 기존 1번 사용자(지금까지의 자료)에 아이디를 붙임
+python -m scripts.accounts create tester1 --role tester
+python -m scripts.accounts list
+```
+
+* 비밀번호는 무작위로 만들어 **한 번만** 보여 줍니다. 잊으면 `reset 아이디`로 다시 만듭니다(그 계정의 로그인은 모두 끊김).
+* 역할별 기본값: `admin`·`showcase` 상한 없음(로그인 30일 유지), `tester` 주 150회(7일), `booth` 하루 100회(그날 밤까지). `--limit`, `--period day|week`로 바꿀 수 있습니다.
+* `disable 아이디` / `enable 아이디`로 막거나 다시 허용합니다. `clone 원본 대상 --seed`는 자료와 태그 연결을 다른 계정에 복사합니다.
+* 같은 아이디로 5번 틀리면 5분 동안 로그인이 막힙니다.
+
+**③ 서버 시작** (프로젝트 루트에서)
+
+```powershell
+.\start.bat build    # 처음 또는 화면 코드를 바꿨을 때 (화면 빌드 → DB 준비 → 서버 시작)
+.\start.bat          # 그다음부터
+```
+
+**④ 밖에서 들어오게 하기 (Tailscale Funnel)**
+
+노트북에서 켠 서버(`127.0.0.1:8000`)에 공개 HTTPS 주소를 붙입니다. 노트북이 켜져 있고 서버가 실행 중일 때만 접속됩니다.
+
+```powershell
+tailscale funnel 8000
+```
+
+* 명령과 옵션은 Tailscale 버전에 따라 다를 수 있으니 [공식 문서](https://tailscale.com/kb/1223/funnel)에서 확인하세요.
+* 테스트가 끝나면 Funnel을 끕니다. 공학제 시연은 로컬(`http://127.0.0.1:8000`)에서 합니다.
 
 ---
 
@@ -203,8 +262,12 @@ npm run dev
 | HTTP Method | Endpoint | 설명 |
 |---|---|---|
 | **GET** | `/database` | DB 연결 확인 |
+| **POST** | `/api/auth/login` | 로그인 (쿠키 `knot_session` 발급) |
+| **POST** | `/api/auth/logout` | 로그아웃 |
+| **GET** | `/api/auth/me` | 내 아이디, 역할, AI 사용량 |
 | **POST** | `/api/content/analyze` | URL 분석 (저장하지 않음) |
 | **POST** | `/api/content/analyze-pdf` | PDF 분석 (저장하지 않음) |
+| **POST** | `/api/content/analyze-text` | 붙여 넣은 본문 분석 (`FAILURE_ASSIST=1`일 때만) |
 | **POST** | `/api/content` | 분석 결과 저장 |
 | **POST** | `/api/content/discard` | 분석 결과를 저장하지 않고 취소한 사실 기록 |
 | **GET** | `/api/content` | 전체 자료 목록 |
@@ -213,9 +276,12 @@ npm run dev
 | **GET** | `/api/graph/tag/{tag_name}/contents` | 태그별 자료 목록 |
 | **POST** | `/api/agent/search` | AI로 찾기 |
 | **POST** | `/api/agent/reclassify/preview` | 재분류 미리보기 (DB를 바꾸지 않음). `categories`로 범위, `before_id`로 다음 묶음 지정 |
-| **POST** | `/api/agent/reclassify` | 재분류 적용 |
+| **POST** | `/api/agent/reclassify` | 재분류 적용 (바꾸기 전·후를 이력으로 남김) |
+| **POST** | `/api/feedback` | AI 결과 👍/👎 |
+| **POST** | `/api/events` | 화면에서 보내는 사용 기록 (AI 검색 결과를 연 것) |
 
-자세한 요청·응답 형식은 백엔드 서버 실행 후 `/docs` (Swagger UI)에서 확인할 수 있습니다.
+* `AUTH_ENABLED=1`이면 로그인·`/database`를 뺀 모든 API에 로그인이 필요하고, AI 사용 상한을 넘으면 `429`와 `X-Error-Code: AI_QUOTA`를 돌려줍니다.
+* 자세한 요청·응답 형식은 백엔드 서버 실행 후 `/docs` (Swagger UI)에서 확인할 수 있습니다. 로그인을 켜면 `/docs`는 닫힙니다.
 
 ---
 
@@ -223,19 +289,35 @@ npm run dev
 
 | 테이블 | 내용 |
 |---|---|
-| `users` | 사용자 (현재는 1명 고정) |
-| `content` | 자료: 제목, 요약, 카테고리, URL, 출처, 메모, 저장 시각 |
-| `tag` | 태그 이름 (대소문자를 무시한 비교용 이름 포함) |
+| `users` | 사용자: 아이디, 비밀번호 해시(scrypt), 역할, AI 사용 상한 |
+| `usersession` | 로그인 세션 (토큰 원문이 아닌 해시만 저장) |
+| `content` | 자료: 제목, 요약, 카테고리, URL, 출처, 메모, 저장 시각, 분석 상태, 기본 자료 표시 |
+| `tag` | 태그 이름 (대소문자를 무시한 비교용 이름 포함). 표는 함께 쓰고, AI에게 보내는 태그 목록은 계정별 |
 | `contenttag` | 자료와 태그 연결 |
-| `agenthistory` | AI 작업 기록용 (테이블만 있고 현재 코드에서는 쓰지 않음) |
-| `eventlog` | 분석·저장·취소·AI 검색 사용 기록 (성공 여부, 걸린 시간) |
+| `agenthistory` | 재분류 이력: 목적, 이유, 바꾸기 전·후, 한 번에 적용한 묶음(`run_id`) |
+| `aiusage` | AI 호출 한 번마다 한 줄 (사용 상한 계산) |
+| `feedback` | AI 결과 👍/👎 |
+| `graphsnapshot` | 계정별 그래프 상태(자료·태그·선·떨어진 태그 수)를 하루 한 줄 |
+| `eventlog` | 분석·저장·취소·AI 검색·로그인 사용 기록 (누가, 성공 여부, 걸린 시간, 실패 이유) |
 
 ---
 
 ## ⚠️ 알려진 한계
 
-* 로그인 없음 (단일 사용자)
-* PDF는 텍스트가 들어 있는 PDF만 지원합니다. 스캔본 OCR은 없고, 한 번에 1개만 넣을 수 있으며, 제목은 파일명으로 저장됩니다.
-* 추출된 본문이 300자 미만이면 분석하지 않습니다.
+* 공개 가입은 없습니다. 계정은 관리자가 `scripts.accounts`로 만듭니다. 로그인을 끄면(`AUTH_ENABLED` 비움) v1처럼 1번 사용자 한 명으로 동작합니다.
+* PDF는 텍스트가 들어 있는 PDF만 지원합니다. 스캔본 OCR은 없고, 한 번에 1개, 20MB까지 넣을 수 있으며, 제목은 파일명으로 저장됩니다.
+* AI에게는 본문 앞 30,000자까지만 보냅니다(`MAX_TEXT_CHARS`).
+* 추출된 본문이 300자 미만이면 분석하지 않습니다(`FAILURE_ASSIST=1`이면 80자 이상은 짧은 본문으로 분석).
+* 분석 결과의 카테고리·태그를 저장 전에 고치는 화면은 아직 없습니다.
 * 로그인이 필요하거나 유료 구독인 페이지는 본문 추출에 실패할 수 있습니다.
 * 재분류는 한 번에 15건씩 검토합니다. 자료가 많으면 [다음 15건]으로 여러 번 이어서 검토해야 하고, 화면에서는 범위를 카테고리 하나로만 좁힐 수 있습니다(태그로는 좁힐 수 없음).
+
+---
+
+## 📄 라이선스
+
+* 이 프로젝트는 **[AGPL-3.0](LICENSE)** 으로 공개합니다. PDF 추출에 쓰는 PyMuPDF가 AGPL-3.0이기 때문입니다.
+* AGPL-3.0은 서버를 인터넷으로 다른 사람에게 쓰게 할 때도 소스 공개를 요구합니다. 그래서 화면에 소스 링크(`SOURCE_URL`)를 겁니다.
+* 공개 대상은 **소스 코드**입니다. `.env`(API 키, DB 비밀번호)는 코드가 아니라 설정이므로 공개하지 않습니다.
+* 이후 PDF 추출을 MIT 계열 라이브러리(pypdf 등)로 바꾸면 MIT로 옮길 계획입니다.
+* 분석·검색·재분류를 할 때 자료의 본문(또는 제목·요약·태그)이 Anthropic Claude API로 전송됩니다.

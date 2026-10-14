@@ -22,7 +22,7 @@ export async function previewReclassify({ purpose, category, beforeId }, signal)
   return await res.json()
 }
 
-export async function executeReclassify(actions) {
+export async function executeReclassify(actions, purpose) {
   // 서버가 검증하는 필수 키 5개만 보낸다
   const body = actions.map((a) => ({
     content_id: a.content_id,
@@ -36,7 +36,7 @@ export async function executeReclassify(actions) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ actions: body }),
+      body: JSON.stringify({ actions: body, purpose: purpose ?? null, trigger: "manual" }),
     },
     { showDetail: true, fallback: EXECUTE_FAILURE }
   )

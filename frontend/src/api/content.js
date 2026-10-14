@@ -61,6 +61,9 @@ export async function saveContent(content) {
         category: content.category,
         tags: names,
         summary: content.summary,
+        analysis_status: content.analysis_status ?? "ai",
+        // AI가 처음 제안한 값 (저장 전에 고쳤는지 기록하려고)
+        suggested: content.suggested ?? null,
       }),
     },
     { fallback: "저장에 실패했습니다. 잠시 후 다시 시도하세요" }
