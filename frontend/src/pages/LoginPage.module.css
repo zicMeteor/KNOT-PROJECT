@@ -103,6 +103,17 @@
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
 
+.error {
+  margin: -6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
+.error.warn {
+  color: var(--color-warn);
+}
+
 .btn {
   height: 48px;
   border: 0;

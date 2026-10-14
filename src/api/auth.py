@@ -50,7 +50,7 @@ def login(request: Login_Request, response: Response, db: Session = Depends(get_
         record_fail(username)
         log_event("login", False, users_id=None, username=username)
         # 아이디와 비밀번호 중 무엇이 틀렸는지는 알려 주지 않는다
-        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 맞지 않습니다.")
+        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호를 다시 확인하세요.")
     clear_fails(username)
     token, expires = create_session(db, user)
     max_age = max(60, int((expires - __import__("datetime").datetime.now()).total_seconds()))

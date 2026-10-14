@@ -25,6 +25,7 @@ function LoginPage({ onSignIn, expired }) {
   const [error, setError] = useState(null)
   const canvasRef = useRef(null)
   const passwordRef = useRef(null)
+  const usernameRef = useRef(null)
 
   useEffect(() => {
     if (!canvasRef.current) return
@@ -44,6 +45,8 @@ function LoginPage({ onSignIn, expired }) {
     if (busy) return
     if (!username.trim() || !password) {
       setError({ type: "error", text: "아이디와 비밀번호를 입력하세요." })
+      const empty = username.trim() ? passwordRef : usernameRef
+      empty.current?.focus()
       return
     }
     setBusy(true)
@@ -76,12 +79,12 @@ function LoginPage({ onSignIn, expired }) {
         {expired && !error && (
           <Notice type="info">로그인이 만료되었습니다. 다시 로그인하면 보던 화면으로 돌아갑니다.</Notice>
         )}
-        {error && <Notice type={error.type}>{error.text}</Notice>}
 
         <div className={styles.fields}>
           <label className={styles.field}>
             <span>아이디</span>
             <input
+              ref={usernameRef}
               className={styles.input}
               name="username"
               autoComplete="username"
@@ -89,6 +92,8 @@ function LoginPage({ onSignIn, expired }) {
               spellCheck="false"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "login-error" : undefined}
               autoFocus
             />
           </label>
@@ -102,8 +107,20 @@ function LoginPage({ onSignIn, expired }) {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "login-error" : undefined}
             />
           </label>
+          {/* 오류는 입력칸 바로 아래에 (잠김은 노란색, 나머지는 빨간색) */}
+          {error && (
+            <p
+              id="login-error"
+              className={error.type === "warn" ? `${styles.error} ${styles.warn}` : styles.error}
+              role="alert"
+            >
+              {error.text}
+            </p>
+          )}
         </div>
 
         <button type="submit" className={styles.btn} disabled={busy}>
