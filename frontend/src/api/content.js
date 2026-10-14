@@ -31,6 +31,21 @@ export async function analyzeUrl(url, memo, signal) {
   return await res.json()
 }
 
+// 분석에 실패한 페이지의 본문을 사용자가 붙여 넣었을 때 (서버에서 실패 처리를 켰을 때만)
+export async function analyzeText(text, url, title, signal) {
+  const res = await request(
+    "/api/content/analyze-text",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, url: url ?? null, title: title || null }),
+      signal,
+    },
+    { showDetail: true, fallback: "분석에 실패했습니다. 잠시 후 다시 시도하세요" }
+  )
+  return await res.json()
+}
+
 export async function analyzePdf(file, signal) {
   const form = new FormData()
   form.append("file", file)
@@ -64,9 +79,12 @@ export async function saveContent(content) {
         analysis_status: content.analysis_status ?? "ai",
         // AI가 처음 제안한 값 (저장 전에 고쳤는지 기록하려고)
         suggested: content.suggested ?? null,
+        // 어떻게 저장까지 왔는지: analyze(보통) / paste(실패 뒤 붙여넣기) / manual(실패 뒤 메모 저장)
+        via: content.via ?? "analyze",
       }),
     },
-    { fallback: "저장에 실패했습니다. 잠시 후 다시 시도하세요" }
+    // 400은 입력 문제(태그 개수, 메모 없음 등)라 서버의 설명을 그대로 보여 준다
+    { showDetail: true, fallback: "저장에 실패했습니다. 잠시 후 다시 시도하세요" }
   )
   return await res.json()
 }

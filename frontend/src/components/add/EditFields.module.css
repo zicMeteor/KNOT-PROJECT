@@ -1,0 +1,136 @@
+.cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.cat:hover {
+  color: var(--color-text);
+}
+
+.cat[aria-checked="true"] {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  color: var(--color-text);
+}
+
+.cat:disabled {
+  cursor: default;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tagBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px 4px 13px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 13px;
+  white-space: nowrap;
+  animation: pop 0.5s var(--ease-out) both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+/* 이번에 처음 생기는 태그 */
+.fresh {
+  border-color: rgba(255, 194, 61, 0.7);
+}
+
+.freshMark {
+  font-size: 12px;
+  color: #ffc23d;
+}
+
+.x {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-faint);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.x:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+}
+
+.tagInput {
+  flex: 1 1 120px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tagInput::placeholder {
+  color: var(--color-text-faint);
+}
+
+.tagInput:focus {
+  outline: none;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--color-warn);
+}

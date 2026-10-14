@@ -5,9 +5,11 @@ import { useAuth } from "../hooks/useAuth"
 import { useContents } from "../hooks/useContents"
 import { byNewest } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
-import { dayOf, hostOf, kindOf, shortDay } from "../lib/contentMeta"
+import { dayOf, hostOf, kindOf, shortDay, tagName } from "../lib/contentMeta"
 import AnalysisResult from "../components/add/AnalysisResult"
 import AddStage from "../components/add/AddStage"
+import FailurePanel from "../components/add/FailurePanel"
+import { isRecoverable } from "../lib/failureReasons"
 import Button from "../components/ui/Button"
 import Notice from "../components/ui/Notice"
 import styles from "./AddPage.module.css"
@@ -35,6 +37,17 @@ function AddPage() {
 
   // 최근 추가 순 (전체 자료 페이지와 같은 정렬 규칙)
   const recent = useMemo(() => [...contents].sort(byNewest).slice(0, RECENT_COUNT), [contents])
+  // 이미 쓰는 태그 (소문자 → 이름). 태그를 고칠 때 새 태그인지 가리고, 고를 목록으로 보여 준다
+  const known = useMemo(() => {
+    const map = new Map()
+    for (const c of contents) {
+      for (const t of c.tags ?? []) {
+        const name = tagName(t)
+        if (!map.has(name.toLowerCase())) map.set(name.toLowerCase(), name)
+      }
+    }
+    return map
+  }, [contents])
 
   // 홈에서 넣은 링크는 받아서 바로 분석한다
   const location = useLocation()
@@ -50,7 +63,11 @@ function AddPage() {
   const [secs, setSecs] = useState(0) // 분석에 걸린 시간 (초)
   const [analysis, setAnalysis] = useState(null)
   // 분석 뒤 메뉴의 AI 사용 횟수를 새로 읽는다
-  const refreshMe = useAuth()?.refresh
+  const auth = useAuth()
+  const refreshMe = auth?.refresh
+  // 서버에서 실패 처리를 켰을 때만, 실패하면 붙여넣기·메모 저장 패널을 띄운다
+  const assist = !!auth?.me?.failure_assist
+  const [failure, setFailure] = useState(null) // { code, source, url, filename }
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(null) // 방금 저장한 분석 결과 (저장 완료 화면용)
   const [notice, setNotice] = useState(null) // { type: "success" | "warn" | "error", text }
@@ -96,6 +113,7 @@ function AddPage() {
     setNotice(null)
     setAnalysis(null)
     setSaved(null)
+    setFailure(null)
 
     const usePdf = !overrideUrl && mode === "pdf"
     let u = ""
@@ -130,11 +148,44 @@ function AddPage() {
       refreshMe?.()
     } catch (e) {
       if (e.name === "AbortError") return
-      showError(e)
+      if (assist && isRecoverable(e.code)) {
+        setFailure({ code: e.code, source: usePdf ? "pdf" : "url", url: usePdf ? null : u, filename: file?.name })
+        if (e.code === "AI_QUOTA") refreshMe?.()
+      } else {
+        showError(e)
+      }
     } finally {
       abortRef.current = null
       setAnalyzing(false)
     }
+  }
+
+  // 붙여 넣은 본문으로 분석이 끝났을 때: 평소 결과 화면으로 넘어간다
+  function handlePasted(result) {
+    setAnalysis({
+      ...result,
+      url: failure.url,
+      source: "url",
+      memo: memo,
+      via: "paste",
+      suggested: suggestedOf(result),
+    })
+    setFailure(null)
+  }
+
+  // AI 없이 메모로 저장했을 때
+  async function handleManualSaved(content) {
+    await reload()
+    setSaved(content)
+    setFailure(null)
+    setUrl("")
+    setMemo("")
+    clearFile()
+  }
+
+  // 분석 결과의 카테고리·태그를 고쳤을 때
+  function handleEdit(patch) {
+    setAnalysis((a) => (a ? { ...a, ...patch } : a))
   }
 
   const startHandoff = useEffectEvent(() => handleAnalyze())
@@ -187,7 +238,7 @@ function AddPage() {
     setNotice(null)
   }
 
-  const locked = analyzing || saving || !!analysis
+  const locked = analyzing || saving || !!analysis || !!failure
   const preview = mode === "link" && phase === "idle" ? previewText(url.trim()) : null
   const hasInput = mode === "link" ? !!url.trim() : !!file
 
@@ -349,12 +400,28 @@ function AddPage() {
             </div>
           )}
 
+          {failure && (
+            <FailurePanel
+              key={`${failure.code}:${failure.url ?? failure.filename}`}
+              failure={failure}
+              memo={memo}
+              known={known}
+              onAnalyzed={handlePasted}
+              onSaved={handleManualSaved}
+              onRetry={() => handleAnalyze(failure.source === "url" ? failure.url : undefined)}
+              onClose={() => setFailure(null)}
+              onUsage={refreshMe}
+            />
+          )}
+
           {analysis && (
             <AnalysisResult
               analysis={analysis}
               saving={saving}
               onSave={handleSave}
               onCancel={handleCancel}
+              onEdit={handleEdit}
+              known={known}
               chipsRef={chipsRef}
             />
           )}
@@ -363,7 +430,9 @@ function AddPage() {
             <section className={styles.savedBox} role="status">
               <b>저장했습니다</b>
               <span>
-                {saved.category} 카테고리에 묶였고, 태그 {saved.tags.length}개로 그래프에 이어졌습니다.
+                {saved.tags.length > 0
+                  ? `${saved.category} 카테고리에 묶였고, 태그 ${saved.tags.length}개로 그래프에 이어졌습니다.`
+                  : `${saved.category} 카테고리에 저장했습니다. 태그가 없어 그래프에는 보이지 않고, 전체 자료에서 찾을 수 있습니다.`}
               </span>
               <div className={styles.row}>
                 <Button variant="primary" onClick={() => navigate("/graph", { state: { category: saved.category } })}>

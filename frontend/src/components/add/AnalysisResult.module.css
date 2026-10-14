@@ -27,6 +27,22 @@
   color: var(--color-text-muted);
 }
 
+/* 분석 방식 표시 (짧은 본문, 붙여넣기, 앞부분만) */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -6px;
+}
+
+.badges span {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--color-warn);
+  font-size: 12px;
+}
+
 .src {
   font-size: var(--text-sm);
   color: var(--color-text-faint);
@@ -53,12 +69,13 @@
   margin: 0;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
-  gap: 12px 16px;
-  align-items: center;
+  gap: 14px 16px;
+  align-items: start;
   font-size: var(--text-sm);
 }
 
 .kv dt {
+  padding-top: 7px;
   color: var(--color-text-faint);
 }
 
@@ -67,43 +84,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 13px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.02);
-  font-size: 13px;
-  white-space: nowrap;
-  animation: pop 0.5s var(--ease-out) both;
-}
-
-@keyframes pop {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-}
-
-.dot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-/* 이번에 처음 생기는 태그 */
-.fresh {
-  border-color: rgba(255, 194, 61, 0.7);
-}
-
-.freshMark {
-  font-size: 12px;
-  color: #ffc23d;
 }
 
 .note {

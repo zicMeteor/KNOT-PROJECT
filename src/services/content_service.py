@@ -4,13 +4,32 @@ import tempfile
 import settings
 from database.models import agenthistory_class, content_class, contenttag_class
 from pipeline.errors import ExtractionError
-from pipeline.LLM_prompt import analyze_content
+from pipeline.LLM_prompt import CATEGORIES, analyze_content
 from pipeline.PDF_parser import extract_pdf_text
 from pipeline.tag_utils import find_or_create_tag, get_tags_by_content, user_tag_pool
 from pipeline.URL_parser import extract_url_text
 from services import ai_quota
 
 ANALYSIS_STATUSES = ("ai", "ai_short", "manual", "pending")
+# 사용자가 저장 전에 태그를 고칠 수 있으므로 서버에서도 확인한다
+MAX_TAGS = 5
+MAX_TAG_CHARS = 50
+
+
+def clean_tags(tags) -> list[str]:
+    """앞뒤 공백을 지우고, 빈 태그와 대소문자만 다른 중복을 뺀다 (먼저 나온 것을 남김)"""
+    out, seen = [], set()
+    for tag in tags or []:
+        name = (tag or "").strip()
+        if not name or name.lower() in seen:
+            continue
+        if len(name) > MAX_TAG_CHARS:
+            raise ValueError(f"태그는 {MAX_TAG_CHARS}자까지 쓸 수 있습니다.")
+        seen.add(name.lower())
+        out.append(name)
+    if len(out) > MAX_TAGS:
+        raise ValueError(f"태그는 {MAX_TAGS}개까지 붙일 수 있습니다.")
+    return out
 
 
 # URL 중복방지 (내 자료 안에서만)
@@ -65,7 +84,12 @@ def s_content(url, db, users_id, memo=None, title=None, category=None, tags=None
             raise ExtractionError("DUPLICATE", "이미 저장된 URL입니다.")
     if analysis_status not in ANALYSIS_STATUSES:
         analysis_status = "ai"
-    tags = tags or []
+    if category not in CATEGORIES:
+        raise ValueError("카테고리를 고르세요.")
+    title = (title or "").strip() or None
+    if analysis_status in ("manual", "pending") and not title:
+        raise ValueError("제목을 입력하세요.")
+    tags = clean_tags(tags)
 
     try:
         content = content_class(

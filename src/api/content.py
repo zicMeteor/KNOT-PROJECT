@@ -40,6 +40,8 @@ class Content_Request(BaseModel):  # 저장용
     # ai = 보통, ai_short = 짧은 본문, manual = 직접 입력, pending = 분석 대기
     analysis_status: Literal["ai", "ai_short", "manual", "pending"] = "ai"
     suggested: Optional[Suggested] = None
+    # 어떻게 저장까지 왔는지 (기록용): 보통 분석, 실패 뒤 붙여넣기, 실패 뒤 메모 저장
+    via: Literal["analyze", "paste", "manual"] = "analyze"
 
 class Discard_Request(BaseModel):  # 분석 결과를 저장하지 않고 취소했을 때 (결과보고서용 기록만 남긴다)
     source: Literal["url", "pdf"] = "url"
@@ -77,7 +79,7 @@ def _edit_diff(suggested: Optional[Suggested], category: str, tags: list[str]) -
 def create_content(request: Content_Request, db: Session = Depends(get_db),
                    user: CurrentUser = Depends(current_user)):
     started = time.perf_counter()
-    detail = {"source": request.source, "url": request.url, "analysis_status": request.analysis_status}
+    detail = {"source": request.source, "url": request.url, "analysis_status": request.analysis_status, "via": request.via}
     # 직접 입력·분석 대기 저장은 메모가 필수 (나중에 찾을 글자가 있어야 한다)
     if request.analysis_status in ("manual", "pending") and not (request.memo or "").strip():
         raise HTTPException(status_code=400, detail="메모를 입력하세요.", headers={"X-Error-Code": "MEMO_REQUIRED"})
@@ -93,7 +95,7 @@ def create_content(request: Content_Request, db: Session = Depends(get_db),
         _fail("save", started, e, 500, user, **detail)
     log_event(
         "save", True, ms_since(started), users_id=user.id,
-        content_id=result.get("content_id"), category=request.category, tags=len(request.tags),
+        content_id=result.get("content_id"), category=request.category, tags=len(result["tags"]),
         **detail, **_edit_diff(request.suggested, request.category, request.tags),
     )
     return result
