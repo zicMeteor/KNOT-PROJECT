@@ -5,11 +5,13 @@ import { CATEGORY_COLORS } from "../../constants/categories"
 import { useViewProgress } from "../../lib/scrollPin"
 import ways from "./HomeWays.module.css"
 import styles from "./HomeStats.module.css"
+import SampleTag from "./SampleTag"
 
 // 많이 쓴 태그 몇 개를 보여 줄지
 const TOP_TAGS = 8
 
-function HomeStats({ contents, graph }) {
+// sample: 자료가 없어 예시 자료로 그릴 때
+function HomeStats({ contents, graph, sample }) {
   const ref = useRef(null)
   // 구역 윗변이 화면 아래쪽에 닿을 때부터, 구역 높이의 절반쯤 올라오면 다 찬다
   const p = useViewProgress(ref, { startAt: 0.9, span: 0.55 })
@@ -43,8 +45,9 @@ function HomeStats({ contents, graph }) {
 
   return (
     <section ref={ref} className={ways.sec} aria-labelledby="stats-title" style={{ "--g": grow }}>
+      {sample && <SampleTag />}
       <h2 className={ways.h2} id="stats-title">
-        지금까지 이만큼 이어졌습니다
+        {sample ? "자료가 쌓이면 이만큼 이어집니다" : "지금까지 이만큼 이어졌습니다"}
       </h2>
       <p className={ways.lead}>
         저장할 때마다 태그가 늘고, 같은 자료에 함께 붙은 태그끼리 선으로 이어집니다.

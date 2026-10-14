@@ -8,6 +8,7 @@ import { canPin } from "../../lib/scrollPin"
 import { create, reducedMotion } from "../../lib/threadGraph"
 import { hostOf, kindOf, tagName } from "../../lib/contentMeta"
 import styles from "./HomeHero.module.css"
+import SampleTag from "./SampleTag"
 
 // 더미에 꽂을 자료 수 (최근 순). 전체는 "전체 자료"에서 본다
 const CRATE_COUNT = 12
@@ -51,7 +52,8 @@ function shortUrl(url) {
 }
 
 
-function HomeHero({ contents, graph, loading, error }) {
+// sample: 자료가 없어 예시 자료로 그릴 때 (카드는 링크를 열지 않는다)
+function HomeHero({ contents, graph, loading, error, sample }) {
   const navigate = useNavigate()
   const [url, setUrl] = useState("")
   const [formError, setFormError] = useState(null)
@@ -354,9 +356,11 @@ function HomeHero({ contents, graph, loading, error }) {
             </p>
           ) : (
             <p id="home-url-help" className={styles.help}>
-              {total > 0
-                ? "오른쪽 카드는 끌거나 화살표로 넘깁니다. 앞에 선 자료의 태그가 위 그래프에서 빛납니다."
-                : "PDF는 자료 추가에서 올립니다."}
+              {sample
+                ? "오른쪽 카드와 그래프는 예시입니다. 첫 링크를 저장하면 내 자료로 바뀝니다."
+                : total > 0
+                  ? "오른쪽 카드는 끌거나 화살표로 넘깁니다. 앞에 선 자료의 태그가 위 그래프에서 빛납니다."
+                  : "PDF는 자료 추가에서 올립니다."}
             </p>
           )}
         </div>
@@ -374,6 +378,11 @@ function HomeHero({ contents, graph, loading, error }) {
           </div>
         ) : (
           <div className={styles.stage}>
+            {sample && (
+              <div className={styles.sampleTag}>
+                <SampleTag>예시 자료</SampleTag>
+              </div>
+            )}
             <div
               ref={crateRef}
               className={styles.crate}
@@ -423,6 +432,14 @@ function HomeHero({ contents, graph, loading, error }) {
                   tabIndex: i === active ? 0 : -1,
                   "aria-hidden": i === active ? undefined : "true",
                   onClick: (e) => handleCardClick(e, i),
+                }
+                // 예시 카드는 아무 곳도 열지 않는다 (예시 주소는 실제 페이지가 아니다)
+                if (sample) {
+                  return (
+                    <div key={c.id} {...common}>
+                      {body}
+                    </div>
+                  )
                 }
                 // 앞에 선 카드: 링크가 있으면 원문을, PDF면 전체 자료를 연다
                 return c.url ? (

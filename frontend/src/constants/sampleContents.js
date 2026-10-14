@@ -1,0 +1,52 @@
+// 자료가 하나도 없는 계정의 홈에만 보여 주는 예시 자료 (실제 저장 기록이 아니다)
+// 홈의 설명 구간(통계, 단계, 찾는 길, 타임라인)이 비어 보이지 않게 채운다. 첫 자료를 저장하면 내 자료로 바뀐다
+// 모양은 api/content.js의 fetchContents와 같다
+const RAW = [
+  [1, "연구", "2026-09-14T09:00:00", "Attention Is All You Need", "https://arxiv.org/abs/1706.03762", ["Transformer", "Attention", "NLP"]],
+  [2, "학습", "2026-09-15T10:00:00", "The Illustrated Transformer", "https://jalammar.github.io/illustrated-transformer/", ["Transformer", "Attention", "시각화"]],
+  [3, "연구", "2026-09-15T11:00:00", "BERT 논문 정리", "https://arxiv.org/abs/1810.04805", ["BERT", "Transformer", "NLP"]],
+  [4, "학습", "2026-09-16T12:00:00", "RAG 개념 정리 노트", "https://example.com/rag-note", ["RAG", "LLM", "벡터 검색"]],
+  [5, "학습", "2026-09-17T13:00:00", "LangChain으로 RAG 만들기", "https://example.com/langchain-rag", ["RAG", "LangChain", "LLM"]],
+  [6, "도구", "2026-09-18T14:00:00", "pgvector 사용법", "https://github.com/pgvector/pgvector", ["벡터 검색", "PostgreSQL"]],
+  [7, "참고", "2026-09-18T15:00:00", "프롬프트 작성 가이드", "https://example.com/prompt-guide", ["프롬프트", "LLM"]],
+  [8, "도구", "2026-09-19T16:00:00", "Claude Code 시작하기", "https://example.com/claude-code", ["Claude", "LLM", "도구"]],
+  [9, "학습", "2026-09-20T17:00:00", "Docker 입문: 이미지와 컨테이너", "https://docs.docker.com/get-started/", ["Docker", "컨테이너"]],
+  [10, "학습", "2026-09-21T09:00:00", "쿠버네티스 기본 개념", "https://kubernetes.io/ko/docs/concepts/", ["Kubernetes", "컨테이너", "배포"]],
+  [11, "참고", "2026-09-21T10:00:00", "GitHub Actions로 CI 만들기", "https://docs.github.com/actions", ["CI/CD", "GitHub Actions", "배포"]],
+  [12, "도구", "2026-09-22T11:00:00", "Docker Compose 예제 모음", "https://example.com/compose", ["Docker", "Docker Compose"]],
+  [13, "학습", "2026-09-23T12:00:00", "React 19 새 기능 정리", "https://react.dev/blog", ["React", "프론트엔드"]],
+  [14, "참고", "2026-09-24T13:00:00", "Vite 설정 가이드", "https://vite.dev/config/", ["Vite", "프론트엔드", "빌드"]],
+  [15, "아이디어", "2026-09-24T14:00:00", "3D 그래프로 북마크 보여 주기", "https://example.com/3d-idea", ["three.js", "시각화", "그래프"]],
+  [16, "학습", "2026-09-25T15:00:00", "force-directed 그래프 원리", "https://example.com/force-graph", ["그래프", "시각화", "알고리즘"]],
+  [17, "참고", "2026-09-26T16:00:00", "웹 접근성 체크리스트", "https://example.com/a11y", ["접근성", "프론트엔드"]],
+  [18, "참고", "2026-09-27T17:00:00", "CSS 스크롤 애니메이션", "https://example.com/scroll-css", ["CSS", "애니메이션", "프론트엔드"]],
+  [19, "학습", "2026-09-27T09:00:00", "SQLAlchemy 2.0 튜토리얼", "https://docs.sqlalchemy.org/", ["SQLAlchemy", "Python", "MySQL"]],
+  [20, "참고", "2026-09-28T10:00:00", "MySQL 인덱스 설계", "https://example.com/mysql-index", ["MySQL", "인덱스", "DB"]],
+  [21, "학습", "2026-09-29T11:00:00", "FastAPI 의존성 주입", "https://fastapi.tiangolo.com/tutorial/dependencies/", ["FastAPI", "Python"]],
+  [22, "도구", "2026-09-30T12:00:00", "Trafilatura로 본문 추출", "https://trafilatura.readthedocs.io/", ["크롤링", "Python", "본문 추출"]],
+  [23, "연구", "2026-09-30T13:00:00", "Vision Transformer 논문", "https://arxiv.org/abs/2010.11929", ["ViT", "Transformer", "컴퓨터 비전"]],
+  [24, "학습", "2026-10-01T14:00:00", "임베딩과 유사도 검색", "https://example.com/embedding", ["임베딩", "벡터 검색", "LLM"]],
+  [25, "아이디어", "2026-10-02T15:00:00", "목적별로 자료 다시 묶기", "https://example.com/regroup", ["재분류", "LLM", "아이디어"]],
+  [26, "학습", "2026-10-03T16:00:00", "자료구조 시험 정리: 트리", "https://example.com/tree", ["자료구조", "시험", "알고리즘"]],
+  [27, "학습", "2026-10-03T17:00:00", "알고리즘 시험 정리: 그래프 탐색", "https://example.com/bfs-dfs", ["알고리즘", "그래프", "시험"]],
+  [28, "참고", "2026-10-04T09:00:00", "Python 비동기 프로그래밍", "https://example.com/asyncio", ["Python", "비동기"]],
+  [29, "도구", "2026-10-05T10:00:00", "Playwright로 브라우저 자동화", "https://playwright.dev/", ["Playwright", "크롤링", "테스트"]],
+  [30, "기타", "2026-10-06T11:00:00", "개발자 회고 글 모음", "https://example.com/retro", ["회고", "커리어"]],
+  [31, "연구", "2026-10-06T12:00:00", "LLM 에이전트 설계 패턴", "https://example.com/agent-patterns", ["에이전트", "LLM", "프롬프트"]],
+  [32, "학습", "2026-10-07T13:00:00", "Attention 수식 따라가기", "https://example.com/attention-math", ["Attention", "수학", "Transformer"]],
+  [33, "참고", "2026-10-08T14:00:00", "Kubernetes 배포 전략", "https://example.com/k8s-deploy", ["Kubernetes", "배포"]],
+  [34, "학습", "2026-10-09T15:00:00", "three.js 기초", "https://threejs.org/manual/", ["three.js", "WebGL", "시각화"]],
+  [35, "아이디어", "2026-10-09T16:00:00", "지식 그래프 타임라인 연출", "https://example.com/timeline-idea", ["시각화", "애니메이션", "그래프"]],
+  [36, "도구", "2026-10-10T17:00:00", "Tailscale로 로컬 서버 공개", "https://example.com/tunnel", ["배포", "네트워크"]],
+]
+
+export const SAMPLE_CONTENTS = RAW.map(([id, category, createdAt, title, url, tags]) => ({
+  id: -id, // 실제 자료 번호와 겹치지 않게 음수
+  title,
+  category,
+  summary: `${title}에 대한 예시 요약입니다. 홈 화면을 보여 주기 위한 예시 자료입니다.`,
+  url,
+  tags,
+  memo: null,
+  createdAt,
+}))

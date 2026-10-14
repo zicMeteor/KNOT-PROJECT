@@ -7,6 +7,7 @@ import { byNewest } from "../../hooks/useLibraryFilter"
 import { create, tagGraph, topTags } from "../../lib/threadGraph"
 import { usePinProgress } from "../../lib/scrollPin"
 import styles from "./HomeStory.module.css"
+import SampleTag from "./SampleTag"
 
 // 고정 구간 길이 (화면 높이의 배수). 단계 하나에 화면 한 장 정도
 const STORY_SCREENS = 5
@@ -34,7 +35,7 @@ function shortUrl(url) {
   }
 }
 
-function HomeStory({ contents }) {
+function HomeStory({ contents, sample }) {
   // 예시 자료: 최근 자료 중 이미 쓰던 태그를 하나 이상 가진 것 (그래프에 이어지는 모습이 보이게)
   const story = useMemo(() => {
     const sorted = [...contents].sort(byNewest)
@@ -139,6 +140,7 @@ function HomeStory({ contents }) {
     >
       <div ref={stageRef} className={styles.stage}>
         <div className={styles.intro}>
+          {sample && <SampleTag />}
           <h2 className={styles.h2} id="story-title">
             링크 하나가 지식이 되기까지
           </h2>

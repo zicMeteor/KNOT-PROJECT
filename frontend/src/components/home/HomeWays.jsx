@@ -10,6 +10,7 @@ import { categoryColor } from "../../constants/categories"
 import { create, topTags as pickTags } from "../../lib/threadGraph"
 import { useViewProgress } from "../../lib/scrollPin"
 import styles from "./HomeWays.module.css"
+import SampleTag from "./SampleTag"
 
 // 그래프 줄에 그릴 태그 수 (자료가 많은 순). 아래 "이웃 태그 n개"는 그리지 않은 태그까지 센 실제 수다
 const WAYS_MAX_TAGS = 16
@@ -320,7 +321,7 @@ function RegroupVisual({ contents, p }) {
   )
 }
 
-function HomeWays({ contents, graph }) {
+function HomeWays({ contents, graph, sample }) {
   const navigate = useNavigate()
   const [question, setQuestion] = useState("")
 
@@ -346,6 +347,7 @@ function HomeWays({ contents, graph }) {
   return (
     <section className={styles.sec} aria-labelledby="ways-title">
       <div ref={headRef} className={styles.head} style={{ "--in": headP }}>
+        {sample && <SampleTag />}
         <h2 className={styles.h2} id="ways-title">
           찾고, 다시 묶습니다
         </h2>

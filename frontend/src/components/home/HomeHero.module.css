@@ -165,6 +165,16 @@
   bottom: 0;
 }
 
+/* 예시 자료 표시: 카드 더미 위쪽 가운데 */
+.sampleTag {
+  position: absolute;
+  z-index: 6;
+  top: calc(var(--nav-h) + 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 /* 카드가 움직이는 영역. 왼쪽 끝은 흐려지며 잘린다 */
 .crate {
   position: absolute;

@@ -13,12 +13,16 @@ import HomeStory from "../components/home/HomeStory"
 import HomeWays from "../components/home/HomeWays"
 import HomeTimeline from "../components/home/HomeTimeline"
 import styles from "./HomePage.module.css"
+import { SAMPLE_CONTENTS } from "../constants/sampleContents"
 
 // 첫 화면 카드 수. HomeHero의 CRATE_COUNT와 같아야 한다
 const RECENT_CARDS = 12
 
 function HomePage() {
-  const { contents, loading, error } = useContents()
+  const { contents: mine, loading, error } = useContents()
+  // 자료가 하나도 없으면 홈의 설명 구간을 예시 자료로 채운다 (실제 자료가 아님을 구간마다 표시)
+  const sample = !loading && !error && mine.length === 0
+  const contents = sample ? SAMPLE_CONTENTS : mine
   // 태그 그래프: 노드 = 태그, 엣지 = 두 태그를 함께 쓴 자료 수
   const graph = useMemo(
     () => tagGraph(contents.map((c) => ({ cat: c.category, tags: c.tags ?? [] }))),
@@ -39,13 +43,14 @@ function HomePage() {
 
   return (
     <div className={styles.page}>
-      <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} />
-      {!loading && contents.length === 0 && !error && (
+      <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} sample={sample} />
+      {sample && (
         <section className={styles.empty} aria-labelledby="empty-title">
           <p className={styles.eyebrow}>KNOT 시작하기</p>
           <h2 id="empty-title">첫 자료를 추가해 보세요</h2>
           <p className={styles.emptyCopy}>
-            자료를 저장하면 AI가 요약하고, 카테고리와 태그를 지식 그래프로 연결합니다.
+            아직 저장한 자료가 없어서, 아래는 <b>예시 자료 {SAMPLE_CONTENTS.length}건</b>으로 KNOT이 어떻게
+            쓰이는지 보여 줍니다. 첫 자료를 저장하면 모두 내 자료로 바뀝니다.
           </p>
           <Link to="/add" className={styles.emptyAction}>
             자료 추가
@@ -54,10 +59,10 @@ function HomePage() {
       )}
       {contents.length > 0 && (
         <>
-          <HomeStats contents={contents} graph={graph} />
-          <HomeStory contents={contents} />
-          <HomeWays contents={contents} graph={graph} />
-          <HomeTimeline contents={contents} />
+          <HomeStats contents={contents} graph={graph} sample={sample} />
+          <HomeStory contents={contents} sample={sample} />
+          <HomeWays contents={contents} graph={graph} sample={sample} />
+          <HomeTimeline contents={contents} sample={sample} />
         </>
       )}
       <footer ref={endRef} className={styles.end} style={{ "--k": endP }}>

@@ -6,6 +6,7 @@ import { create, reducedMotion, tagGraph, topTags } from "../../lib/threadGraph"
 import { usePinProgress, useViewProgress } from "../../lib/scrollPin"
 import ways from "./HomeWays.module.css"
 import styles from "./HomeTimeline.module.css"
+import SampleTag from "./SampleTag"
 
 // 날짜 눈금 수 (양 끝 포함)
 const TICK_COUNT = 5
@@ -30,7 +31,7 @@ function toItems(list) {
 // 그릴 태그 수 상한. 보고 있는 날짜에 저장한 자료의 태그는 수와 상관없이 남긴다 (그날 새로 자라는 점이 보이게)
 const TIMELINE_MAX_TAGS = 80
 
-function HomeTimeline({ contents }) {
+function HomeTimeline({ contents, sample }) {
   // 자료를 저장한 날짜 (오래된 순)
   const days = useMemo(
     () => [...new Set(contents.map((c) => dayOf(c.createdAt)).filter(Boolean))].sort(),
@@ -154,6 +155,11 @@ function HomeTimeline({ contents }) {
       aria-labelledby="grow-title"
     >
       <div ref={stageRef} className={pin.on ? styles.stage : undefined}>
+      {sample && (
+        <div className={styles.enterH}>
+          <SampleTag />
+        </div>
+      )}
       <h2 className={`${ways.h2} ${styles.enterH}`} id="grow-title">
         지식이 자라는 모습
       </h2>
