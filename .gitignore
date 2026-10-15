@@ -8,3 +8,8 @@ CLAUDE.md
 
 # 결과보고서 집계 결과 (scripts.report). 기록에서 뽑은 것이라 올리지 않는다
 reports/
+
+# DB 덤프, 전달용 번들, 로컬 Claude 설정은 올리지 않는다
+*.sql
+*.bundle
+.claude/
