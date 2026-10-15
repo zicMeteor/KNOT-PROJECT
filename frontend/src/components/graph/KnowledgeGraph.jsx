@@ -22,6 +22,7 @@ const GLOW_DIM_OPACITY = 0.06
 // 점 모양: 홈 그래프처럼 옅은 색 공 위에 흰 중심점을 얹어 "빛나는 점"으로 보이게 한다
 const NODE_OPACITY = 0.2
 const DOT_SCALE = 1.14 // 흰 중심점 지름 = 공 반지름 × 이 값 (홈의 0.38배 반지름보다 1.5배 크게)
+const DOT_COLOR = "#ffffff"
 const DOT_OPACITY = 0.9
 const DOT_DIM_OPACITY = 0.1
 
@@ -542,7 +543,8 @@ function KnowledgeGraph({
   )
 
   // 입자: 밝은 실에 흐른다. 검색 연출 중에는 검색 실만 끈다 (마우스 올림·선택 실은 평소처럼)
-  const particlesOn = !revealing || focusId != null
+  // 동작 줄이기면 늘 끈다 (계속 반복되는 장식이라서. 실이 밝아지는 강조는 그대로)
+  const particlesOn = (!revealing || focusId != null) && !prefersReducedMotion()
 
   const focusing = focusId != null || pairIds != null || revealedIds != null
 
@@ -579,6 +581,8 @@ function KnowledgeGraph({
       glow.scale.set(r, r, 1)
     }
     for (const [id, dot] of dotsRef.current) {
+      // 찾은 노드는 중심점도 라임으로 (흰 점이 커지면 라임 강조를 덮는다)
+      dot.material.color.set(isHit(id) ? HIT_COLOR : DOT_COLOR)
       dot.material.opacity = isLit(id) ? DOT_OPACITY : DOT_DIM_OPACITY
       const r = dot.userData.baseRadius * Math.cbrt(valScale(id)) * DOT_SCALE
       dot.scale.set(r, r, 1)
