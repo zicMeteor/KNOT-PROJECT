@@ -65,6 +65,36 @@
   color: var(--color-text-muted);
 }
 
+/* "/" 단축키 안내. 검색창에 들어가면 사라진다 */
+.kbd {
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  margin-right: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.bar:focus-within .kbd {
+  opacity: 0;
+}
+
+/* 키보드가 없는 터치 기기에서는 숨긴다 */
+@media (hover: none) {
+  .kbd {
+    display: none;
+  }
+}
+
 .clear {
   flex: none;
   width: 32px;

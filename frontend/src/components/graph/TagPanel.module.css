@@ -7,6 +7,62 @@
   margin: 0 0 var(--space-3);
   color: var(--color-text-muted);
 }
+/* 불러오는 중: 목록 칸 모양의 빈 줄 3개 */
+.loading {
+  animation: loadingIn var(--dur-base) var(--ease-out) 200ms backwards;
+}
+
+@keyframes loadingIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.skeleton i {
+  display: block;
+  width: 40%;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton i:first-child {
+  width: 72%;
+  height: 14px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton i {
+    animation: none;
+  }
+}
+
 /* 실(두 태그) 패널 아래: 각 태그 따로 보기 */
 .alt {
   margin-top: var(--space-4);

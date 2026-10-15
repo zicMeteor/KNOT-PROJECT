@@ -22,10 +22,32 @@
   border-radius: 12px;
   background: var(--m-bg);
   color: var(--m-text);
+  animation: modalIn var(--dur-base) var(--ease-out);
 }
 
 .modal::backdrop {
   background: rgba(0, 0, 0, 0.6);
+}
+
+/* 열릴 때: 배경은 옅게, 창은 살짝 아래에서 제자리로 (동작 줄이기 설정이면 global.css가 창을 바로 띄운다.
+   ::backdrop은 그 전역 규칙에 걸리지 않아 따로 막는다) */
+@media (prefers-reduced-motion: no-preference) {
+  .modal::backdrop {
+    animation: overlayIn var(--dur-fast) var(--ease-out);
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
 }
 
 .title {

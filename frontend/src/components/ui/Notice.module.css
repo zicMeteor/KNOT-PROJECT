@@ -11,6 +11,15 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  /* 나타날 때 살짝 내려오며 보인다 (줄어든 움직임 설정이면 global.css가 즉시 끝낸다) */
+  animation: noticeIn var(--dur-base) var(--ease-out);
+}
+
+@keyframes noticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 .notice::before {

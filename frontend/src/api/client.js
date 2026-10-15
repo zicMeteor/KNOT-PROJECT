@@ -17,7 +17,7 @@ export async function request(
     res = await fetch(BASE + path, { credentials: "include", ...options })
   } catch (e) {
     if (e.name === "AbortError") throw e
-    throw new Error("서버에 연결할 수 없습니다")
+    throw new Error("서버에 연결할 수 없습니다", { cause: e })
   }
   if (res.ok) return res
 

@@ -63,6 +63,21 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear, initialText = "", 
     return () => window.removeEventListener("keydown", handleWindowKeyDown)
   }, [loading])
 
+  // "/"를 누르면 검색창으로 간다. 다른 입력칸에서 글을 쓰는 중이거나 창(모달)이 열려 있으면 무시한다
+  useEffect(() => {
+    function handleSlash(e) {
+      if (e.key !== "/" || e.defaultPrevented || e.isComposing) return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const t = e.target
+      if (t instanceof HTMLElement && (t.isContentEditable || t.closest("input, textarea, select"))) return
+      if (document.querySelector('[aria-modal="true"]')) return
+      e.preventDefault()
+      inputRef.current?.focus()
+    }
+    window.addEventListener("keydown", handleSlash)
+    return () => window.removeEventListener("keydown", handleSlash)
+  }, [])
+
   // 글자가 칸을 넘으면 다음 줄로 넘어가도록 높이를 내용에 맞춘다 (최대 MAX_ROWS줄)
   useLayoutEffect(() => {
     const el = inputRef.current
@@ -137,7 +152,14 @@ function AiSearchBar({ loading, hasResult, onSubmit, onClear, initialText = "", 
         aria-label="AI로 자료 찾기"
         maxLength={MAX_LENGTH}
         enterKeyHint="search"
+        aria-keyshortcuts="/"
       />
+      {/* 비어 있고 포커스가 없을 때만 보이는 단축키 안내 (포커스 여부는 CSS가 판단한다) */}
+      {!text && !loading && (
+        <kbd className={styles.kbd} aria-hidden="true" title="/ 키로 검색창으로 이동">
+          /
+        </kbd>
+      )}
       {(text || hasResult || loading) && (
         <button
           type="button"

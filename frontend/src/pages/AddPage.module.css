@@ -263,6 +263,14 @@
   color: var(--color-text-muted);
 }
 
+/* 오래 걸릴 때 덧붙이는 한 줄 */
+.busyHint {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-sm);
+  color: var(--color-text-faint);
+}
+
 .notice {
   margin-top: 20px;
 }

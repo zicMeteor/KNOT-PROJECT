@@ -30,6 +30,12 @@ function Layout() {
   const { me, signOut } = useAuth() ?? {}
   const ai = me?.ai
 
+  // 탭 제목에 지금 페이지를 보여 준다 (탭을 여러 개 열어 두어도 구분되게)
+  useEffect(() => {
+    const page = MENU.find((m) => m.to === pathname)
+    document.title = page ? `${page.label} · KNOT` : "KNOT"
+  }, [pathname])
+
   return (
     <div className={full ? styles.appFull : undefined}>
       <nav className={over ? `${styles.nav} ${styles.over}` : styles.nav} aria-label="주 메뉴">

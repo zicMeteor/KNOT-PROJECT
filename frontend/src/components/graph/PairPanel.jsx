@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { fetchTagContents } from "../../api/graph"
 import ContentListView from "./ContentListView"
 import { logEvent } from "../../api/feedback"
+import { PanelLoading } from "./TagPanel"
 import styles from "./TagPanel.module.css"
 
 function tagName(t) {
@@ -50,7 +51,7 @@ function PairPanel({ a, b, category, onPickTag }) {
 
   return (
     <div className={styles.panel}>
-      {!items && !error && <p className={styles.muted}>불러오는 중…</p>}
+      {!items && !error && <PanelLoading />}
       {error && <p className={styles.muted}>오류: {error}</p>}
       {items && (
         <ContentListView

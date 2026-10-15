@@ -18,6 +18,8 @@ import styles from "./AddPage.module.css"
 const RECENT_COUNT = 5
 // "예시 링크로 해 보기"에 쓰는 주소
 const SAMPLE_URL = "https://arxiv.org/abs/1706.03762"
+// 분석이 이 시간(초)을 넘으면 더 걸릴 수 있다고 덧붙인다
+const SLOW_AFTER = 15
 
 // 주소만 보고 어떤 자료인지 미리 알려 준다 (분석 전, 서버를 부르지 않는다)
 function previewText(url) {
@@ -90,6 +92,31 @@ function AddPage() {
     const id = setInterval(() => setSecs((s) => s + 1), 1000)
     return () => clearInterval(id)
   }, [analyzing])
+
+  // 분석하는 동안 탭 제목에 진행 중임을 보여 준다
+  useEffect(() => {
+    if (!analyzing) return
+    const prev = document.title
+    document.title = "분석 중… · KNOT"
+    return () => {
+      document.title = prev
+    }
+  }, [analyzing])
+
+  // 다른 탭에 가 있는 동안 분석이 끝나면 탭 제목으로 알리고, 돌아오면 원래대로 돌린다
+  useEffect(() => {
+    if (!analysis || !document.hidden) return
+    const prev = document.title
+    document.title = "✓ 분석 완료 · KNOT"
+    function restore() {
+      if (!document.hidden) document.title = prev
+    }
+    document.addEventListener("visibilitychange", restore)
+    return () => {
+      document.removeEventListener("visibilitychange", restore)
+      document.title = prev
+    }
+  }, [analysis])
 
   function clearFile() {
     setFile(null)
@@ -383,9 +410,14 @@ function AddPage() {
                 <i />
               </div>
               <div className={styles.busyRow}>
+                {/* 서버가 지금 어느 단계인지 알려 주지 않으므로, 1초 뒤부터는 두 단계를 함께 말한다 */}
+                {/* 초는 매초 바뀌므로 화면 낭독기가 계속 읽지 않게 숨긴다 */}
                 <span>
-                  {secs < 1 ? "본문을 가져오는 중입니다." : "AI가 요약하고 카테고리와 태그를 고르는 중입니다."}{" "}
-                  {secs}초
+                  {secs < 1 ? "본문을 가져오는 중입니다." : "본문을 읽고 AI가 요약과 분류를 하는 중입니다."}{" "}
+                  <span aria-hidden="true">{secs}초</span>
+                  {secs >= SLOW_AFTER && (
+                    <span className={styles.busyHint}> 페이지 길이에 따라 더 걸릴 수 있습니다.</span>
+                  )}
                 </span>
                 <Button variant="secondary" size="sm" onClick={handleAbort}>
                   취소
