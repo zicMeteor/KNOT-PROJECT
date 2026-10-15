@@ -19,6 +19,12 @@ const GLOW_SCALE = 10
 const GLOW_OPACITY = 0.85
 const GLOW_DIM_OPACITY = 0.06
 
+// 점 모양: 홈 그래프처럼 옅은 색 공 위에 흰 중심점을 얹어 "빛나는 점"으로 보이게 한다
+const NODE_OPACITY = 0.2
+const DOT_SCALE = 1.14 // 흰 중심점 지름 = 공 반지름 × 이 값 (홈의 0.38배 반지름보다 1.5배 크게)
+const DOT_OPACITY = 0.9
+const DOT_DIM_OPACITY = 0.1
+
 // 배경 먼지: 깊이감을 주는 흐린 점
 const DUST_COUNT = 500
 const DUST_RADIUS = 700
@@ -82,6 +88,22 @@ function getGlowTexture() {
   ctx.fillRect(0, 0, size, size)
   glowTexture = new CanvasTexture(c)
   return glowTexture
+}
+
+// 흰 중심점 그림: 가장자리가 또렷한 흰 원. 한 번만 만들어 모든 노드가 같이 쓴다
+let dotTexture = null
+function getDotTexture() {
+  if (dotTexture) return dotTexture
+  const size = 64
+  const c = document.createElement("canvas")
+  c.width = c.height = size
+  const ctx = c.getContext("2d")
+  ctx.fillStyle = "#ffffff"
+  ctx.beginPath()
+  ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2)
+  ctx.fill()
+  dotTexture = new CanvasTexture(c)
+  return dotTexture
 }
 
 // 배경 먼지: 그래프를 둘러싼 구 안에 흐린 점을 흩뿌린다 (매번 같은 배치)
@@ -233,6 +255,7 @@ function KnowledgeGraph({
   const draggingRef = useRef(false) // 드래그 중에는 마우스 강조가 다른 노드로 바뀌지 않게
   const labelsRef = useRef(new Map()) // 노드 id → 글자 객체 (흐리게 만들 때 사용)
   const glowsRef = useRef(new Map()) // 노드 id → 빛 번짐 객체
+  const dotsRef = useRef(new Map()) // 노드 id → 흰 중심점
   const catLabelsRef = useRef(new Map()) // 노드 id → 카테고리 이름 (전체 그래프)
   const hadHitsRef = useRef(false) // 직전에 검색 결과가 있었는지 (검색을 지울 때 전체로 돌아가기용)
   const revealTimerRef = useRef(null) // 하나씩 켜지는 연출의 타이머 (돌고 있지 않으면 null)
@@ -296,6 +319,9 @@ function KnowledgeGraph({
     }
     return map
   }, [data])
+
+  // 노드 id → 노드 (실 색을 정할 때 link.source가 아직 id인 경우)
+  const nodeById = useMemo(() => new Map((data?.nodes ?? []).map((n) => [n.id, n])), [data])
 
   // 노드 이름(소문자) → id. 이름으로 노드를 찾는 곳은 모두 이것을 쓴다
   const idByName = useMemo(
@@ -552,6 +578,11 @@ function KnowledgeGraph({
       const r = glow.userData.baseRadius * Math.cbrt(valScale(id)) * GLOW_SCALE
       glow.scale.set(r, r, 1)
     }
+    for (const [id, dot] of dotsRef.current) {
+      dot.material.opacity = isLit(id) ? DOT_OPACITY : DOT_DIM_OPACITY
+      const r = dot.userData.baseRadius * Math.cbrt(valScale(id)) * DOT_SCALE
+      dot.scale.set(r, r, 1)
+    }
   }, [isLit, isHit, valScale, selectedId, focusing])
 
   // 노드 하나에 붙는 것: 빛 번짐 + 이름 (+ 전체 그래프에서는 무리마다 카테고리 이름)
@@ -579,6 +610,23 @@ function KnowledgeGraph({
       glow.raycast = skipRaycast
       group.add(glow)
       glowsRef.current.set(node.id, glow)
+
+      // 흰 중심점: 옅은 공 안에 있으므로 깊이 검사를 끄고 공보다 나중에 그린다 (안 그러면 공 앞면에 가려진다)
+      const dot = new Sprite(
+        new SpriteMaterial({
+          map: getDotTexture(),
+          transparent: true,
+          opacity: DOT_OPACITY,
+          depthTest: false,
+          depthWrite: false,
+        })
+      )
+      dot.scale.set(baseRadius * DOT_SCALE, baseRadius * DOT_SCALE, 1)
+      dot.renderOrder = 1
+      dot.userData.baseRadius = baseRadius
+      dot.raycast = skipRaycast
+      group.add(dot)
+      dotsRef.current.set(node.id, dot)
 
       {
         const label = new SpriteText(node.name)
@@ -652,8 +700,10 @@ function KnowledgeGraph({
   }
 
   // 평소 실: 출발 노드의 카테고리 색을 어둡게 (전체 그래프는 카테고리마다, 카테고리 그래프는 한 색)
+  // 처음 그릴 때는 link.source가 아직 id라서, 노드를 찾아 카테고리를 읽는다
+  // (id만으로 색을 고르면 전체 그래프의 실이 모두 기본 회색이 된다)
   function linkBaseColor(l) {
-    const src = typeof l.source === "object" ? l.source : { name: l.source }
+    const src = typeof l.source === "object" ? l.source : nodeById.get(l.source) ?? { name: l.source }
     return dimHex(colorOf(src), LINK_BASE_LEVEL)
   }
 
@@ -696,7 +746,7 @@ function KnowledgeGraph({
           nodeVal={(node) => (node.val || 1) * valScale(node.id)}
           nodeRelSize={NODE_REL_SIZE}
           nodeResolution={24}
-          nodeOpacity={0.9}
+          nodeOpacity={NODE_OPACITY}
           nodeColor={nodeColorOf}
           nodeThreeObject={makeLabel}
           nodeThreeObjectExtend={true}
