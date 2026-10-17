@@ -27,6 +27,9 @@ class Event_Request(BaseModel):
     detail: dict = {}
 
 
+# log_event가 따로 받는 이름이라 detail에 들어 있으면 인자가 겹쳐 500이 난다
+RESERVED_KEYS = {"event", "ok", "ms", "users_id"}
+
 router = APIRouter()
 
 
@@ -47,7 +50,7 @@ def add_event(request: Event_Request, user: CurrentUser = Depends(current_user))
     detail = {
         k: (v[:200] if isinstance(v, str) else v)
         for k, v in list(request.detail.items())[:10]
-        if isinstance(v, (str, int, float, bool)) or v is None
+        if k not in RESERVED_KEYS and (isinstance(v, (str, int, float, bool)) or v is None)
     }
     log_event(request.event, True, None, users_id=user.id, **detail)
     return {"ok": True}

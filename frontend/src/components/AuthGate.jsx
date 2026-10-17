@@ -13,12 +13,23 @@ function AuthGate({ children }) {
   const [state, setState] = useState("checking")
   const [expired, setExpired] = useState(false)
 
-  const refresh = useCallback(async () => {
+  // initial: 처음 열 때의 확인. 그 뒤의 호출은 AI 사용량을 새로 받는 용도라서,
+  // 실패해도 로그인이 풀린 경우(401)가 아니면 화면을 그대로 둔다.
+  // (분석 직후 이 요청이 한 번 실패했다고 로그인 화면으로 바꾸면 방금 받은 분석 결과가 사라진다)
+  const refresh = useCallback(async ({ initial = false } = {}) => {
     try {
       const data = await fetchMe()
       setMe(data)
       setState("in")
     } catch (e) {
+      if (!initial) {
+        if (e.status === 401) {
+          setExpired(true)
+          setMe(null)
+          setState("out")
+        }
+        return
+      }
       setMe(null)
       setState(e.message === "서버에 연결할 수 없습니다" ? "down" : "out")
     }
@@ -27,7 +38,7 @@ function AuthGate({ children }) {
   useEffect(() => {
     // 처음 열 때 한 번 확인한다 (응답이 오면 상태를 바꾼다)
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    refresh()
+    refresh({ initial: true })
   }, [refresh])
 
   // 쓰는 중에 로그인이 풀리면 (API가 401) 로그인 화면으로

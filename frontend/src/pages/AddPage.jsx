@@ -70,6 +70,8 @@ function AddPage() {
   // 서버에서 실패 처리를 켰을 때만, 실패하면 붙여넣기·메모 저장 패널을 띄운다
   const assist = !!auth?.me?.failure_assist
   const [failure, setFailure] = useState(null) // { code, source, url, filename }
+  // 실패 패널에서 붙여넣기 분석·메모 저장을 하는 중인지
+  const [failureBusy, setFailureBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(null) // 방금 저장한 분석 결과 (저장 완료 화면용)
   const [notice, setNotice] = useState(null) // { type: "success" | "warn" | "error", text }
@@ -265,7 +267,8 @@ function AddPage() {
     setNotice(null)
   }
 
-  const locked = analyzing || saving || !!analysis || !!failure
+  // 실패 패널이 열려 있어도 주소를 고쳐 다시 분석할 수 있게 둔다. 패널이 일하는 동안만 잠근다
+  const locked = analyzing || saving || !!analysis || failureBusy
   const preview = mode === "link" && phase === "idle" ? previewText(url.trim()) : null
   const hasInput = mode === "link" ? !!url.trim() : !!file
 
@@ -443,6 +446,7 @@ function AddPage() {
               onRetry={() => handleAnalyze(failure.source === "url" ? failure.url : undefined)}
               onClose={() => setFailure(null)}
               onUsage={refreshMe}
+              onBusy={setFailureBusy}
             />
           )}
 

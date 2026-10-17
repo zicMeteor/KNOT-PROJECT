@@ -1,6 +1,7 @@
 # 본문 추출이 실패한 이유. ValueError를 이어받아서, v1처럼 ValueError만 잡는 곳도 그대로 동작한다
 #
 # FETCH_FAIL  페이지를 받지 못함 (접속 거부, 없는 주소, 시간 초과)
+# BLOCKED_URL 이 컴퓨터·내부망을 가리키는 주소이거나 웹 주소가 아님 (ALLOW_LOCAL_URLS로 풀 수 있음)
 # LOGIN_WALL  로그인이 필요한 페이지로 보임 (추정)
 # NO_TEXT     본문을 찾지 못함 (영상·이미지 위주, 또는 AI가 쓸 만한 글이 아니라고 판단)
 # TOO_SHORT   본문이 너무 짧음

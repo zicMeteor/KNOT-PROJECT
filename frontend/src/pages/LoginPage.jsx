@@ -27,6 +27,11 @@ function LoginPage({ onSignIn, expired }) {
   const passwordRef = useRef(null)
   const usernameRef = useRef(null)
 
+  // 로그아웃하면 Layout이 사라져 앞 화면의 탭 제목이 남는다
+  useEffect(() => {
+    document.title = "로그인 · KNOT"
+  }, [])
+
   useEffect(() => {
     if (!canvasRef.current) return
     const g = create(canvasRef.current, {

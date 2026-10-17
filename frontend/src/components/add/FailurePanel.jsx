@@ -1,11 +1,12 @@
 // 분석에 실패했을 때: 이유를 알려 주고, 본문 붙여넣기 또는 메모 저장으로 이어 간다
 // (서버에서 FAILURE_ASSIST를 켰을 때만 쓴다. 끄면 v1처럼 알림 한 줄만 보인다)
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { analyzeText, saveContent } from "../../api/content"
 import { hostOf } from "../../lib/contentMeta"
 import Button from "../ui/Button"
 import { CategoryPicker, TagEditor } from "./EditFields"
 import { FAILURE_REASONS as REASONS } from "../../lib/failureReasons"
+import { reducedMotion } from "../../lib/threadGraph"
 import styles from "./FailurePanel.module.css"
 
 // 붙여넣기 분석에 필요한 최소 글자 수 (서버와 같다)
@@ -33,14 +34,26 @@ function firstLine(text) {
 // failure: { code, source: "url" | "pdf", url, filename }
 // memo: 분석 전에 적어 둔 메모 / known: 이미 쓰는 태그
 // onAnalyzed(result): 붙여넣기 분석 결과 / onSaved(saved): 메모 저장 완료 / onRetry() / onClose()
-function FailurePanel({ failure, memo: initialMemo, known, onAnalyzed, onSaved, onRetry, onClose, onUsage }) {
+// onBusy(bool): 붙여넣기 분석·메모 저장이 진행 중인지 (그동안 위쪽 입력칸을 잠근다)
+function FailurePanel({ failure, memo: initialMemo, known, onAnalyzed, onSaved, onRetry, onClose, onUsage, onBusy }) {
   const reason = REASONS[failure.code]
   const isPdf = failure.source === "pdf"
   const canPaste = !!reason.paste && !isPdf
   const [mode, setMode] = useState("choose") // choose | paste | manual
   const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusyState] = useState(false)
   const abortRef = useRef(null)
+  const panelRef = useRef(null)
+
+  function setBusy(value) {
+    setBusyState(value)
+    onBusy?.(value)
+  }
+
+  // 패널이 화면 아래로 밀려 버튼이 안 보일 수 있어, 나타날 때 보이는 곳까지 스크롤한다
+  useEffect(() => {
+    panelRef.current?.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" })
+  }, [])
 
   // 붙여넣기
   const [text, setText] = useState("")
@@ -108,7 +121,7 @@ function FailurePanel({ failure, memo: initialMemo, known, onAnalyzed, onSaved, 
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="fail-title">
+    <section ref={panelRef} className={styles.panel} aria-labelledby="fail-title">
       <span className={styles.kicker}>분석하지 못했습니다</span>
       <h2 id="fail-title" className={styles.title}>
         {reason.title}

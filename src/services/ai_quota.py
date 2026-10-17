@@ -17,8 +17,8 @@ def period_start(period: str) -> datetime:
 
 
 def usage(db, user) -> dict:
-    """{"used", "limit", "period"}. 상한이 없으면 limit이 None"""
-    if not user.ai_limit:
+    """{"used", "limit", "period"}. 상한이 없으면 limit이 None (0은 AI를 쓰지 못하는 계정)"""
+    if user.ai_limit is None:
         return {"used": None, "limit": None, "period": None}
     used = db.query(aiusage_class).filter(
         aiusage_class.users_id == user.id,
@@ -33,6 +33,8 @@ def consume(db, user, kind: str):
         return
     info = usage(db, user)
     if info["limit"] is not None and info["used"] >= info["limit"]:
+        if info["limit"] <= 0:
+            raise QuotaExceeded("이 계정은 AI를 쓸 수 없게 설정되어 있습니다.")
         when = "이번 주(월요일 0시에 초기화)" if info["period"] == "week" else "오늘(0시에 초기화)"
         raise QuotaExceeded(f"{when} AI 사용 횟수 {info['limit']}회를 모두 썼습니다.")
     db.add(aiusage_class(users_id=user.id, kind=kind))

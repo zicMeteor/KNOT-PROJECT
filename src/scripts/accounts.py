@@ -41,7 +41,7 @@ def cmd_list(db, _args):
     print(f"{'번호':>4}  {'아이디':<12} {'역할':<9} {'AI 상한':<10} {'자료':>4}  상태")
     for u in rows:
         n = db.query(content_class).filter(content_class.users_id == u.users_id).count()
-        limit = f"{u.ai_limit}/{'주' if u.ai_period == 'week' else '일'}" if u.ai_limit else "없음"
+        limit = f"{u.ai_limit}/{'주' if u.ai_period == 'week' else '일'}" if u.ai_limit is not None else "없음"
         state = "막힘" if u.disabled else ("로그인 가능" if u.password_hash else "비밀번호 없음")
         print(f"{u.users_id:>4}  {u.username or '-':<12} {u.role or '-':<9} {limit:<10} {n:>4}  {state}")
 

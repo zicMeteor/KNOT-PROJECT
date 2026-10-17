@@ -25,11 +25,11 @@ const SLOW_AFTER = 45
 
 const NONE = new Set()
 
-// 순서와 무관하게 같은 태그 묶음인지
+// 순서·대소문자와 무관하게 같은 태그 묶음인지
+// (서버는 태그를 소문자 이름으로 찾아 기존 태그에 잇기 때문에, 'React → react'는 실제로 아무것도 바꾸지 않는다)
 function sameTags(a, b) {
-  const x = [...(a ?? [])].sort().join("\u0000")
-  const y = [...(b ?? [])].sort().join("\u0000")
-  return x === y
+  const norm = (list) => [...new Set((list ?? []).map((t) => t.trim().toLowerCase()))].sort().join("\u0000")
+  return norm(a) === norm(b)
 }
 
 function ReclassifyModal({ onClose, onApplied }) {

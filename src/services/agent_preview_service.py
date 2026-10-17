@@ -8,6 +8,13 @@ from services import ai_quota
 from services.agent_reclassify_service import Scope_Tool, CategoryTool, TagTool
 
 
+def _same_classification(category, tags, current_category, current_tags) -> bool:
+    """태그는 소문자 이름(Name_lower) 하나로만 저장되므로 대소문자나 순서만 다른 안은 실제로 바뀌는 것이 없다"""
+    def names(items):
+        return {t.strip().lower() for t in items or []}
+    return category == current_category and names(tags) == names(current_tags)
+
+
 def ReclassifyPreview(db, user, allowed_categories: list[str], allowed_tags: list[str], purpose: str, before_id: int | None = None) -> dict:
     scope_result = Scope_Tool(db, user.id, allowed_categories, allowed_tags, before_id)
     content_in_scope = scope_result["contents"]
@@ -31,15 +38,21 @@ def ReclassifyPreview(db, user, allowed_categories: list[str], allowed_tags: lis
     for action in action_plan["actions"]:
         original = next(c for c in content_in_scope if c["content_id"] == action["content_id"])
 
+        change_needed, category, tags, reason = action["change_needed"], action["category"], action["tags"], action["reason"]
+        # AI가 '변경'이라 했어도 지금과 같으면 변경 없음으로 내린다
+        if change_needed and _same_classification(category, tags, original["category"], original["tags"]):
+            change_needed, category, tags = False, None, None
+            reason = reason.strip() + " (지금 분류와 같아 변경 제외)"
+
         actions.append({
             "content_id": action["content_id"],
             "title": original["title"],
-            "change_needed": action["change_needed"],
-            "reason": action["reason"],
+            "change_needed": change_needed,
+            "reason": reason,
             "current_category": original["category"],
             "current_tags": original["tags"],
-            "category": action["category"],
-            "tags": action["tags"]
+            "category": category,
+            "tags": tags
         })
 
     return {"actions": actions, **page}
@@ -105,6 +118,15 @@ def ReclassifyExecute(db, user, actions: list, purpose: str | None = None, trigg
                 tags.append(name)
 
         before = {"category": content.category, "tags": get_tags_by_content(db, [content_id])[content_id]}
+        # 미리보기 뒤에 자료가 이미 같은 분류가 됐을 수도 있다. 바뀌는 것이 없으면 이력도 남기지 않는다
+        if _same_classification(action["category"], tags, before["category"], before["tags"]):
+            results.append({
+                "content_id": content_id,
+                "status": "skipped",
+                "reason": "지금 분류와 같아 바꾸지 않았습니다"
+            })
+            continue
+
         try:
             CategoryTool(db, content_id, action["category"])
             TagTool(db, content_id, tags)

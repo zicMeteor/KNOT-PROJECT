@@ -27,6 +27,8 @@ COOKIE_SECURE = _flag("COOKIE_SECURE")
 SERVE_FRONTEND = _flag("SERVE_FRONTEND")
 # 실패 처리(짧은 본문 재시도, 붙여넣기, 메모 저장)를 켠다
 FAILURE_ASSIST = _flag("FAILURE_ASSIST")
+# 이 컴퓨터·내부망 주소(127.0.0.1, 192.168.x.x 등)도 분석하게 한다. 내 컴퓨터에 띄운 페이지로 시험할 때만 켠다
+ALLOW_LOCAL_URLS = _flag("ALLOW_LOCAL_URLS")
 
 # AI에게 보내는 본문 길이 상한 (글자 수). 넘으면 앞부분만 보낸다
 MAX_TEXT_CHARS = _int("MAX_TEXT_CHARS", 30000)

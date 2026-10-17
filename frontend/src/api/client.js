@@ -59,5 +59,6 @@ export async function request(
   const err = new Error(fallback)
   err.code = code
   err.detail = message
+  err.status = res.status
   throw err
 }
