@@ -10,6 +10,9 @@ from services.ai_quota import QuotaExceeded
 from services.auth import CurrentUser, current_user
 from services.event_log import log_event, ms_since
 
+# 재분류 목적 글자 수 상한 (화면 입력칸과 같다). AI 사용량은 호출 횟수로만 세므로 긴 입력을 서버에서도 막는다
+MAX_PURPOSE_CHARS = 500
+
 class Reclassify_Request(BaseModel):
     purpose: str
     # 비우면 전체 자료가 대상
@@ -28,6 +31,8 @@ router = APIRouter()
 @router.post("/agent/reclassify")
 def create_agent(request: Execute_Request, db: Session = Depends(get_db),
                  user: CurrentUser = Depends(current_user)):
+    if request.purpose and len(request.purpose) > MAX_PURPOSE_CHARS:
+        raise HTTPException(status_code=400, detail=f"목적은 {MAX_PURPOSE_CHARS}자까지 쓸 수 있습니다.")
     started = time.perf_counter()
     try:
         result = ReclassifyExecute(db, user, request.actions, request.purpose, request.trigger)
@@ -49,6 +54,8 @@ def create_reclassify_preview(request: Reclassify_Request, db: Session = Depends
     purpose = request.purpose.strip()
     if not purpose:
         raise HTTPException(status_code=400, detail="목적을 입력하세요.")
+    if len(purpose) > MAX_PURPOSE_CHARS:
+        raise HTTPException(status_code=400, detail=f"목적은 {MAX_PURPOSE_CHARS}자까지 쓸 수 있습니다.")
     unknown = [c for c in request.categories if c not in CATEGORIES]
     if unknown:
         raise HTTPException(status_code=400, detail=f"없는 카테고리입니다: {', '.join(unknown)}")

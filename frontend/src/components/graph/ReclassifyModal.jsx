@@ -9,6 +9,8 @@ const CATEGORIES = Object.keys(CATEGORY_COLORS)
 
 // 한 번에 검토하는 수 (서버 REVIEW_LIMIT과 같아야 함)
 const BATCH_SIZE = 15
+// 목적 글자 수 상한 (서버와 같다)
+const PURPOSE_MAX = 500
 
 // category가 있는 예시는 누르면 검토 범위도 그 카테고리로 바뀐다
 const EXAMPLES = [
@@ -158,6 +160,7 @@ function ReclassifyModal({ onClose, onApplied }) {
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
             rows={3}
+            maxLength={PURPOSE_MAX}
             placeholder="예: 시험 공부용으로 다시 분류해줘"
           />
           {/* 예시를 누르면 입력창이 그 문장으로 채워진다. 지금 입력과 같은 예시는 눌린 상태로 보인다 */}

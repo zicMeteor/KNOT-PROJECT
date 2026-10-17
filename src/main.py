@@ -4,7 +4,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from sqlalchemy import text
 
 import settings
 from database.database import engine, Base
@@ -75,13 +76,42 @@ app.add_middleware(
 # 화면 파일(JS 1.8MB)과 API 응답을 압축해서 보낸다. 바깥 주소(Funnel)처럼 느린 길에서 차이가 크다
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# 요청 본문 크기 상한. 본문을 받기 전에(로그인 확인보다 먼저) 거절해서 큰 파일로 디스크를 채우지 못하게 한다
+PDF_PATH = "/api/content/analyze-pdf"
+BODY_LIMIT = 2 * 1024 * 1024  # PDF 말고 나머지 API (붙여 넣은 본문도 AI에는 MAX_TEXT_CHARS까지만 보낸다)
+
+
+@app.middleware("http")
+async def limit_body(request, call_next):
+    if request.method in ("POST", "PUT", "PATCH"):
+        pdf = request.url.path == PDF_PATH
+        # PDF는 파일 상한에 업로드 양식 몫(1MB)을 더한다
+        limit = (settings.MAX_PDF_MB + 1) * 1024 * 1024 if pdf else BODY_LIMIT
+        size = request.headers.get("content-length")
+        if pdf and size is None:
+            # 크기를 알리지 않는 업로드는 끝까지 받아 봐야 알 수 있어서 받지 않는다 (브라우저는 항상 알린다)
+            return JSONResponse(status_code=411, content={"detail": "파일 크기를 알 수 없습니다."})
+        if size is not None and (not size.isdigit() or int(size) > limit):
+            if pdf:
+                # 화면이 PDF_TOO_BIG 안내를 그대로 보여 주도록 기존과 같은 400으로 답한다
+                return JSONResponse(
+                    status_code=400, content={"detail": f"PDF는 {settings.MAX_PDF_MB}MB까지 넣을 수 있습니다."},
+                    headers={"X-Error-Code": "PDF_TOO_BIG"},
+                )
+            return JSONResponse(status_code=413, content={"detail": "요청이 너무 큽니다."}, headers={"X-Error-Code": "TOO_LARGE"})
+    return await call_next(request)
+
+
 @app.get("/database")
 def database():
+    # 로그인 없이 부를 수 있으므로 오류 내용은 응답에 넣지 않고 서버 로그에만 남긴다
     try:
-        engine.connect()
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
         return {"status": "ok"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"DB 연결 확인 실패: {e}")
+        return {"status": "error"}
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(router, prefix="/api")
