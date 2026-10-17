@@ -13,3 +13,6 @@ reports/
 *.sql
 *.bundle
 .claude/
+*.patch
+*.zip
+*.log
