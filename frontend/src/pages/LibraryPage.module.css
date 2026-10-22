@@ -52,7 +52,7 @@
   flex: 1;
   min-width: 0;
   height: 56px;
-  padding: 0 96px 0 24px;
+  padding: 0 24px;
   border-radius: var(--radius-pill);
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.045);
@@ -71,28 +71,46 @@
   border-color: rgba(255, 255, 255, 0.55);
 }
 
-/* 브라우저 기본 지우기(×)는 숨기고 글자로 된 지우기 버튼을 쓴다 */
+/* 브라우저 기본 지우기(×)도 숨긴다. 검색어는 Backspace로 지운다 */
 .input::-webkit-search-cancel-button {
   display: none;
 }
 
-.clear {
+/* 태그 자동완성: 검색창 바로 아래에 떠서 아래 내용을 가린다 */
+.sug {
   position: absolute;
-  right: 8px;
-  top: 8px;
-  height: 40px;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.sugItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
   padding: 0 16px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   color: var(--color-text);
-  font: inherit;
-  font-size: var(--text-sm);
   cursor: pointer;
 }
 
-.clear:hover {
-  background: rgba(255, 255, 255, 0.14);
+.sugItem[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sugCount {
+  color: var(--color-text-faint);
+  font-size: var(--text-sm);
 }
 
 .chips,

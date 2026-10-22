@@ -137,7 +137,7 @@ function ListVisual({ contents, mine, sample, demoWord, p }) {
   const shown = touched ? query : typed(demoWord, seg(p, 0.15, 0.55))
   // 직접 입력하면 내 자료에서 찾는다 (홈에서 본 건수와 전체 자료에서 본 건수가 같게)
   const data = touched ? mine : contents
-  const items = useLibraryFilter(data, shown, null)
+  const { items } = useLibraryFilter(data, shown, null)
   const empty = touched && mine.length === 0
 
   function submit(e) {

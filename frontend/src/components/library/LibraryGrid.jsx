@@ -33,7 +33,11 @@ function LibraryGrid({ items, query, threads, paused, onOpen }) {
   const [touched, setTouched] = useState(false) // 사용자가 카드를 건드렸으면 시연을 멈춘다
 
   // 제목 강조도 목록 검색과 같은 단어로 (앞의 #은 뗀다)
-  const words = useMemo(() => searchWords(query), [query])
+  // 두 글자 이상 단어가 있으면 한 글자 단어는 강조하지 않는다 (제목 곳곳의 글자에 표시가 붙지 않게)
+  const words = useMemo(() => {
+    const all = searchWords(query)
+    return all.some((w) => w.length >= 2) ? all.filter((w) => w.length >= 2) : all
+  }, [query])
   const ids = items.map((c) => c.id).join(",")
 
   // 목록이 바뀌면 카드가 차례로 들어온다 (처음 그릴 때는 연출 없이 바로 보인다)

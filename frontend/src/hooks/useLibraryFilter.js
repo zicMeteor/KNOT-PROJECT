@@ -5,7 +5,7 @@ function tagName(t) {
 }
 
 // 비교용으로 다듬기: 소문자, 띄어쓰기 무시 (태그 "자연어 처리"를 "자연어처리"로 쳐도 찾게)
-function squash(s) {
+export function squash(s) {
   return String(s).toLowerCase().replace(/\s+/g, "")
 }
 
@@ -42,22 +42,64 @@ export function filterContents(contents, query, category = null) {
   )
 }
 
-// 즉시 검색: 검색어를 띄어쓰기로 나눠, 모든 단어가 어딘가에 들어 있는 자료만 남긴다 (AND)
-// category가 있으면 그 카테고리만. 결과는 최근 추가 순
+// 단어가 어느 칸에서 맞았는지에 따른 점수: 제목·태그 이름 그대로 > 태그 일부 > 요약 > 메모 > 주소
+const WEIGHT = { title: 8, tagExact: 8, tag: 5, summary: 3, memo: 2, url: 1 }
+
+// 자료 하나를 칸별 비교용 글자로 (자료가 바뀔 때만 만든다)
+function fieldsOf(c) {
+  return {
+    title: squash(c.title ?? ""),
+    tags: (c.tags ?? []).map((t) => squash(tagName(t))),
+    summary: squash(c.summary ?? ""),
+    memo: squash(c.memo ?? ""),
+    url: squash(c.url ?? ""),
+  }
+}
+
+// 단어 하나가 가장 잘 맞은 칸의 점수 (안 맞으면 0)
+function wordScore(f, w) {
+  if (f.title.includes(w)) return WEIGHT.title
+  if (f.tags.includes(w)) return WEIGHT.tagExact
+  if (f.tags.some((t) => t.includes(w))) return WEIGHT.tag
+  if (f.summary.includes(w)) return WEIGHT.summary
+  if (f.memo.includes(w)) return WEIGHT.memo
+  if (f.url.includes(w)) return WEIGHT.url
+  return 0
+}
+
+// 즉시 검색 (검색 엔진처럼): 단어가 하나라도 맞으면 보여 주고, 많이 맞은 자료 → 점수 높은 자료 → 최근 추가 순
+// 한 글자 단어("a", "c")는 거의 모든 자료에 들어 있어서, 두 글자 이상 단어가 함께 있으면 그 단어만으로는 보여 주지 않는다
+// category가 있으면 그 카테고리만. full: 모든 단어가 맞은 자료 id (없으면 AI로 찾기를 권한다)
 export function useLibraryFilter(contents, query, category) {
-  // 검색용 문자열은 자료가 바뀔 때만 다시 만든다 (글자 칠 때마다 만들지 않게)
+  // 비교용 글자는 자료가 바뀔 때만 다시 만든다 (글자 칠 때마다 만들지 않게)
   const indexed = useMemo(
-    () => [...contents].sort(byNewest).map((c) => ({ content: c, text: searchText(c) })),
+    () => [...contents].sort(byNewest).map((c) => ({ content: c, f: fieldsOf(c) })),
     [contents]
   )
 
   return useMemo(() => {
     const words = searchWords(query)
-    return indexed
-      .filter(({ content, text }) => {
-        if (category && content.category !== category) return false
-        return words.every((w) => text.includes(w))
-      })
-      .map(({ content }) => content)
+    const pool = indexed.filter(({ content }) => !category || content.category === category)
+    if (words.length === 0) return { items: pool.map(({ content }) => content), full: null }
+    const strong = words.some((w) => w.length >= 2)
+    const ranked = []
+    for (const { content, f } of pool) {
+      let hits = 0
+      let strongHits = 0
+      let score = 0
+      for (const w of words) {
+        const sc = wordScore(f, w)
+        if (sc === 0) continue
+        hits++
+        if (w.length >= 2) strongHits++
+        score += sc
+      }
+      if (hits === 0 || (strong && strongHits === 0)) continue
+      ranked.push({ content, hits, score })
+    }
+    // sort는 같은 값이면 원래 순서(최근 추가 순)를 지킨다
+    ranked.sort((a, b) => b.hits - a.hits || b.score - a.score)
+    const full = new Set(ranked.filter((r) => r.hits === words.length).map((r) => r.content.id))
+    return { items: ranked.map((r) => r.content), full }
   }, [indexed, query, category])
 }
