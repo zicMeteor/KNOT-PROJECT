@@ -205,6 +205,18 @@
   color: var(--color-text-muted);
 }
 
+.aiNote {
+  margin: 0 0 18px;
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.aiNote b {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
 .row {
   display: flex;
   flex-wrap: wrap;

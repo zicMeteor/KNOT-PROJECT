@@ -4,6 +4,7 @@ import { useContents } from "../hooks/useContents"
 import { deleteContent, updateContent, uploadPdf } from "../api/content"
 import { logEvent } from "../api/feedback"
 import { useLibraryFilter } from "../hooks/useLibraryFilter"
+import { useAiSearch } from "../hooks/useAiSearch"
 import { categoryColor } from "../constants/categories"
 import { dayOf, shortDay } from "../lib/contentMeta"
 import SavedDays from "../components/library/SavedDays"
@@ -54,6 +55,29 @@ function LibraryPage() {
   const q = query.trim()
   const filtering = q !== "" || category != null || day != null
 
+  // 글자로 못 찾으면 이 화면에서 AI로 다시 찾는다 (버튼이나 Enter를 눌렀을 때만. 칠 때마다 부르면 AI 사용 횟수가 금방 준다)
+  const ai = useAiSearch()
+  // AI 결과는 지금 검색어에 대한 것일 때만 쓴다. 검색어를 고치면 다시 글자 검색 결과로 돌아간다
+  const aiResult = ai.result && ai.result.query === q ? ai.result : null
+  const aiBusy = ai.status === "loading"
+  // AI가 찾은 자료를 목록과 같은 카드로 보여 준다. 고른 카테고리·날짜 조건도 똑같이 건다
+  const aiItems = useMemo(() => {
+    if (!aiResult) return null
+    const byId = new Map(contents.map((c) => [c.id, c]))
+    return aiResult.contents
+      .map((r) => byId.get(r.id))
+      .filter((c) => c && (!category || c.category === category) && (!day || dayOf(c.createdAt) === day))
+  }, [aiResult, contents, category, day])
+
+  function runAi() {
+    if (q && !aiBusy) ai.run(q)
+  }
+
+  // AI가 질문을 무엇으로 바꿨는지 한 줄로 (태그·핵심어)
+  const aiTerms = aiResult
+    ? [...(aiResult.analysis?.tags ?? []).map((t) => `#${t}`), ...(aiResult.analysis?.keywords ?? [])].join(", ")
+    : ""
+
   function clearQuery() {
     setQuery("")
     inputRef.current?.focus()
@@ -66,16 +90,17 @@ function LibraryPage() {
   }
 
   // 목록에서 자료를 열었다는 기록 (단어 검색·카테고리·날짜로 거른 상태였는지)
-  function openItem(id) {
+  // via: list = 글자 검색 목록, ai = 이 화면의 AI 검색 결과
+  function openItem(id, via = "list", list = items) {
     openerRef.current = document.activeElement
     logEvent("library_open", {
       content_id: id,
-      via: "list",
+      via,
       query: q || null,
       category: category ?? null,
       day: day ?? null,
-      rank: items.findIndex((c) => c.id === id) + 1,
-      shown: items.length,
+      rank: list.findIndex((c) => c.id === id) + 1,
+      shown: list.length,
     })
     setTrail([id])
   }
@@ -128,18 +153,48 @@ function LibraryPage() {
     body = <p className={styles.error}>{error}</p>
   } else if (contents.length === 0) {
     body = <p className={styles.muted}>아직 저장한 자료가 없습니다. 자료 추가에서 첫 자료를 넣어 보세요.</p>
+  } else if (items.length === 0 && q && aiItems?.length > 0) {
+    // 글자로는 못 찾았지만 AI가 찾은 자료
+    body = (
+      <>
+        <p className={styles.aiNote} role="status">
+          {`글자가 그대로 들어간 자료는 없어서 AI로 찾았습니다. '${q}'를 `}
+          <b>{aiTerms || "질문 그대로"}</b>
+          {`(으)로 바꿔 찾은 자료 ${aiItems.length}건입니다.`}
+        </p>
+        <LibraryGrid
+          items={aiItems}
+          query=""
+          threads={threads}
+          paused={trail.length > 0}
+          onOpen={(id) => openItem(id, "ai", aiItems)}
+        />
+      </>
+    )
   } else if (items.length === 0 && q) {
-    // 검색 실패는 복구로 잇는다: 같은 검색어로 AI 검색, 또는 검색어 지우기
+    // 검색 실패는 복구로 잇는다: 이 화면에서 AI로 다시 찾기, 또는 검색어 지우기
     body = (
       <div className={styles.none} role="status">
-        <h2>{`'${q}' 검색 결과가 없습니다`}</h2>
+        <h2>{aiResult ? `AI로도 '${q}' 관련 자료를 찾지 못했습니다` : `'${q}' 검색 결과가 없습니다`}</h2>
         <p>
-          목록 검색은 제목, 요약, 태그, 출처, 메모에 그 단어가 그대로 있어야 찾습니다. 뜻으로 찾으려면 AI
-          검색을 쓰세요. 검색어는 그대로 넘어갑니다.
+          {aiResult
+            ? `AI가 '${aiTerms || q}'(으)로 바꿔 찾았지만 맞는 자료가 없습니다. 다른 말로 찾아보세요.`
+            : "목록 검색은 제목, 요약, 태그, 출처, 메모에 그 글자가 그대로 있어야 찾습니다. AI로 찾으면 한글 발음이나 비슷한 말도 저장한 태그로 바꿔 이 화면에서 찾아 줍니다 (AI 사용 1회)."}
         </p>
+        {ai.status === "error" && !aiResult && <p className={styles.error}>{ai.error}</p>}
         <div className={styles.row}>
-          <button type="button" className={styles.btn} onClick={() => navigate("/graph", { state: { q } })}>
-            {`AI로 '${q}' 관련 자료 찾기`}
+          {!aiResult &&
+            (aiBusy ? (
+              <button type="button" className={styles.btn} onClick={ai.cancel}>
+                AI로 찾는 중… 취소
+              </button>
+            ) : (
+              <button type="button" className={styles.btn} onClick={runAi}>
+                {`AI로 '${q}' 찾기`}
+              </button>
+            ))}
+          <button type="button" className={styles.btnGhost} onClick={() => navigate("/graph", { state: { q } })}>
+            지식 그래프에서 AI로 찾기
           </button>
           <button type="button" className={styles.btnGhost} onClick={clearQuery}>
             검색어 지우기
@@ -176,7 +231,9 @@ function LibraryPage() {
     <div className={styles.page}>
       <header className={styles.head}>
         <h1 className={styles.title}>전체 자료</h1>
-        <p className={styles.lead}>저장한 자료를 단어로 바로 거릅니다. AI를 거치지 않아 즉시 바뀝니다.</p>
+        <p className={styles.lead}>
+          저장한 자료를 단어로 바로 거릅니다. AI를 거치지 않아 즉시 바뀌고, 글자로 못 찾으면 AI로 다시 찾을 수 있습니다.
+        </p>
       </header>
 
       <div className={styles.tools}>
@@ -190,7 +247,11 @@ function LibraryPage() {
               className={styles.input}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="제목, 요약, 태그, 출처에 있는 단어. 예: Transformer, 컨테이너"
+              onKeyDown={(e) => {
+                // 글자로 못 찾았을 때 Enter를 누르면 AI로 찾는다 (한글 조합 중의 Enter는 글자 확정이라 넘긴다)
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && items.length === 0 && q) runAi()
+              }}
+              placeholder="제목, 요약, 태그, 출처에 있는 단어. 못 찾으면 Enter로 AI 검색"
               autoComplete="off"
               autoFocus
             />
@@ -242,7 +303,7 @@ function LibraryPage() {
         <div className={styles.meta}>
           <span role="status">
             {filtering
-              ? `검색 결과 ${items.length}건, 전체 자료 ${contents.length}건`
+              ? `검색 결과 ${items.length === 0 && aiItems?.length ? `AI ${aiItems.length}` : items.length}건, 전체 자료 ${contents.length}건`
               : `전체 자료 ${contents.length}건, 최근에 넣은 순`}
           </span>
           {items.length > 0 && (
