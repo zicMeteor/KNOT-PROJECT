@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { categoryColor } from "../../constants/categories"
 import { dayOf, hostOf, isUnanalyzed, kindOf, sharedTags, shortDay, tagName } from "../../lib/contentMeta"
 import { reducedMotion } from "../../lib/threadGraph"
+import { searchWords } from "../../hooks/useLibraryFilter"
 import styles from "./LibraryGrid.module.css"
 
 // 아무도 건드리지 않을 때 카드를 차례로 짚어 실을 보여 주는 간격 (ms)
@@ -31,7 +32,8 @@ function LibraryGrid({ items, query, threads, paused, onOpen }) {
   const [hotId, setHotId] = useState(null)
   const [touched, setTouched] = useState(false) // 사용자가 카드를 건드렸으면 시연을 멈춘다
 
-  const words = useMemo(() => query.trim().split(/\s+/).filter(Boolean), [query])
+  // 제목 강조도 목록 검색과 같은 단어로 (앞의 #은 뗀다)
+  const words = useMemo(() => searchWords(query), [query])
   const ids = items.map((c) => c.id).join(",")
 
   // 목록이 바뀌면 카드가 차례로 들어온다 (처음 그릴 때는 연출 없이 바로 보인다)
