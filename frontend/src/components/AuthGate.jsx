@@ -12,6 +12,8 @@ function AuthGate({ children }) {
   // checking: 확인 중 / in: 쓸 수 있음 / out: 로그인 필요 / down: 서버에 연결 못 함
   const [state, setState] = useState("checking")
   const [expired, setExpired] = useState(false)
+  // down일 때 이유: offline = 서버에 닿지 못함, error = 서버가 오류로 답함
+  const [downReason, setDownReason] = useState("offline")
 
   // initial: 처음 열 때의 확인. 그 뒤의 호출은 AI 사용량을 새로 받는 용도라서,
   // 실패해도 로그인이 풀린 경우(401)가 아니면 화면을 그대로 둔다.
@@ -31,7 +33,9 @@ function AuthGate({ children }) {
         return
       }
       setMe(null)
-      setState(e.message === "서버에 연결할 수 없습니다" ? "down" : "out")
+      // 로그인이 필요하다는 답(401)일 때만 로그인 화면. 서버 오류(500 등)나 연결 실패를 로그인 문제로 보이게 하지 않는다
+      setState(e.status === 401 ? "out" : "down")
+      setDownReason(e.status ? "error" : "offline")
     }
   }, [])
 
@@ -72,7 +76,11 @@ function AuthGate({ children }) {
   if (state === "down") {
     return (
       <div style={{ minHeight: "100svh", display: "grid", placeItems: "center", padding: 24 }}>
-        <Notice type="error">서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인한 뒤 새로고침하세요.</Notice>
+        <Notice type="error">
+          {downReason === "error"
+            ? "서버에 문제가 생겨 화면을 열지 못했습니다. 잠시 뒤 새로고침하세요."
+            : "서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인한 뒤 새로고침하세요."}
+        </Notice>
       </div>
     )
   }

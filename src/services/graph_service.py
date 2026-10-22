@@ -2,6 +2,7 @@ from sqlalchemy import func, text
 from database.models import content_class, contenttag_class, tag_class
 from sqlalchemy.orm import aliased
 from pipeline.tag_utils import get_tags_by_content
+from services import pdf_store
 
 def get_category_overview(db, users_id):
     try:
@@ -102,7 +103,8 @@ def get_contents_tag(db, tag_name, users_id):
                 "URL": content_n.URL,
                 "memo": content_n.memo,
                 "created_at": content_n.created_at,
-                "tags": tags_map.get(content_n.Content_id, [])
+                "tags": tags_map.get(content_n.Content_id, []),
+                "has_file": pdf_store.has_original(users_id, content_n.Content_id, content_n.URL, content_n.created_at),
             })
         return {"contents": content_node}
     except Exception as e:

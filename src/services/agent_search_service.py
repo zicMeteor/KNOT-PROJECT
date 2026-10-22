@@ -3,7 +3,7 @@ from typing import Optional
 from database.models import content_class, contenttag_class, tag_class
 from pipeline.LLM_search import analyze_search_query
 from pipeline.tag_utils import get_tags_by_content, user_tag_pool
-from services import ai_quota
+from services import ai_quota, pdf_store
 from sqlalchemy import text
 from sqlalchemy import or_
 
@@ -85,7 +85,7 @@ def _merge(merged, seen_ids, result, match_type):
             item["match_type"] = match_type
             merged.append(item)
             
-def _build_response(db, items, analysis):
+def _build_response(db, items, analysis, users_id):
     # 항목별 태그를 쿼리 1번으로 가져온다 (N+1 방지)
     ids = [item["content_id"] for item in items]
     tags_by_id = {}
@@ -101,6 +101,7 @@ def _build_response(db, items, analysis):
 
     for item in items:
         item["tags"] = tags_by_id.get(item["content_id"], [])
+        item["has_file"] = pdf_store.has_original(users_id, item["content_id"], item["URL"], item["created_at"])
 
     return {"analysis": analysis, "contents": items, "count": len(items)}
 
@@ -121,13 +122,13 @@ def AgentLoop(db, user, query: str):
     }
 
     if not tags and not keywords and not category:
-        return _build_response(db, [], analysis)
+        return _build_response(db, [], analysis, uid)
 
     if not tags and not keywords:
         analysis["category_applied"] = True
         merged = []
         _merge(merged, set(), ContentTool(db, uid, category, []), "category")
-        return _build_response(db, merged, analysis)
+        return _build_response(db, merged, analysis, uid)
 
     # content_id로 중복 제거
     merged = []
@@ -143,4 +144,4 @@ def AgentLoop(db, user, query: str):
         expanded_tags = tags + related["related_tags"]
         _merge(merged, seen_ids, ContentTool(db, uid, None, expanded_tags), "expanded")
 
-    return _build_response(db, merged, analysis)
+    return _build_response(db, merged, analysis, uid)

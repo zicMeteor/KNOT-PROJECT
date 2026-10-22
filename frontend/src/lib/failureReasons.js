@@ -1,4 +1,5 @@
 // 서버가 X-Error-Code로 알려 주는 실패 이유. paste: 본문 붙여넣기를 권할지, retry: 다시 시도를 보여 줄지
+// detail: 서버의 설명을 help 앞에 붙일지 (상한처럼 서버 설정에 따라 바뀌는 값이 들어 있을 때)
 export const FAILURE_REASONS = {
   LOGIN_WALL: {
     title: "로그인해야 보이는 페이지로 보입니다",
@@ -43,7 +44,8 @@ export const FAILURE_REASONS = {
   },
   PDF_TOO_BIG: {
     title: "PDF가 너무 큽니다",
-    help: "20MB까지 넣을 수 있습니다. 메모를 써서 저장해 둘 수 있습니다.",
+    help: "메모를 써서 저장해 둘 수 있습니다.",
+    detail: true,
   },
 }
 

@@ -109,6 +109,10 @@ function AddStage({ phase, contents, analysis, chipsRef }) {
         ? `저장하면 이어질 자료: ${related.slice(0, 2).map((c) => c.title).join(", ")}${related.length > 2 ? ` 외 ${related.length - 2}건` : ""}.`
         : "아직 같은 태그를 가진 자료가 없습니다. 저장하면 새 무리가 생깁니다.") +
       (fresh.length > 0 ? ` 새로 생기는 태그: ${fresh.join(", ")}.` : "")
+  } else if (phase === "saved" && tags.length === 0) {
+    // 태그 없이 저장하면 그래프에 점이 생기지 않는다 (왼쪽 저장 안내와 같은 말을 한다)
+    title = "저장했습니다"
+    body = "태그가 없어 그래프에는 이어지지 않았습니다. 전체 자료에서 찾을 수 있고, 태그는 나중에 편집으로 붙일 수 있습니다."
   } else if (phase === "saved") {
     title = "묶였습니다"
     body =

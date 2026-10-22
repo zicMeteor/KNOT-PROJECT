@@ -90,7 +90,7 @@ function AnalysisResult({ analysis, saving, onSave, onCancel, onEdit, known, chi
           : hasNewTag
             ? "새 태그 표시가 없는 태그는 이미 저장한 자료에도 있어서, 저장하면 그 자료들과 바로 이어집니다. "
             : "모두 이미 있는 태그라, 저장하면 그 자료들과 바로 이어집니다. "}
-        주소나 메모를 바꾸려면 취소한 뒤 다시 분석하세요.
+        메모는 저장 전까지 위에서 고칠 수 있습니다. 주소를 바꾸려면 취소한 뒤 다시 분석하세요.
       </p>
 
       <div className={styles.actions}>

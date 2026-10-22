@@ -3,7 +3,7 @@
 // 실은 카드 뒤에 그린다. 카드가 불투명해서 카드 사이 틈으로만 보이고 글자를 가리지 않는다
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { categoryColor } from "../../constants/categories"
-import { dayOf, hostOf, kindOf, sharedTags, shortDay, tagName } from "../../lib/contentMeta"
+import { dayOf, hostOf, isUnanalyzed, kindOf, sharedTags, shortDay, tagName } from "../../lib/contentMeta"
 import { reducedMotion } from "../../lib/threadGraph"
 import styles from "./LibraryGrid.module.css"
 
@@ -165,14 +165,25 @@ function LibraryGrid({ items, query, threads, paused, onOpen }) {
                 onClick={() => onOpen(c.id)}
               >
                 <span className={styles.edge} aria-hidden="true" />
+                {/* 카테고리(분류)와 종류(주소로 짐작)는 다른 기준이라 나눠 보인다 */}
                 <span className={styles.kind}>
-                  {kind.label}, {c.category ?? "기타"}
+                  <span className={styles.cat}>
+                    <i style={{ background: color }} aria-hidden="true" />
+                    {c.category ?? "기타"}
+                  </span>
+                  <span>{kind.label}</span>
+                  {isUnanalyzed(c) && <span className={styles.badge}>AI 분석 안 됨</span>}
                 </span>
                 {shared && <span className={styles.common}>공통 태그: {shared.join(", ")}</span>}
                 <b className={styles.title}>
                   <Highlight text={c.title || hostOf(c.url)} words={words} />
                 </b>
-                {c.summary && <span className={styles.summary}>{c.summary}</span>}
+                {/* AI 요약이 없는 자료(메모로만 저장)는 메모가 그 자료를 설명한다 */}
+                {c.summary ? (
+                  <span className={styles.summary}>{c.summary}</span>
+                ) : (
+                  c.memo && <span className={styles.summary}>메모: {c.memo}</span>
+                )}
                 {c.tags?.length > 0 && (
                   <span className={styles.tags}>
                     {c.tags.map((t) => (

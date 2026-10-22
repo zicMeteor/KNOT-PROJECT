@@ -33,7 +33,8 @@ function GraphPage() {
   // dataCategory: 지금 화면에 보이는 데이터의 카테고리 (불러오는 동안은 category와 다를 수 있다)
   const { data, dataCategory, loading, error } = useGraphData(category, reloadKey)
   const search = useAiSearch()
-  const { contents, loading: contentsLoading, reload: reloadContents } = useContents() // 전체 그래프와 위쪽 숫자(자료 수)용
+  // 전체 그래프, 위쪽 숫자(자료 수), 왼쪽 분류 목록이 함께 쓴다
+  const { contents, loading: contentsLoading, error: contentsError, reload: reloadContents } = useContents()
   // 전체 그래프: 서버의 카테고리 그래프 대신 모든 태그를 한 그래프로 (디자인 시안)
   const overview = useMemo(() => buildTagOverview(contents), [contents])
   const graphData = dataCategory ? data : overview
@@ -287,7 +288,9 @@ function GraphPage() {
           <p className={styles.railNote}>숫자는 자료 수입니다</p>
           <div className={styles.sideBody}>
             <CategoryTree
-              reloadKey={reloadKey}
+              contents={contents}
+              loading={contentsLoading}
+              error={contentsError}
               currentCategory={category}
               currentTag={tag}
               onSelectAll={goAll}

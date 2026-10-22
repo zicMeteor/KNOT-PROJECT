@@ -27,6 +27,7 @@ export async function aiSearch(query, signal) {
       createdAt: c.created_at,
       matchType: c.match_type,
       tags: c.tags ?? [],
+      hasFile: !!c.has_file,
     })),
   }
 }

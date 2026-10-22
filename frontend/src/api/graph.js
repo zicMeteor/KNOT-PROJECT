@@ -42,5 +42,6 @@ export async function fetchTagContents(tag) {
     memo: c.memo,
     createdAt: c.created_at,
     tags: c.tags ?? [],
+    hasFile: !!c.has_file,
   }))
 }

@@ -42,6 +42,8 @@ export async function request(
   if (code === "DUPLICATE" || (message && message.includes("이미 저장된 URL"))) {
     const err = new Error(message ?? "이미 저장된 자료입니다")
     err.code = "duplicate"
+    // 이미 저장한 그 자료의 번호 (화면에서 바로 열 수 있게)
+    err.contentId = Number(res.headers.get("X-Content-Id")) || null
     throw err
   }
   // 사용량 초과는 어느 화면에서든 이유를 그대로 보여 준다

@@ -5,11 +5,12 @@
 //   val: 그 태그를 가진 자료 수 (점 크기)
 //   category: 그 태그를 가장 많이 쓴 카테고리 (점 색)
 //   showLabel: 평소에 이름을 달 태그. 자료가 많은 순으로 labelMax개 (그 외 태그는 선택·호버 시 표시)
+//              전부 달면 이름이 겹쳐 읽히지 않아서 labelMax개로 줄인다
 //   catLabel: 카테고리마다 가장 큰 태그 위에 카테고리 이름을 띄운다
 // 엣지 = 두 태그를 함께 가진 자료 수 (weight)
 import { tagName } from "./contentMeta"
 
-export function buildTagOverview(contents, labelMax = 30) {
+export function buildTagOverview(contents, labelMax = 12) {
   const nodes = new Map()
   const links = new Map()
 
@@ -45,6 +46,7 @@ export function buildTagOverview(contents, labelMax = 30) {
 
   // 이름을 달 태그: 자료가 많은 순
   const ranked = [...list].sort((a, b) => b.val - a.val || a.name.localeCompare(b.name))
+  // 자료가 많은 태그가 먼저 오므로, 자료가 1건뿐인 태그는 남는 자리만 채운다 (모두 1건이어도 이름이 비지 않게)
   const labeled = new Set(ranked.slice(0, labelMax).map((n) => n.id))
   // 카테고리 이름을 달 태그: 카테고리마다 가장 큰 것
   const anchor = new Map()

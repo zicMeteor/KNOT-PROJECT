@@ -1,0 +1,84 @@
+/* 서랍 안 자료 고치기. 입력칸 모양은 자료 추가의 실패 패널(메모 저장)과 같다 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0 0 4px;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.summary {
+  margin: 4px 0 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: #d6d6d3;
+}
+
+.label {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+.field,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.field {
+  height: 46px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+}
+
+.textarea {
+  padding: 14px 18px;
+  border-radius: 18px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.field::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-faint);
+}
+
+.field:focus,
+.textarea:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

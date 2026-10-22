@@ -1,11 +1,11 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { analyzePdf, analyzeUrl, logDiscard, saveContent } from "../api/content"
+import { analyzePdf, analyzeUrl, logDiscard, saveContent, uploadPdf } from "../api/content"
 import { useAuth } from "../hooks/useAuth"
 import { useContents } from "../hooks/useContents"
 import { byNewest } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
-import { dayOf, hostOf, kindOf, shortDay, tagName } from "../lib/contentMeta"
+import { dayOf, hostOf, kindOf, knownTags, normalizeUrl, shortDay } from "../lib/contentMeta"
 import AnalysisResult from "../components/add/AnalysisResult"
 import AddStage from "../components/add/AddStage"
 import FailurePanel from "../components/add/FailurePanel"
@@ -20,9 +20,12 @@ const RECENT_COUNT = 5
 const SAMPLE_URL = "https://arxiv.org/abs/1706.03762"
 // 분석이 이 시간(초)을 넘으면 더 걸릴 수 있다고 덧붙인다
 const SLOW_AFTER = 15
+// 메모 글자 수 상한 (실패 패널·고치기 화면·서버와 같다)
+const MEMO_MAX = 2000
 
 // 주소만 보고 어떤 자료인지 미리 알려 준다 (분석 전, 서버를 부르지 않는다)
-function previewText(url) {
+function previewText(input) {
+  const url = normalizeUrl(input)
   if (!/^https?:\/\/[^\s/]+\.[^\s]+/i.test(url)) return null
   const kind = kindOf(url)
   const label = kind.key === "post" ? "웹페이지" : kind.key === "paper" ? "논문 페이지" : kind.label
@@ -40,16 +43,7 @@ function AddPage() {
   // 최근 추가 순 (전체 자료 페이지와 같은 정렬 규칙)
   const recent = useMemo(() => [...contents].sort(byNewest).slice(0, RECENT_COUNT), [contents])
   // 이미 쓰는 태그 (소문자 → 이름). 태그를 고칠 때 새 태그인지 가리고, 고를 목록으로 보여 준다
-  const known = useMemo(() => {
-    const map = new Map()
-    for (const c of contents) {
-      for (const t of c.tags ?? []) {
-        const name = tagName(t)
-        if (!map.has(name.toLowerCase())) map.set(name.toLowerCase(), name)
-      }
-    }
-    return map
-  }, [contents])
+  const known = useMemo(() => knownTags(contents), [contents])
 
   // 홈에서 넣은 링크는 받아서 바로 분석한다
   const location = useLocation()
@@ -85,6 +79,8 @@ function AddPage() {
     setNotice({
       type: e.code === "duplicate" ? "warn" : "error",
       text: e.message,
+      // 이미 저장한 주소면 그 자료를 바로 열 수 있게 한다
+      openId: e.code === "duplicate" ? e.contentId : null,
     })
   }
 
@@ -125,6 +121,13 @@ function AddPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
+  // 파일을 빼거나 바꾸면 이전 파일의 실패 안내도 닫는다
+  // (안 닫으면 안내 창의 "메모 쓰고 저장"이 이전 파일 제목에 새 파일을 붙인다)
+  function removeFile() {
+    clearFile()
+    setFailure(null)
+  }
+
   function pickFile(picked) {
     if (!picked) return
     if (!picked.name.toLowerCase().endsWith(".pdf")) {
@@ -134,6 +137,7 @@ function AddPage() {
     }
     setNotice(null)
     setSaved(null)
+    setFailure(null)
     setFile(picked)
   }
 
@@ -152,7 +156,9 @@ function AddPage() {
         return
       }
     } else {
-      u = (overrideUrl ?? url).trim()
+      u = normalizeUrl(overrideUrl ?? url)
+      // https://를 붙였으면 입력칸에도 보여 준다
+      if (!overrideUrl && u !== url) setUrl(u)
       if (!/^https?:\/\//i.test(u)) {
         setNotice({
           type: "error",
@@ -169,16 +175,22 @@ function AddPage() {
     try {
       if (usePdf) {
         const result = await analyzePdf(file, controller.signal)
-        setAnalysis({ ...result, url: null, source: "pdf", memo: memo, suggested: suggestedOf(result) })
+        setAnalysis({ ...result, url: null, source: "pdf", suggested: suggestedOf(result) })
       } else {
         const result = await analyzeUrl(u, memo, controller.signal)
-        setAnalysis({ ...result, url: u, source: "url", memo: memo, suggested: suggestedOf(result) })
+        setAnalysis({ ...result, url: u, source: "url", suggested: suggestedOf(result) })
       }
       refreshMe?.()
     } catch (e) {
       if (e.name === "AbortError") return
       if (assist && isRecoverable(e.code)) {
-        setFailure({ code: e.code, source: usePdf ? "pdf" : "url", url: usePdf ? null : u, filename: file?.name })
+        setFailure({
+          code: e.code,
+          message: e.message,
+          source: usePdf ? "pdf" : "url",
+          url: usePdf ? null : u,
+          filename: file?.name,
+        })
         if (e.code === "AI_QUOTA") refreshMe?.()
       } else {
         showError(e)
@@ -195,15 +207,29 @@ function AddPage() {
       ...result,
       url: failure.url,
       source: "url",
-      memo: memo,
       via: "paste",
       suggested: suggestedOf(result),
     })
     setFailure(null)
   }
 
-  // AI 없이 메모로 저장했을 때
+  // 저장한 PDF 자료에 원본 파일을 붙인다. 실패해도 자료는 저장된 상태라, 전체 자료에서 다시 올리라고 알린다
+  async function attachPdf(contentId, pdf) {
+    try {
+      await uploadPdf(contentId, pdf)
+    } catch (e) {
+      setNotice({
+        type: "warn",
+        text: `자료는 저장했지만 PDF 파일을 올리지 못했습니다 (${e.message}). 전체 자료에서 이 자료를 열어 다시 올릴 수 있습니다`,
+      })
+    }
+  }
+
+  // AI 없이 메모로 저장했을 때 (크기를 넘은 PDF는 올려도 거절되므로 올리지 않는다)
   async function handleManualSaved(content) {
+    if (failure?.source === "pdf" && failure.code !== "PDF_TOO_BIG" && file && content.content_id) {
+      await attachPdf(content.content_id, file)
+    }
     await reload()
     setSaved(content)
     setFailure(null)
@@ -241,9 +267,11 @@ function AddPage() {
     setNotice(null)
     setSaving(true)
     try {
-      await saveContent(analysis)
+      // 메모는 분석에 쓰이지 않으므로, 분석이 끝난 뒤에 적거나 고친 메모로 저장한다 (메모는 이 상태 하나로만 둔다)
+      const result = await saveContent({ ...analysis, memo })
+      if (analysis.source === "pdf" && file) await attachPdf(result.content_id, file)
       await reload()
-      setSaved(analysis)
+      setSaved({ ...analysis, content_id: result.content_id })
       setAnalysis(null)
       setUrl("")
       setMemo("")
@@ -294,6 +322,8 @@ function AddPage() {
           {mode === "link" ? (
             <form
               className={styles.row}
+              // 브라우저의 주소 형식 검사는 끈다. https://가 빠진 주소도 받아서 handleAnalyze가 붙인다
+              noValidate
               onSubmit={(e) => {
                 e.preventDefault()
                 if (!locked && url.trim()) handleAnalyze()
@@ -335,7 +365,7 @@ function AddPage() {
               {file ? (
                 <div className={styles.fileRow}>
                   <span className={styles.fileName}>{file.name}</span>
-                  <button type="button" className={styles.fileRemove} onClick={clearFile} disabled={locked}>
+                  <button type="button" className={styles.fileRemove} onClick={removeFile} disabled={locked}>
                     제거
                   </button>
                   {phase === "result" ? (
@@ -367,6 +397,7 @@ function AddPage() {
                 >
                   <b>PDF를 끌어다 놓거나 눌러서 고르세요</b>
                   <span>파일 하나, 글자가 있는 PDF만 읽을 수 있습니다</span>
+                  <span>저장하면 PDF 파일도 서버에 보관되어 나중에 다시 열어 볼 수 있습니다</span>
                 </button>
               )}
             </>
@@ -381,7 +412,8 @@ function AddPage() {
 
           {/* 메모는 URL이나 PDF를 넣은 뒤에만 보인다 */}
           {/* URL을 지웠다가 다시 쓰는 경우를 위해, 숨겨져도 적어 둔 내용은 지우지 않는다 */}
-          {/* 분석이 시작되면 잠근다 (분석 뒤에 고쳐도 저장에는 분석할 때의 메모가 들어가기 때문) */}
+          {/* 메모는 AI 분석에 쓰이지 않아서, 분석이 끝난 뒤에도 저장 전까지는 적거나 고칠 수 있다 (분석·저장 중에만 잠근다) */}
+          {/* 실패 패널이 열려 있는 동안은 잠근다: 패널이 열릴 때 메모를 가져가 따로 고치므로, 여기서 고쳐도 반영되지 않는다 */}
           {hasInput && (
             <div className={styles.memo}>
               <label className="sr-only" htmlFor="add-memo">
@@ -392,9 +424,10 @@ function AddPage() {
                 className={styles.textarea}
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                disabled={locked}
+                disabled={analyzing || saving || !!failure}
                 placeholder="메모 (선택). 왜 저장하는지 적어 두면 분류를 다시 검토할 때 참고합니다"
                 rows={3}
+                maxLength={MEMO_MAX}
               />
             </div>
           )}
@@ -431,7 +464,17 @@ function AddPage() {
 
           {notice && (
             <div className={styles.notice}>
-              <Notice type={notice.type}>{notice.text}</Notice>
+              <Notice type={notice.type}>
+                {notice.text}
+                {notice.openId && (
+                  <>
+                    {" "}
+                    <Link to="/library" state={{ open: notice.openId }} className={styles.noticeLink}>
+                      저장한 자료 보기
+                    </Link>
+                  </>
+                )}
+              </Notice>
             </div>
           )}
 
@@ -471,9 +514,16 @@ function AddPage() {
                   : `${saved.category} 카테고리에 저장했습니다. 태그가 없어 그래프에는 보이지 않고, 전체 자료에서 찾을 수 있습니다.`}
               </span>
               <div className={styles.row}>
-                <Button variant="primary" onClick={() => navigate("/graph", { state: { category: saved.category } })}>
-                  그래프에서 보기
-                </Button>
+                {/* 태그가 없으면 그래프에 점이 없으므로, 전체 자료에서 그 자료를 연다 */}
+                {saved.tags.length > 0 ? (
+                  <Button variant="primary" onClick={() => navigate("/graph", { state: { category: saved.category } })}>
+                    그래프에서 보기
+                  </Button>
+                ) : (
+                  <Button variant="primary" onClick={() => navigate("/library", { state: { open: saved.content_id } })}>
+                    전체 자료에서 보기
+                  </Button>
+                )}
                 <Button variant="secondary" onClick={handleReset}>
                   하나 더 넣기
                 </Button>

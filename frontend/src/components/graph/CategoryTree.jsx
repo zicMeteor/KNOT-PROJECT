@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react"
-import { useContents } from "../../hooks/useContents"
 import { CATEGORY_COLORS, categoryColor } from "../../constants/categories"
 import styles from "./CategoryTree.module.css"
 
@@ -32,20 +31,18 @@ function GraphIcon() {
   )
 }
 
+// contents·loading·error: 그래프 화면이 불러온 자료 목록 (따로 불러오지 않아 그래프와 숫자가 어긋나지 않는다)
 function CategoryTree({
-  reloadKey = 0,
+  contents,
+  loading,
+  error,
   currentCategory,
   currentTag,
   onSelectAll,
   onSelectCategory,
   onSelectTag,
 }) {
-  const { contents, loading, error, reload } = useContents()
   const [expanded, setExpanded] = useState(() => new Set())
-
-  useEffect(() => {
-    if (reloadKey > 0) reload()
-  }, [reloadKey, reload])
 
   // 그래프에서 카테고리를 바꿔도 트리에서 그 카테고리가 펼쳐지게
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react"
 import ForceGraph3D from "react-force-graph-3d"
 import SpriteText from "three-spritetext"
-import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Group, Points, PointsMaterial, Sprite, SpriteMaterial } from "three"
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Group, Points, PointsMaterial, Sprite, SpriteMaterial, Vector3 } from "three"
 import { categoryColor } from "../../constants/categories"
 import styles from "./KnowledgeGraph.module.css"
 
@@ -153,9 +153,45 @@ function motionMs(ms) {
   return prefersReducedMotion() ? 0 : ms
 }
 
-// 노드가 적으면 여백을 크게 줘서 과하게 확대되지 않게 한다
+// 화면 맞춤 때 가장자리에 남길 여백 (px). 노드가 적으면 크게 줘서 과하게 확대되지 않게 한다
+// 많을 때도 위쪽 제목과 아래쪽 검색창에 노드가 가리지 않을 만큼은 남긴다
 function fitPadding(nodeCount) {
-  return nodeCount < 8 ? 96 : 24
+  return nodeCount < 8 ? 96 : 56
+}
+
+// 지금 보는 방향 그대로, 모든 노드가 화면 안(가장자리에서 padding px 안쪽)에 들어오는 가장 가까운 거리로 카메라를 옮긴다
+// 라이브러리의 zoomToFit은 깊이(z) 방향 길이까지 화면 높이에 맞추고 거리도 넉넉히 잡아서, 그래프가 가운데에 작게 보인다
+function fitAll(fg, nodes, padding, ms) {
+  const placed = (nodes ?? []).filter((n) => Number.isFinite(n.x) && Number.isFinite(n.y) && Number.isFinite(n.z))
+  if (!fg || placed.length === 0) return
+  const mid = (k) => (Math.min(...placed.map((n) => n[k])) + Math.max(...placed.map((n) => n[k]))) / 2
+  const c = new Vector3(mid("x"), mid("y"), mid("z"))
+
+  // 카메라의 뒤(가운데 → 카메라), 화면 위, 화면 오른쪽 방향
+  const cam = fg.camera()
+  const back = cam.position.clone().sub(c)
+  if (back.lengthSq() < 1e-6) back.set(0, 0, 1)
+  back.normalize()
+  const right = new Vector3().crossVectors(cam.up, back).normalize()
+  const up = new Vector3().crossVectors(back, right)
+
+  // 여백을 뺀 시야의 기울기 (위아래, 좌우)
+  const el = fg.renderer().domElement
+  const tanV = Math.tan((cam.fov * Math.PI) / 360)
+  const fitV = tanV * Math.max(0.2, 1 - (2 * padding) / (el.clientHeight || 1))
+  const fitH = tanV * cam.aspect * Math.max(0.2, 1 - (2 * padding) / (el.clientWidth || 1))
+
+  // 노드마다 화면 안에 들어오려면 필요한 거리 중 가장 먼 것 (카메라 쪽으로 나온 노드일수록 더 멀어야 한다)
+  // 12: 노드 크기와 아래 글자 여유
+  let dist = MIN_HIT_DISTANCE
+  const p = new Vector3()
+  for (const n of placed) {
+    p.set(n.x, n.y, n.z).sub(c)
+    const depth = p.dot(back)
+    dist = Math.max(dist, depth + (Math.abs(p.dot(up)) + 12) / fitV, depth + (Math.abs(p.dot(right)) + 12) / fitH)
+  }
+  const to = c.clone().addScaledVector(back, dist)
+  fg.cameraPosition({ x: to.x, y: to.y, z: to.z }, { x: c.x, y: c.y, z: c.z }, ms)
 }
 
 // 글자 위치: 공 반지름만큼 내려서 공과 겹치지 않게 한다
@@ -302,7 +338,7 @@ function KnowledgeGraph({
   useEffect(() => {
     if (fitKey === 0) return
     const id = setTimeout(() => {
-      fgRef.current?.zoomToFit(motionMs(600), fitPadding(nodeCount))
+      fitAll(fgRef.current, latestRef.current.data?.nodes, fitPadding(nodeCount), motionMs(600))
     }, 100)
     return () => clearTimeout(id)
   }, [fitKey])
@@ -444,7 +480,7 @@ function KnowledgeGraph({
     if (fittedRef.current) return
     fittedRef.current = true
     if (highlightIds) showHits()
-    else fgRef.current?.zoomToFit(motionMs(400), fitPadding(nodeCount))
+    else fitAll(fgRef.current, data?.nodes, fitPadding(nodeCount), motionMs(400))
   }
 
   // 같은 그래프에서 검색 결과가 바뀌면 찾은 노드 쪽으로 다가가며 하나씩 켜고,
@@ -459,7 +495,13 @@ function KnowledgeGraph({
     if (hitKey == null && !hadHits) return
     const id = setTimeout(() => {
       if (latestRef.current.hitKey != null) showHits()
-      else fgRef.current?.zoomToFit(motionMs(HIT_CAMERA_MS), fitPadding(latestRef.current.nodeCount))
+      else
+        fitAll(
+          fgRef.current,
+          latestRef.current.data?.nodes,
+          fitPadding(latestRef.current.nodeCount),
+          motionMs(HIT_CAMERA_MS)
+        )
     }, 100)
     
     return () => {
@@ -501,7 +543,12 @@ function KnowledgeGraph({
         )
       },
       fit() {
-        fgRef.current?.zoomToFit(motionMs(600), fitPadding(latestRef.current.nodeCount ?? 0))
+        fitAll(
+          fgRef.current,
+          latestRef.current.data?.nodes,
+          fitPadding(latestRef.current.nodeCount ?? 0),
+          motionMs(600)
+        )
       },
       step: ZOOM_STEP,
     }),

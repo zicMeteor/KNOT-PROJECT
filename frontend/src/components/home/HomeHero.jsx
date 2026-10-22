@@ -1,12 +1,12 @@
 // 홈 첫 화면: 왼쪽은 링크 입력, 오른쪽은 저장한 자료를 한 장씩 넘겨 보는 카드 더미, 뒤에는 태그 그래프
-// 앞에 선 카드의 태그가 그래프에서 빛난다. 넓은 화면에서는 이 구역이 화면에 고정된 채 스크롤에 따라 카드가 넘어간다
+// 앞에 선 카드의 태그가 그래프에서 빛난다. 카드는 끌기·화살표로 넘기고, 휠은 페이지를 내린다
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { pdfFileUrl } from "../../api/content"
 import { byNewest } from "../../hooks/useLibraryFilter"
 import { categoryColor } from "../../constants/categories"
-import { canPin } from "../../lib/scrollPin"
 import { create, reducedMotion } from "../../lib/threadGraph"
-import { hostOf, kindOf, tagName } from "../../lib/contentMeta"
+import { hostOf, kindOf, normalizeUrl, tagName } from "../../lib/contentMeta"
 import styles from "./HomeHero.module.css"
 import SampleTag from "./SampleTag"
 
@@ -16,10 +16,6 @@ const CRATE_COUNT = 12
 const SIDE_VISIBLE = 2
 // 저절로 넘기는 간격 (ms). 사용자가 한 번이라도 조작하면 멈춘다
 const AUTO_MS = 4000
-// 스크롤로 넘기는 카드 수. 나머지는 끌거나 화살표로 넘긴다
-const SCROLL_SPAN = 7
-// 스크롤로 넘기는 동안 화면에 고정되는 길이 (첫 화면 높이의 배수)
-const PIN_SCREENS = 3
 // 그래프 이름표가 피해 갈 여백 (px)
 const LABEL_MARGIN = 10
 // 위 메뉴 줄 높이 + 여백 (px). 메뉴는 페이지 맨 위에 겹쳐 있다가 스크롤하면 함께 올라간다
@@ -68,8 +64,6 @@ function HomeHero({ contents, graph, loading, error, sample }) {
     return m
   }, [graph])
 
-  const journeyRef = useRef(null)
-  const heroRef = useRef(null)
   const headRef = useRef(null)
   const crateRef = useRef(null)
   const countRef = useRef(null)
@@ -191,26 +185,10 @@ function HomeHero({ contents, graph, loading, error, sample }) {
     }
     window.addEventListener("resize", onResize)
 
-    // 넓은 화면: 스크롤 위치가 카드를 넘긴다. 사용자가 직접 넘기면 그때부터는 스크롤이 카드를 움직이지 않는다
-    // 그 밖: 저절로 넘긴다
-    const journey = journeyRef.current
-    const hero = heroRef.current
-    let onScroll = null
+    // 저절로 넘긴다 (마우스를 올려 두거나 직접 넘기면 멈춘다)
+    // 스크롤로 넘기지 않는다: 휠이 카드를 넘기면 페이지 아래로 내려갈 수 없다
     let timer = 0
-    if (journey && hero && canPin()) {
-      const span = Math.min(n - 1, SCROLL_SPAN)
-      onScroll = () => {
-        const ph = hero.offsetHeight
-        journey.style.height = ph * PIN_SCREENS + "px"
-        if (m.manual) return
-        const r = journey.getBoundingClientRect()
-        const p = Math.max(0, Math.min(1, -r.top / (ph * (PIN_SCREENS - 1))))
-        m.target = p * span
-      }
-      window.addEventListener("scroll", onScroll, { passive: true })
-      window.addEventListener("resize", onScroll)
-      onScroll()
-    } else if (!reduced) {
+    if (!reduced) {
       timer = setInterval(() => {
         if (m.manual || m.hover) return
         m.target = (Math.round(m.target) + 1) % n
@@ -246,11 +224,6 @@ function HomeHero({ contents, graph, loading, error, sample }) {
       cancelAnimationFrame(raf)
       clearInterval(timer)
       window.removeEventListener("resize", onResize)
-      if (onScroll) {
-        window.removeEventListener("scroll", onScroll)
-        window.removeEventListener("resize", onScroll)
-      }
-      if (journey) journey.style.height = ""
       crate?.removeEventListener("pointerdown", onDown)
       window.removeEventListener("pointermove", onMove)
       window.removeEventListener("pointerup", onUp)
@@ -291,7 +264,7 @@ function HomeHero({ contents, graph, loading, error, sample }) {
 
   function handleSubmit(e) {
     e.preventDefault()
-    const u = url.trim()
+    const u = normalizeUrl(url)
     if (!u) {
       setFormError("저장할 링크를 넣어 주세요")
       return
@@ -312,8 +285,8 @@ function HomeHero({ contents, graph, loading, error, sample }) {
     : 0
 
   return (
-    <div ref={journeyRef} className={styles.journey}>
-      <section ref={heroRef} className={styles.hero} aria-label="읽은 것을 한 상자에">
+    <div className={styles.journey}>
+      <section className={styles.hero} aria-label="읽은 것을 한 상자에">
         <div className={styles.aura} aria-hidden="true" />
         <canvas ref={canvasRef} className={styles.graph} aria-hidden="true" />
 
@@ -337,7 +310,7 @@ function HomeHero({ contents, graph, loading, error, sample }) {
               type="url"
               inputMode="url"
               autoComplete="url"
-              placeholder="https://fastapi.tiangolo.com"
+              placeholder="예: https://fastapi.tiangolo.com"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value)
@@ -441,15 +414,16 @@ function HomeHero({ contents, graph, loading, error, sample }) {
                     </div>
                   )
                 }
-                // 앞에 선 카드: 링크가 있으면 원문을, PDF면 전체 자료를 연다
-                return c.url ? (
+                // 앞에 선 카드: 링크가 있으면 원문을, 보관한 PDF가 있으면 그 PDF를, 없으면 전체 자료를 연다
+                const href = c.url ?? (c.hasFile ? pdfFileUrl(c.id) : null)
+                return href ? (
                   <a
                     key={c.id}
                     {...common}
-                    href={c.url}
+                    href={href}
                     target="_blank"
                     rel="noreferrer"
-                    aria-label={`${c.title}, 원문 새 창으로 열기`}
+                    aria-label={`${c.title}, ${c.url ? "원문" : "원본 PDF"} 새 창으로 열기`}
                   >
                     {body}
                   </a>
@@ -468,7 +442,8 @@ function HomeHero({ contents, graph, loading, error, sample }) {
 
             <p ref={countRef} className={styles.count} aria-live="polite">
               <b>{String(active + 1).padStart(2, "0")}</b>
-              <span>/ {String(total).padStart(2, "0")}</span>
+              {/* 더미에는 최근 자료만 꽂으므로 전체 자료 수와 다를 수 있다 */}
+              <span>/ 최근 {total}건</span>
               <span className={styles.sr}>{focused ? `, ${focused.title}` : ""}</span>
             </p>
 

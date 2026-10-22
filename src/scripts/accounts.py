@@ -13,6 +13,7 @@ import sys
 
 from database.database import SessionLocal
 from database.models import content_class, contenttag_class, users_class, usersession_class
+from services import pdf_store
 from services.auth import ROLE_DEFAULTS, generate_password, hash_password
 
 
@@ -104,6 +105,9 @@ def cmd_clone(db, args):
         db.flush()
         for link in db.query(contenttag_class).filter(contenttag_class.Content_id == c.Content_id).all():
             db.add(contenttag_class(Content_id=copy.Content_id, Tag_id=link.Tag_id))
+        # 보관한 PDF 원본도 새 자료 자리로 복사한다
+        if not c.URL:
+            pdf_store.copy(pdf_store.path_of(c), pdf_store.path_of(copy))
     db.commit()
     print(f"{args.source} → {args.target}: 자료 {len(rows)}건 복사{' (기본 자료 표시)' if args.seed else ''}")
 

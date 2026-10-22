@@ -1,9 +1,11 @@
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
 
@@ -71,20 +73,26 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Error-Code"],
+    expose_headers=["X-Error-Code", "X-Content-Id"],
 )
 # 화면 파일(JS 1.8MB)과 API 응답을 압축해서 보낸다. 바깥 주소(Funnel)처럼 느린 길에서 차이가 크다
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# PDF는 이미 압축되어 있고, 브라우저 PDF 보기의 부분 요청(Range) 응답을 다시 압축하면 위치가 어긋난다
+app.add_middleware(
+    GZipMiddleware, minimum_size=1000,
+    exclude_content_types=DEFAULT_EXCLUDED_CONTENT_TYPES + ("application/pdf",),
+)
 
 # 요청 본문 크기 상한. 본문을 받기 전에(로그인 확인보다 먼저) 거절해서 큰 파일로 디스크를 채우지 못하게 한다
 PDF_PATH = "/api/content/analyze-pdf"
+# 저장한 PDF 자료에 원본을 붙이는 주소 (PUT /api/content/{번호}/file)
+PDF_FILE_RE = re.compile(r"^/api/content/\d+/file$")
 BODY_LIMIT = 2 * 1024 * 1024  # PDF 말고 나머지 API (붙여 넣은 본문도 AI에는 MAX_TEXT_CHARS까지만 보낸다)
 
 
 @app.middleware("http")
 async def limit_body(request, call_next):
     if request.method in ("POST", "PUT", "PATCH"):
-        pdf = request.url.path == PDF_PATH
+        pdf = request.url.path == PDF_PATH or bool(PDF_FILE_RE.match(request.url.path))
         # PDF는 파일 상한에 업로드 양식 몫(1MB)을 더한다
         limit = (settings.MAX_PDF_MB + 1) * 1024 * 1024 if pdf else BODY_LIMIT
         size = request.headers.get("content-length")

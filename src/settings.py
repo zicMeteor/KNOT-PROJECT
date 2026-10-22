@@ -36,6 +36,10 @@ MAX_TEXT_CHARS = _int("MAX_TEXT_CHARS", 30000)
 MAX_PDF_MB = _int("MAX_PDF_MB", 20)
 # 웹 페이지를 받아 올 때 기다리는 시간 (초)
 FETCH_TIMEOUT = _int("FETCH_TIMEOUT", 15)
+# 올린 PDF 원본을 보관하는 폴더. 비우면 저장소의 uploads/pdf (git에 올리지 않는다)
+PDF_DIR = os.getenv("PDF_DIR", "").strip() or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "pdf"
+)
 
 # 화면에 거는 링크 (AGPL-3.0: 인터넷으로 쓰는 사람에게 소스를 받을 곳을 알린다)
 SOURCE_URL = os.getenv("SOURCE_URL", "https://github.com/zicMeteor/KNOT-PROJECT").strip()

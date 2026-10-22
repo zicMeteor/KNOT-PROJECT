@@ -184,6 +184,12 @@
   color: var(--color-text);
 }
 
+/* 보관 안내: 고르는 방법보다 한 단계 작게 */
+.drop span + span {
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
 .fileRow {
   margin-top: 18px;
   display: flex;
@@ -273,6 +279,13 @@
 
 .notice {
   margin-top: 20px;
+}
+
+.noticeLink {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .savedBox {

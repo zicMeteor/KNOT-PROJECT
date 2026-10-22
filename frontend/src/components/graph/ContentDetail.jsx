@@ -1,3 +1,4 @@
+import { pdfFileUrl } from "../../api/content"
 import styles from "./ContentDetail.module.css"
 
 function formatDate(s) {
@@ -20,7 +21,7 @@ function domainOf(url) {
 }
 
 function ContentDetail({ content }) {
-  const { title, url, category, createdAt, tags = [], summary, memo } = content
+  const { id, title, url, category, createdAt, tags = [], summary, memo, hasFile } = content
 
   return (
     <article className={styles.detail}>
@@ -54,6 +55,12 @@ function ContentDetail({ content }) {
         >
           <span>원문 열기</span>
           <span className={styles.domain}>{domainOf(url)}</span>
+        </a>
+      )}
+
+      {!url && hasFile && (
+        <a className={styles.source} href={pdfFileUrl(id)} target="_blank" rel="noopener noreferrer">
+          <span>원본 PDF 열기</span>
         </a>
       )}
     </article>

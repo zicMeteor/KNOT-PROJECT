@@ -31,7 +31,7 @@ function firstLine(text) {
   return line.length > 80 ? line.slice(0, 80) + "…" : line
 }
 
-// failure: { code, source: "url" | "pdf", url, filename }
+// failure: { code, message, source: "url" | "pdf", url, filename } (message: 서버가 알려 준 실패 설명)
 // memo: 분석 전에 적어 둔 메모 / known: 이미 쓰는 태그
 // onAnalyzed(result): 붙여넣기 분석 결과 / onSaved(saved): 메모 저장 완료 / onRetry() / onClose()
 // onBusy(bool): 붙여넣기 분석·메모 저장이 진행 중인지 (그동안 위쪽 입력칸을 잠근다)
@@ -111,8 +111,9 @@ function FailurePanel({ failure, memo: initialMemo, known, onAnalyzed, onSaved, 
     setBusy(true)
     setError(null)
     try {
-      await saveContent(content)
-      onSaved(content)
+      const saved = await saveContent(content)
+      // PDF 원본 올리기까지 끝날 때까지 잠가 둔다 (그사이 저장을 또 누르면 같은 자료가 두 번 생긴다)
+      await onSaved({ ...content, content_id: saved.content_id })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -126,7 +127,11 @@ function FailurePanel({ failure, memo: initialMemo, known, onAnalyzed, onSaved, 
       <h2 id="fail-title" className={styles.title}>
         {reason.title}
       </h2>
-      {mode !== "manual" && <p className={styles.help}>{reason.help}</p>}
+      {mode !== "manual" && (
+        <p className={styles.help}>
+          {reason.detail && failure.message ? `${failure.message} ${reason.help}` : reason.help}
+        </p>
+      )}
       <p className={styles.target}>{isPdf ? failure.filename : failure.url}</p>
 
       {mode === "choose" && (

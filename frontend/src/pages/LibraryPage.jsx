@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useContents } from "../hooks/useContents"
-import { deleteContent } from "../api/content"
+import { deleteContent, updateContent, uploadPdf } from "../api/content"
 import { logEvent } from "../api/feedback"
 import { useLibraryFilter } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
@@ -24,7 +24,15 @@ function LibraryPage() {
   const [category, setCategory] = useState(null) // null이면 전체
   const [day, setDay] = useState(null) // "YYYY-MM-DD"면 그날 저장한 자료만
   const [threads, setThreads] = useState(true) // 관련 자료 연결 표시
-  const [trail, setTrail] = useState([]) // 서랍에서 지나온 자료 id (비어 있으면 서랍이 닫힘)
+  // 서랍에서 지나온 자료 id (비어 있으면 서랍이 닫힘). 다른 화면에서 자료 하나를 열어 달라고 넘겨받으면 그 자료로 시작한다
+  const [trail, setTrail] = useState(() => (location.state?.open ? [location.state.open] : []))
+  // 넘겨받은 "열 자료"는 한 번만 쓴다. 남겨 두면 새로고침·뒤로 가기 때마다 서랍이 다시 열린다 (검색어는 그대로 둔다)
+  useEffect(() => {
+    if (!location.state?.open) return
+    const rest = { ...location.state }
+    delete rest.open
+    navigate(".", { replace: true, state: Object.keys(rest).length ? rest : null })
+  }, [location.state, navigate])
   const inputRef = useRef(null)
   const openerRef = useRef(null) // 서랍을 연 카드 (닫으면 초점을 돌려준다)
 
@@ -86,6 +94,22 @@ function LibraryPage() {
     setTrail([])
     openerRef.current?.focus?.()
   }, [])
+
+  const updateItem = useCallback(
+    async (id, fields) => {
+      await updateContent(id, fields)
+      await reload()
+    },
+    [reload]
+  )
+
+  const uploadItemPdf = useCallback(
+    async (id, file) => {
+      await uploadPdf(id, file)
+      await reload()
+    },
+    [reload]
+  )
 
   // 지운 자료는 서랍 경로에서 뺀다. 경로가 비면 서랍을 닫는다
   const removeItem = useCallback(
@@ -235,7 +259,15 @@ function LibraryPage() {
       </section>
 
       {trail.length > 0 && (
-        <ContentDrawer trail={trail} contents={contents} onGo={goItem} onClose={closeDrawer} onDelete={removeItem} />
+        <ContentDrawer
+          trail={trail}
+          contents={contents}
+          onGo={goItem}
+          onClose={closeDrawer}
+          onDelete={removeItem}
+          onUpdate={updateItem}
+          onUpload={uploadItemPdf}
+        />
       )}
     </div>
   )

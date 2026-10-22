@@ -1,4 +1,4 @@
-/* 스크롤 고정 구간. 높이는 스크립트가 첫 화면 높이의 배수로 정한다 */
+/* 첫 화면을 감싸는 바탕 */
 .journey {
   position: relative;
   background: #000;
@@ -7,8 +7,7 @@
 /* 홈 첫 화면: 화면 한 장을 꽉 채운다 (위 메뉴는 이 위에 투명하게 겹친다)
    왼쪽 설명과 입력, 오른쪽 카드 더미, 뒤에 그래프와 색 오라 */
 .hero {
-  position: sticky;
-  top: 0;
+  position: relative;
   --gut: clamp(24px, 5vw, 72px);
   --head-w: min(540px, 38%);
   /* 카드 크기와 세로 중심 */

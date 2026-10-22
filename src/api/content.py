@@ -1,5 +1,8 @@
+import os
 import time
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -8,10 +11,12 @@ from database.database import get_db
 from database.models import content_class
 from pipeline.errors import ExtractionError
 from pipeline.tag_utils import get_tags_by_content
+from services import pdf_store
 from services.ai_quota import QuotaExceeded
 from services.auth import CurrentUser, current_user
 from services.content_service import (
     s_content, delete_content, analyze_content_preview, analyze_pdf_preview, analyze_pasted_preview,
+    reanalyze_content_preview, update_content, get_my_content,
 )
 from services.event_log import log_event, ms_since
 from typing import Literal, Optional
@@ -43,6 +48,15 @@ class Content_Request(BaseModel):  # 저장용
     # 어떻게 저장까지 왔는지 (기록용): 보통 분석, 실패 뒤 붙여넣기, 실패 뒤 메모 저장
     via: Literal["analyze", "paste", "manual"] = "analyze"
 
+class Edit_Request(BaseModel):  # 저장한 자료 고치기
+    title: Optional[str] = None
+    category: str
+    tags: list[str]
+    memo: Optional[str] = None
+    # 다시 분석한 결과를 반영할 때만 넘긴다 (요약과 분석 상태도 바뀐다). 비우면 그대로 둔다
+    summary: Optional[str] = None
+    analysis_status: Optional[Literal["ai", "ai_short"]] = None
+
 class Discard_Request(BaseModel):  # 분석 결과를 저장하지 않고 취소했을 때 (결과보고서용 기록만 남긴다)
     source: Literal["url", "pdf"] = "url"
     url: Optional[str] = None
@@ -59,7 +73,11 @@ def _fail(event, started, err, http_status, user, **detail):
     elif code is None:
         code = "AI_FAIL" if http_status == 500 else "INVALID"
     log_event(event, False, ms_since(started), users_id=user.id, code=code, error=str(err), **detail)
-    raise HTTPException(status_code=http_status, detail=str(err), headers={"X-Error-Code": code})
+    headers = {"X-Error-Code": code}
+    # 이미 저장한 주소면 그 자료 번호도 알려 준다 (화면의 "저장한 자료 보기")
+    if getattr(err, "content_id", None):
+        headers["X-Content-Id"] = str(err.content_id)
+    raise HTTPException(status_code=http_status, detail=str(err), headers=headers)
 
 
 def _edit_diff(suggested: Optional[Suggested], category: str, tags: list[str]) -> dict:
@@ -120,6 +138,92 @@ def delete_content_route(content_id: int, db: Session = Depends(get_db),
     log_event("delete", True, ms_since(started), users_id=user.id, **removed)
     return {"ok": True, "content_id": content_id}
 
+@router.patch("/content/{content_id}")
+def update_content_route(content_id: int, request: Edit_Request, db: Session = Depends(get_db),
+                         user: CurrentUser = Depends(current_user)):
+    started = time.perf_counter()
+    try:
+        result = update_content(
+            db, user.id, content_id, request.title, request.category, request.tags, request.memo,
+            request.summary, request.analysis_status,
+        )
+    except ValueError as e:
+        _fail("edit", started, e, 400, user, content_id=content_id)
+    except RuntimeError as e:
+        _fail("edit", started, e, 500, user, content_id=content_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="없는 자료입니다.", headers={"X-Error-Code": "NOT_FOUND"})
+    log_event(
+        "edit", True, ms_since(started), users_id=user.id, content_id=content_id,
+        changed=result["changed"], reanalyzed=request.analysis_status is not None,
+    )
+    return result
+
+@router.post("/content/{content_id}/analyze")
+def reanalyze_content_route(content_id: int, db: Session = Depends(get_db),
+                            user: CurrentUser = Depends(current_user)):
+    started = time.perf_counter()
+    try:
+        result = reanalyze_content_preview(db, user, content_id)
+    except (ValueError, QuotaExceeded) as e:
+        _fail("reanalyze", started, e, 400, user, content_id=content_id)
+    except RuntimeError as e:
+        _fail("reanalyze", started, e, 500, user, content_id=content_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="없는 자료입니다.", headers={"X-Error-Code": "NOT_FOUND"})
+    log_event("reanalyze", True, ms_since(started), users_id=user.id, content_id=content_id, **_analysis_log(result))
+    return result
+
+def _my_pdf_content(db, user, content_id):
+    """내 PDF 자료. 남의 자료이거나 없으면 404, 링크 자료면 400"""
+    content = get_my_content(db, user.id, content_id)
+    if not content:
+        raise HTTPException(status_code=404, detail="없는 자료입니다.", headers={"X-Error-Code": "NOT_FOUND"})
+    if content.URL:
+        raise HTTPException(status_code=400, detail="링크로 저장한 자료에는 PDF를 올릴 수 없습니다.")
+    return content
+
+@router.put("/content/{content_id}/file")
+def upload_pdf_route(content_id: int, file: UploadFile = File(...), db: Session = Depends(get_db),
+                     user: CurrentUser = Depends(current_user)):
+    """저장한 PDF 자료에 원본 파일을 붙인다 (이미 있으면 바꾼다)"""
+    content = _my_pdf_content(db, user, content_id)
+    if not (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="PDF 파일만 올릴 수 있습니다.")
+    limit = settings.MAX_PDF_MB * 1024 * 1024
+    data = file.file.read(limit + 1)
+    if len(data) > limit:
+        raise HTTPException(status_code=400, detail=f"PDF는 {settings.MAX_PDF_MB}MB까지 넣을 수 있습니다.",
+                            headers={"X-Error-Code": "PDF_TOO_BIG"})
+    if not data.startswith(pdf_store.PDF_MAGIC):
+        raise HTTPException(status_code=400, detail="PDF 파일이 아닙니다.")
+    try:
+        pdf_store.save(pdf_store.path_of(content), data)
+    except OSError as e:
+        print(f"PDF 파일 저장 실패: {e}")
+        raise HTTPException(status_code=500, detail="PDF 파일을 저장하지 못했습니다.")
+    log_event("pdf_upload", True, None, users_id=user.id, content_id=content_id, size=len(data))
+    return {"ok": True, "content_id": content_id}
+
+@router.get("/content/{content_id}/file")
+def open_pdf_route(content_id: int, db: Session = Depends(get_db), user: CurrentUser = Depends(current_user)):
+    """보관한 PDF 원본을 브라우저에서 바로 연다"""
+    content = _my_pdf_content(db, user, content_id)
+    path = pdf_store.path_of(content)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="원본 PDF가 없습니다.", headers={"X-Error-Code": "NOT_FOUND"})
+    name = quote(f"{content.title or 'document'}.pdf")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        headers={
+            # 내려받지 않고 브라우저의 PDF 보기로 연다. 한글 제목은 filename*로 넘긴다
+            "Content-Disposition": f"inline; filename*=UTF-8''{name}",
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-cache",
+        },
+    )
+
 @router.get("/content")
 def get_contents(db: Session = Depends(get_db), user: CurrentUser = Depends(current_user)):
     contents = db.query(content_class).filter(content_class.users_id == user.id).all()
@@ -138,6 +242,8 @@ def get_contents(db: Session = Depends(get_db), user: CurrentUser = Depends(curr
             "created_at": content.created_at,
             "analysis_status": content.analysis_status or "ai",
             "is_seed": bool(content.is_seed),
+            # PDF 자료의 원본을 열 수 있는지 (보관 기능 전에 저장한 PDF는 없다)
+            "has_file": pdf_store.has_original(user.id, content.Content_id, content.URL, content.created_at),
         }
         for content in contents
     ]
