@@ -569,7 +569,8 @@ function AddPage() {
           )}
         </section>
 
-        <details className={styles.ok}>
+        {/* 무엇을 넣을 수 있는지 바로 보이도록 처음부터 펼쳐 둔다 (접을 수는 있다) */}
+        <details className={styles.ok} open>
           <summary>
             <h2 className={styles.h2}>지원하는 자료</h2>
             <span className={styles.tog} aria-hidden="true" />
