@@ -79,16 +79,6 @@
   border-color: rgba(255, 255, 255, 0.4);
 }
 
-/* 윗선: 카테고리 색 (빛 번짐 없이) */
-.edge {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--cat), transparent);
-}
-
 .kind {
   display: flex;
   flex-wrap: wrap;
@@ -109,6 +99,11 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
+}
+
+.day {
+  margin-left: auto;
+  font-size: 12px;
 }
 
 /* AI 없이 메모로 저장한 자료 */
@@ -147,8 +142,8 @@
   line-height: 1.65;
   color: var(--color-text-muted);
   display: -webkit-box;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -159,21 +154,6 @@
   gap: 4px 12px;
   font-size: 13px;
   color: var(--color-text-faint);
-}
-
-.meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--color-text-faint);
-}
-
-.meta span:first-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* 자료 종류마다 생김새가 조금씩 다르다 */

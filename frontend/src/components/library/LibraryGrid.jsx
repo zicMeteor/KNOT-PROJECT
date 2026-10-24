@@ -165,20 +165,19 @@ function LibraryGrid({ items, query, threads, paused, onOpen }) {
                 }}
                 type="button"
                 className={cls}
-                style={{ "--cat": color, animationDelay: `${Math.min(i * 45, 500)}ms` }}
+                style={{ animationDelay: `${Math.min(i * 45, 500)}ms` }}
                 onMouseEnter={() => touch(c.id)}
                 onFocus={() => touch(c.id)}
                 onClick={() => onOpen(c.id)}
               >
-                <span className={styles.edge} aria-hidden="true" />
-                {/* 카테고리(분류)와 종류(주소로 짐작)는 다른 기준이라 나눠 보인다 */}
+                {/* 카드에는 한눈에 고를 만큼만 (카테고리·날짜, 제목, 요약 2줄, 태그 3개). 종류·주소는 서랍에서 */}
                 <span className={styles.kind}>
                   <span className={styles.cat}>
                     <i style={{ background: color }} aria-hidden="true" />
                     {c.category ?? "기타"}
                   </span>
-                  <span>{kind.label}</span>
                   {isUnanalyzed(c) && <span className={styles.badge}>AI 분석 안 됨</span>}
+                  <span className={styles.day}>{shortDay(dayOf(c.createdAt))}</span>
                 </span>
                 {shared && <span className={styles.common}>공통 태그: {shared.join(", ")}</span>}
                 <b className={styles.title}>
@@ -192,15 +191,11 @@ function LibraryGrid({ items, query, threads, paused, onOpen }) {
                 )}
                 {c.tags?.length > 0 && (
                   <span className={styles.tags}>
-                    {c.tags.map((t) => (
+                    {c.tags.slice(0, 3).map((t) => (
                       <span key={tagName(t)}>{tagName(t)}</span>
                     ))}
                   </span>
                 )}
-                <span className={styles.meta}>
-                  <span>{hostOf(c.url)}</span>
-                  <span>{shortDay(dayOf(c.createdAt))}</span>
-                </span>
               </button>
             </li>
           )

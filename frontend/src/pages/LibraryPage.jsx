@@ -26,7 +26,7 @@ function LibraryPage() {
   const [query, setQuery] = useState(location.state?.q ?? "")
   const [category, setCategory] = useState(null) // null이면 전체
   const [day, setDay] = useState(null) // "YYYY-MM-DD"면 그날 저장한 자료만
-  const [threads, setThreads] = useState(true) // 관련 자료 연결 표시
+  const [threads, setThreads] = useState(false) // 관련 자료 연결 표시 (처음엔 꺼서 카드만 보이게)
   // 서랍에서 지나온 자료 id (비어 있으면 서랍이 닫힘). 다른 화면에서 자료 하나를 열어 달라고 넘겨받으면 그 자료로 시작한다
   const [trail, setTrail] = useState(() => (location.state?.open ? [location.state.open] : []))
   // 넘겨받은 "열 자료"는 한 번만 쓴다. 남겨 두면 새로고침·뒤로 가기 때마다 서랍이 다시 열린다 (검색어는 그대로 둔다)
