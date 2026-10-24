@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { fetchTagContents } from "../../api/graph"
 import ContentListView from "./ContentListView"
-import { logEvent } from "../../api/feedback"
+import { logEvent } from "../../api/events"
 import styles from "./TagPanel.module.css"
 
 // 패널 자료를 불러오는 동안 보여 주는 빈 목록 모양

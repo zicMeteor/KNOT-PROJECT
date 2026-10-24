@@ -14,7 +14,7 @@ from database.database import engine, Base
 from database.models import *
 from api.auth import router as auth_router
 from api.content import router
-from api.feedback import router as feedback_router
+from api.events import router as events_router
 from api.graph import router as g_router
 from api.agent import router as agent_router
 from api.reclassify import router as reclass_router
@@ -126,7 +126,7 @@ app.include_router(router, prefix="/api")
 app.include_router(g_router, prefix="/api")
 app.include_router(agent_router, prefix="/api")
 app.include_router(reclass_router, prefix="/api")
-app.include_router(feedback_router, prefix="/api")
+app.include_router(events_router, prefix="/api")
 
 
 # 빌드한 화면(frontend/dist)을 이 서버가 함께 내보낸다: 주소 하나로 화면과 API를 연다

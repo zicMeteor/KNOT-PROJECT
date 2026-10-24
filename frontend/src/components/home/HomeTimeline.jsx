@@ -31,7 +31,8 @@ function toItems(list) {
 // 그릴 태그 수 상한. 보고 있는 날짜에 저장한 자료의 태그는 수와 상관없이 남긴다 (그날 새로 자라는 점이 보이게)
 const TIMELINE_MAX_TAGS = 80
 
-function HomeTimeline({ contents, sample }) {
+// myDays: 내 자료를 저장한 날 수 (내 자료가 없으면 null)
+function HomeTimeline({ contents, sample, myDays }) {
   // 자료를 저장한 날짜 (오래된 순)
   const days = useMemo(
     () => [...new Set(contents.map((c) => dayOf(c.createdAt)).filter(Boolean))].sort(),
@@ -168,6 +169,12 @@ function HomeTimeline({ contents, sample }) {
           ? "스크롤을 내리면 저장한 날짜 순서대로 그래프가 자랍니다. 새 태그가 생긴 날에는 그 자리에서 점이 자라납니다."
           : "저장한 날짜 순서대로 그래프를 다시 그립니다. 재생을 누르거나 막대를 끌어 보세요. 새 태그가 생긴 날에는 그 자리에서 점이 자라납니다."}
       </p>
+      {/* 내 자료가 있어도 저장한 날이 하루뿐이면 예시로 보여 준다. 언제 내 자료로 바뀌는지 알린다 */}
+      {sample && myDays != null && (
+        <div className={`${ways.why} ${styles.enterH}`}>
+          <p>저장한 날이 이틀 이상이 되면 내 자료로 바뀝니다. 지금 {myDays}일</p>
+        </div>
+      )}
       <div ref={boxRef} className={styles.box}>
         <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" />
         <div className={styles.date} aria-live="polite">

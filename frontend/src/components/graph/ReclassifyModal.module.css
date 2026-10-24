@@ -309,10 +309,6 @@
   margin: 0 0 16px;
 }
 
-.feedback {
-  margin-top: 16px;
-}
-
 .tags,
 .reason {
   color: var(--m-muted);

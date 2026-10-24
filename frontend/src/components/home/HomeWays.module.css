@@ -70,40 +70,8 @@
   margin: 0;
 }
 
-.why p + p,
-.why .checks + p {
+.why p + p {
   margin-top: 6px;
-}
-
-.checks {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 4px;
-  font-size: 13px;
-}
-
-.checks li {
-  display: grid;
-  grid-template-columns: 1em minmax(0, 1fr);
-  gap: 6px;
-  color: var(--color-text-muted);
-}
-
-.checks li > span:first-child {
-  width: 1em;
-  color: var(--color-text-faint);
-}
-
-.checks li.ok > span:first-child {
-  color: var(--color-success);
-}
-
-.checks .now {
-  margin-left: 4px;
-  color: var(--color-text-faint);
-  white-space: nowrap;
 }
 
 .head .why {

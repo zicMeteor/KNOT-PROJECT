@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useLibraryFilter, byNewest } from "../../hooks/useLibraryFilter"
 import { categoryColor } from "../../constants/categories"
 import { create, topTags as pickTags } from "../../lib/threadGraph"
-import { SAMPLE_DEMO, SAMPLE_GRAPH, SAMPLE_REGROUP, waysData } from "../../lib/waysDemo"
+import { RICH, SAMPLE_DEMO, SAMPLE_GRAPH, SAMPLE_REGROUP, waysData } from "../../lib/waysDemo"
 import { SAMPLE_CONTENTS } from "../../constants/sampleContents"
 import { useViewProgress } from "../../lib/scrollPin"
 import styles from "./HomeWays.module.css"
@@ -392,18 +392,10 @@ function HomeWays({ mine }) {
               <p>첫 자료를 저장하고 자료가 쌓이면 이 구간도 내 자료로 바뀝니다.</p>
             ) : (
               <>
-                <p>아직 예시 자료로 보여 줍니다. 아래가 모두 채워지면 내 자료로 바뀝니다.</p>
-                <ul className={styles.checks}>
-                  {real.checks.map((c) => (
-                    <li key={c.label} className={c.ok ? styles.ok : undefined}>
-                      <span aria-hidden="true">{c.ok ? "✓" : "·"}</span>
-                      <span>
-                        {c.label} <span className={styles.now}>지금 {c.now}</span>
-                        <span className="sr-only">{c.ok ? ", 채움" : ", 아직"}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <p>
+                  아직 예시 자료로 보여 줍니다. 자료가 {RICH.items}건 이상 모이고 태그끼리 이어지면 내 자료로 바뀝니다.
+                  지금 {mine.length}건
+                </p>
                 <p>목록 입력칸에 직접 쓰면 언제나 내 자료에서 찾습니다.</p>
               </>
             )}

@@ -1,22 +1,11 @@
-# AI 결과마다 누르는 좋아요·싫어요, 화면에서만 알 수 있는 사용 기록 (검색 결과 열람)
-import json
-from typing import Literal, Optional
+# 화면에서만 알 수 있는 사용 기록 (검색 결과 열람)
+from typing import Literal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
-from database.database import get_db
-from database.models import feedback_class
 from services.auth import CurrentUser, current_user
 from services.event_log import log_event
-
-
-class Feedback_Request(BaseModel):
-    target: Literal["analysis", "search", "reclassify"]
-    value: Literal[1, -1]
-    ref: Optional[str] = Field(default=None, max_length=2083)
-    detail: dict = {}
 
 
 class Event_Request(BaseModel):
@@ -31,17 +20,6 @@ class Event_Request(BaseModel):
 RESERVED_KEYS = {"event", "ok", "ms", "users_id"}
 
 router = APIRouter()
-
-
-@router.post("/feedback")
-def add_feedback(request: Feedback_Request, db: Session = Depends(get_db),
-                 user: CurrentUser = Depends(current_user)):
-    db.add(feedback_class(
-        users_id=user.id, target=request.target, value=request.value, ref=request.ref,
-        detail=json.dumps(request.detail, ensure_ascii=False, default=str)[:20000],
-    ))
-    db.commit()
-    return {"ok": True}
 
 
 @router.post("/events")

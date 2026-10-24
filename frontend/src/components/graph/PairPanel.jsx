@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { fetchTagContents } from "../../api/graph"
 import ContentListView from "./ContentListView"
-import { logEvent } from "../../api/feedback"
+import { logEvent } from "../../api/events"
 import { PanelLoading } from "./TagPanel"
 import styles from "./TagPanel.module.css"
 

@@ -1,6 +1,5 @@
 import ContentListView from "./ContentListView"
-import { logEvent } from "../../api/feedback"
-import Feedback from "../ui/Feedback"
+import { logEvent } from "../../api/events"
 import styles from "./AiSearchPanel.module.css"
 
 const MATCH_LABEL = {
@@ -102,12 +101,6 @@ function AiSearchPanel({ status, result, error }) {
       <p className={styles.query}>“{result.query}”</p>
       <Interpretation analysis={result.analysis} />
       <p className={styles.muted}>찾은 자료 {result.count}건</p>
-      <Feedback
-        target="search"
-        refValue={result.query}
-        detail={{ count: result.count, tags: result.analysis?.tags ?? [] }}
-        label="찾은 결과가 맞나요?"
-      />
       {onlyExpanded && (
         <p className={styles.notice}>
           정확히 일치하는 자료가 없어 관련 태그로 찾은 결과입니다.

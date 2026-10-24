@@ -18,7 +18,7 @@ from pathlib import Path
 
 from database.database import SessionLocal
 from database.models import (
-    aiusage_class, content_class, eventlog_class, feedback_class, graphsnapshot_class, users_class,
+    aiusage_class, content_class, eventlog_class, graphsnapshot_class, users_class,
 )
 
 PERIODS = {
@@ -94,8 +94,6 @@ def load(db, role, start, end):
     login_fails = [e for e in db.query(eventlog_class).filter(
         eventlog_class.event == "login", eventlog_class.ok.is_(False), in_range(eventlog_class.created_at)).all()
         if detail_of(e).get("username") in names]
-    feedback = [] if not ids else db.query(feedback_class).filter(
-        feedback_class.users_id.in_(ids), in_range(feedback_class.created_at)).all()
     usage = [] if not ids else db.query(aiusage_class).filter(
         aiusage_class.users_id.in_(ids), in_range(aiusage_class.created_at)).all()
     snaps = [] if not ids else db.query(graphsnapshot_class).filter(
@@ -103,7 +101,7 @@ def load(db, role, start, end):
     ).order_by(graphsnapshot_class.day).all()
     contents = [] if not ids else db.query(content_class).filter(content_class.users_id.in_(ids)).all()
     starts = db.query(eventlog_class).filter(eventlog_class.event == "server_start").order_by(eventlog_class.EventLog_id).all()
-    return users, events, login_fails, feedback, usage, snaps, contents, starts
+    return users, events, login_fails, usage, snaps, contents, starts
 
 
 def assist_split(starts, start, end, override):
@@ -126,7 +124,7 @@ def assist_split(starts, start, end, override):
 
 def build(db, key, start, end, assist_override, show_names):
     title, role, *_ = PERIODS[key]
-    users, events, login_fails, feedback, usage, snaps, contents, starts = load(db, role, start, end)
+    users, events, login_fails, usage, snaps, contents, starts = load(db, role, start, end)
     sec = Section(f"{title} {start:%m.%d}~{end:%m.%d}")
     if key == "tester":
         label = {u.users_id: (u.username if show_names else f"테스터 {chr(65 + i)}") for i, u in enumerate(users)}
@@ -261,14 +259,6 @@ def build(db, key, start, end, assist_override, show_names):
     sec.kv("검토", f"{len(previews)}번 ({sum(e.d.get('reviewed') or 0 for e in previews)}건 검토, 바꿀 안 {proposed}건)")
     sec.kv("바꿀 안 중 적용한 비율", pct(applied, proposed))
     sec.kv("목적 예", " / ".join(sorted({e.d.get("purpose") for e in previews if e.d.get("purpose")})[:5]) or "-")
-
-    # 좋아요·싫어요
-    sec.h("👍/👎")
-    rows = []
-    for target, name in (("analysis", "분석 결과"), ("search", "AI 검색 결과"), ("reclassify", "분류 다시 검토 제안")):
-        f = [x for x in feedback if x.target == target]
-        rows.append([name, sum(1 for x in f if x.value == 1), sum(1 for x in f if x.value == -1), pct(sum(1 for x in f if x.value == 1), len(f))])
-    sec.table("좋아요_싫어요", ["대상", "👍", "👎", "👍 비율"], rows)
 
     # 지식 그래프 성장
     sec.h("지식 그래프 성장")

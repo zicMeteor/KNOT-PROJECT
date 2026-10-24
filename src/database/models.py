@@ -85,18 +85,6 @@ class aiusage_class(Base):
     created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
 
 
-# AI 결과마다 누르는 좋아요·싫어요
-class feedback_class(Base):
-    __tablename__ = "feedback"
-    Feedback_id = Column(Integer, primary_key=True, autoincrement=True)
-    users_id = Column(Integer, ForeignKey("users.users_id"), index=True)
-    target = Column(String(30))  # analysis, search, reclassify
-    value = Column(Integer)  # 1 = 좋아요, -1 = 싫어요
-    ref = Column(Text(65535))  # 무엇에 대한 평가인지 (주소, 검색어, 자료 번호 등)
-    detail = Column(Text(65535))  # 나머지 정보 (JSON 문자열)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-
-
 # 계정별 그래프 상태를 하루 한 줄 남긴다 (결과보고서에서 날짜별 변화를 보이려고)
 class graphsnapshot_class(Base):
     __tablename__ = "graphsnapshot"

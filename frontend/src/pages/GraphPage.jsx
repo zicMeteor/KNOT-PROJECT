@@ -13,7 +13,7 @@ import PairPanel from "../components/graph/PairPanel"
 import AiSearchBar from "../components/graph/AiSearchBar"
 import AiSearchPanel from "../components/graph/AiSearchPanel"
 import ReclassifyModal from "../components/graph/ReclassifyModal"
-import { logEvent } from "../api/feedback"
+import { logEvent } from "../api/events"
 import btn from "../components/ui/Button.module.css"
 import styles from "./GraphPage.module.css"
 

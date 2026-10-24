@@ -54,24 +54,13 @@ function pickDemo(contents, list) {
   return cands.find((n) => hits(n.label) === n.count) ?? cands[0]
 }
 
-// mine: 내 자료. rich가 아니면 checks로 무엇이 모자란지 보여 준다
+// mine: 내 자료. rich가 아니면 홈이 예시 자료로 보여 준다
 export function waysData(mine) {
   const graph = tagGraph(toItems(mine))
   const list = ranked(mine, graph, degrees(graph))
   const enough = mine.length >= RICH.items && graph.nodes.length >= RICH.tags
   const demo = enough ? pickDemo(mine, list) : null
-  // 기준에 가장 가까운 태그: 기준을 넘는 태그가 있으면 그것, 없으면 자료가 가장 많은 태그
-  const near = list.find(eligible) ?? list[0] ?? null
-  const checks = [
-    { label: `자료 ${RICH.items}건 이상`, now: `${mine.length}건`, ok: mine.length >= RICH.items },
-    { label: `태그 ${RICH.tags}개 이상`, now: `${graph.nodes.length}개`, ok: graph.nodes.length >= RICH.tags },
-    {
-      label: `자료 ${RICH.count}건 이상, 이웃 태그 ${RICH.neighbors}개 이상인 태그 (그 태그가 없는 자료도 ${RICH.outside}건 이상)`,
-      now: near ? `#${near.n.label}: 자료 ${near.n.count}건, 이웃 ${near.deg}개, 없는 자료 ${near.outside}건` : "태그 없음",
-      ok: !!near && eligible(near),
-    },
-  ]
-  return { rich: !!demo, graph, demo, checks }
+  return { rich: !!demo, graph, demo }
 }
 
 // 예시 자료의 그래프와 시연 태그 (한 번만 계산)

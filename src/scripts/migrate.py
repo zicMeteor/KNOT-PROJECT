@@ -63,7 +63,7 @@ def main():
         if "content" in existing_tables:
             conn.execute(text("UPDATE content SET analysis_status = 'ai' WHERE analysis_status IS NULL"))
 
-    # 2) 새 표 만들기 (usersession, aiusage, feedback, graphsnapshot 등)
+    # 2) 새 표 만들기 (usersession, aiusage, graphsnapshot 등)
     before = set(inspect(engine).get_table_names())
     Base.metadata.create_all(bind=engine)
     for t in sorted(set(inspect(engine).get_table_names()) - before):

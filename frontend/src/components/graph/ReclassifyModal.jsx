@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react"
-import Feedback from "../ui/Feedback"
 import { useReclassify } from "../../hooks/useReclassify"
 import Button from "../ui/Button"
 import { CATEGORY_COLORS } from "../../constants/categories"
@@ -301,15 +300,6 @@ function ReclassifyModal({ onClose, onApplied }) {
               </ul>
             </>
           )}
-          {/* 안을 다 본 뒤에 묻는다 */}
-          <div className={styles.feedback}>
-            <Feedback
-              target="reclassify"
-              refValue={purpose}
-              detail={{ reviewed: plan.reviewed, proposed: changes.length }}
-              label="제안이 목적에 맞나요?"
-            />
-          </div>
           {error && <p className={styles.error} role="alert">{error}</p>}
           {/* 15건을 내려 보지 않아도 적용할 수 있게 아래에 붙어 있다 */}
           <div className={styles.footer}>
