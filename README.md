@@ -88,7 +88,7 @@ KNOT/
 │   │   ├── graph.py          # 카테고리 그래프, 태그 공출현 그래프, 태그별 자료
 │   │   ├── agent.py          # AI로 찾기
 │   │   ├── reclassify.py     # 재분류 미리보기·적용
-│   │   └── feedback.py       # 👍/👎, 화면에서 보내는 사용 기록
+│   │   └── events.py         # 화면에서 보내는 사용 기록
 │   ├── scripts/              # migrate.py (DB에 빠진 표·칸 추가), accounts.py (계정 관리)
 │   ├── services/             # 저장·그래프·검색·재분류 로직, 로그인, AI 사용량, 사용 기록
 │   ├── pipeline/             # URL/PDF 본문 추출, LLM 프롬프트와 응답 검증
@@ -97,7 +97,7 @@ KNOT/
     ├── .env.example          # 프론트엔드 환경 변수 예시 (복사해서 .env로 사용)
     ├── vite.config.js
     └── src/
-        ├── api/              # 백엔드 API 호출 함수 (auth, content, graph, aiSearch, reclassify, feedback)
+        ├── api/              # 백엔드 API 호출 함수 (auth, content, graph, aiSearch, reclassify, events)
         ├── pages/            # 로그인, 홈, 자료 추가, 지식 그래프, 전체 자료
         ├── components/       # 화면별 구성 요소
         │   ├── home/         # 홈 화면 (카드 더미, 그래프, 타임라인)
@@ -298,7 +298,6 @@ tailscale funnel 8000
 | **POST** | `/api/agent/search` | AI로 찾기 |
 | **POST** | `/api/agent/reclassify/preview` | 재분류 미리보기 (DB를 바꾸지 않음). `categories`로 범위, `before_id`로 다음 묶음 지정 |
 | **POST** | `/api/agent/reclassify` | 재분류 적용 (바꾸기 전·후를 이력으로 남김) |
-| **POST** | `/api/feedback` | AI 결과 👍/👎 |
 | **POST** | `/api/events` | 화면에서 보내는 사용 기록 (AI 검색 결과를 연 것) |
 
 * `AUTH_ENABLED=1`이면 로그인·`/database`를 뺀 모든 API에 로그인이 필요하고, AI 사용 상한을 넘으면 `429`와 `X-Error-Code: AI_QUOTA`를 돌려줍니다.
@@ -317,7 +316,6 @@ tailscale funnel 8000
 | `contenttag` | 자료와 태그 연결 |
 | `agenthistory` | 재분류 이력: 목적, 이유, 바꾸기 전·후, 한 번에 적용한 묶음(`run_id`) |
 | `aiusage` | AI 호출 한 번마다 한 줄 (사용 상한 계산) |
-| `feedback` | AI 결과 👍/👎 |
 | `graphsnapshot` | 계정별 그래프 상태(자료·태그·선·떨어진 태그 수)를 하루 한 줄 |
 | `eventlog` | 분석·저장·취소·AI 검색·로그인 사용 기록 (누가, 성공 여부, 걸린 시간, 실패 이유) |
 
