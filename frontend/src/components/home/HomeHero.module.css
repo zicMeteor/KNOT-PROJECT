@@ -77,6 +77,41 @@
   gap: 8px;
 }
 
+/* 처음 쓰는 사람: 3단계 안내로 내려가는 바로가기 */
+.toGuide {
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: text-decoration-color var(--dur-fast) var(--ease-out);
+}
+
+.toGuide:hover {
+  text-decoration-color: currentColor;
+}
+
+.toGuide:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* 3단계 안내가 있을 때는 첫 화면을 조금 줄여 안내 상자 윗부분이 화면 아래로 보이게 한다
+   높이가 낮은 화면(노트북 768px 등)은 줄이면 제목이 메뉴에 붙어서, 바로가기 버튼만 쓴다 */
+@media (min-width: 901px) and (min-height: 820px) {
+  .hero.peek {
+    height: calc(100svh - 96px);
+  }
+}
+
 .uses li {
   padding: 5px 12px;
   border-radius: var(--radius-pill);

@@ -49,7 +49,8 @@ function shortUrl(url) {
 
 
 // sample: 자료가 없어 예시 자료로 그릴 때 (카드는 링크를 열지 않는다)
-function HomeHero({ contents, graph, loading, error, sample }) {
+// guide: 홈에 처음 쓰는 사람용 3단계 안내가 있는지 (있으면 첫 화면 아래로 살짝 보이게 하고 바로가기를 단다)
+function HomeHero({ contents, graph, loading, error, sample, guide }) {
   const navigate = useNavigate()
   const [url, setUrl] = useState("")
   const [formError, setFormError] = useState(null)
@@ -187,8 +188,9 @@ function HomeHero({ contents, graph, loading, error, sample }) {
 
     // 저절로 넘긴다 (마우스를 올려 두거나 직접 넘기면 멈춘다)
     // 스크롤로 넘기지 않는다: 휠이 카드를 넘기면 페이지 아래로 내려갈 수 없다
+    // 예시 카드일 때는 넘기지 않는다: 처음 온 사람의 눈이 움직이는 카드보다 왼쪽 설명과 입력칸에 머물게
     let timer = 0
-    if (!reduced) {
+    if (!reduced && !sample) {
       timer = setInterval(() => {
         if (m.manual || m.hover) return
         m.target = (Math.round(m.target) + 1) % n
@@ -228,7 +230,7 @@ function HomeHero({ contents, graph, loading, error, sample }) {
       window.removeEventListener("pointermove", onMove)
       window.removeEventListener("pointerup", onUp)
     }
-  }, [cards])
+  }, [cards, sample])
 
   function go(step) {
     const m = motion.current
@@ -286,7 +288,7 @@ function HomeHero({ contents, graph, loading, error, sample }) {
 
   return (
     <div className={styles.journey}>
-      <section className={styles.hero} aria-label="읽은 것을 한 상자에">
+      <section className={guide ? `${styles.hero} ${styles.peek}` : styles.hero} aria-label="읽은 것을 한 상자에">
         <div className={styles.aura} aria-hidden="true" />
         <canvas ref={canvasRef} className={styles.graph} aria-hidden="true" />
 
@@ -343,6 +345,19 @@ function HomeHero({ contents, graph, loading, error, sample }) {
             <li>나중에 읽을 뉴스레터·기사</li>
             <li>과제·프로젝트 참고 링크</li>
           </ul>
+          {guide && (
+            <button
+              type="button"
+              className={styles.toGuide}
+              onClick={() =>
+                document
+                  .getElementById("first-steps")
+                  ?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" })
+              }
+            >
+              처음이세요? 3단계로 시작하기 <span aria-hidden="true">↓</span>
+            </button>
+          )}
         </div>
 
         {loading ? (

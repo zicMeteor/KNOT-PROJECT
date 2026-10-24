@@ -51,10 +51,10 @@ function HomePage() {
 
   return (
     <div className={styles.page}>
-      <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} sample={sample} />
+      <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} sample={sample} guide={showGuide} />
       {/* 처음 쓰는 사람에게 할 일과 그 효과를 알린다. 자료가 GUIDE_GOAL건 모이면 사라진다 */}
       {showGuide && (
-        <section className={styles.empty} aria-labelledby="empty-title">
+        <section id="first-steps" className={styles.empty} aria-labelledby="empty-title">
           <h2 id="empty-title">{mine.length === 0 ? "처음이라면 이렇게 해 보세요" : "조금만 더 넣어 보세요"}</h2>
           <p className={styles.emptyCopy}>
             같은 주제 자료가 2~3건 모이면 서로 이어지고, 제목을 몰라도 생각나는 말로 찾을 수 있습니다.
