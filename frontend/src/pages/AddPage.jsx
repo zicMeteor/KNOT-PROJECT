@@ -5,7 +5,7 @@ import { useAuth } from "../hooks/useAuth"
 import { useContents } from "../hooks/useContents"
 import { byNewest } from "../hooks/useLibraryFilter"
 import { categoryColor } from "../constants/categories"
-import { dayOf, hostOf, kindOf, knownTags, normalizeUrl, shortDay } from "../lib/contentMeta"
+import { dayOf, hostOf, kindOf, knownTags, normalizeUrl, shortDay, tagName } from "../lib/contentMeta"
 import AnalysisResult from "../components/add/AnalysisResult"
 import AddStage from "../components/add/AddStage"
 import FailurePanel from "../components/add/FailurePanel"
@@ -513,6 +513,12 @@ function AddPage() {
                   ? `${saved.category} 카테고리에 묶였고, 태그 ${saved.tags.length}개로 그래프에 이어졌습니다.`
                   : `${saved.category} 카테고리에 저장했습니다. 태그가 없어 그래프에는 보이지 않고, 전체 자료에서 찾을 수 있습니다.`}
               </span>
+              {/* 저장하자마자 나중에 다시 찾는 법을 그 자료의 태그로 알려 준다 */}
+              {saved.tags.length > 0 && (
+                <span className={styles.findHint}>
+                  {`나중에 전체 자료에서 "${tagName(saved.tags[0])}"라고 치거나, 지식 그래프에서 "${tagName(saved.tags[0])} 관련 자료 보여줘"라고 물으면 이 자료가 나옵니다.`}
+                </span>
+              )}
               <div className={styles.row}>
                 {/* 태그가 없으면 그래프에 점이 없으므로, 전체 자료에서 그 자료를 연다 */}
                 {saved.tags.length > 0 ? (

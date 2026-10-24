@@ -57,6 +57,35 @@
   width: var(--head-w);
 }
 
+/* 제목 위 질문: KNOT이 푸는 문제를 먼저 묻는다 */
+.ask {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+}
+
+/* 입력칸 아래: 이럴 때 쓰세요 */
+.uses {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.uses li {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+}
+
 .title {
   margin: 0;
   font-family: var(--font-serif);
@@ -116,6 +145,7 @@
 
 .input::placeholder {
   color: var(--color-text-faint);
+  font-family: var(--font-sans); /* 안내 문구는 한글이라 고정폭 글꼴이면 글자 사이가 벌어진다 */
 }
 
 .submit {

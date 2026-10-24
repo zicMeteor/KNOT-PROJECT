@@ -311,6 +311,12 @@
   color: var(--color-text-muted);
 }
 
+.savedBox .findHint {
+  padding-left: 12px;
+  border-left: 2px solid rgba(46, 230, 200, 0.6);
+  font-size: 14px;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

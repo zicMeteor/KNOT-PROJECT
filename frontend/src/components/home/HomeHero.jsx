@@ -291,13 +291,15 @@ function HomeHero({ contents, graph, loading, error, sample }) {
         <canvas ref={canvasRef} className={styles.graph} aria-hidden="true" />
 
         <div ref={headRef} className={styles.head}>
+          {/* 무엇을 하는지보다 언제 쓰는지 먼저: 처음 온 사람이 목적을 모르겠다는 테스트 의견 (10/24) */}
+          <p className={styles.ask}>저장만 해 두고, 다시 못 찾은 링크 있지 않나요?</p>
           <h1 className={styles.title}>
             읽은 것을
             <br />한 상자에
           </h1>
           <p className={styles.sub}>
-            링크를 넣으면 AI가 요약하고 분류해서, 이미 저장한 자료와 이어 줍니다. 저장은 결과를
-            확인한 뒤에 합니다.
+            링크나 PDF를 넣으면 AI가 요약하고 태그를 붙여 둡니다. 제목이 기억나지 않아도, 나중에 생각나는
+            말로 다시 찾을 수 있습니다.
           </p>
 
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -310,7 +312,7 @@ function HomeHero({ contents, graph, loading, error, sample }) {
               type="url"
               inputMode="url"
               autoComplete="url"
-              placeholder="예: https://fastapi.tiangolo.com"
+              placeholder="최근에 읽은 글 주소를 붙여 넣으세요"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value)
@@ -336,6 +338,11 @@ function HomeHero({ contents, graph, loading, error, sample }) {
                   : "PDF는 자료 추가에서 올립니다."}
             </p>
           )}
+          <ul className={styles.uses} aria-label="이럴 때 쓰세요">
+            <li>수업 자료·논문 PDF 모아 두기</li>
+            <li>나중에 읽을 뉴스레터·기사</li>
+            <li>과제·프로젝트 참고 링크</li>
+          </ul>
         </div>
 
         {loading ? (

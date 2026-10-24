@@ -18,6 +18,8 @@ import { SAMPLE_CONTENTS } from "../constants/sampleContents"
 
 // 첫 화면 카드 수. HomeHero의 CRATE_COUNT와 같아야 한다
 const RECENT_CARDS = 12
+// 처음 쓰는 사람에게 3단계 안내를 보여 주는 자료 수 (이만큼 모이면 안내가 사라진다)
+const GUIDE_GOAL = 3
 
 function HomePage() {
   const { contents: mine, loading, error } = useContents()
@@ -41,6 +43,7 @@ function HomePage() {
   // 지식이 자라는 모습은 저장한 날이 이틀 이상이어야 변화가 보여서, 그 전에는 예시 자료로 보여 준다
   const myDays = useMemo(() => new Set(mine.map((c) => dayOf(c.createdAt)).filter(Boolean)).size, [mine])
   const timelineSample = sample || (!loading && !error && myDays < 2)
+  const showGuide = !loading && !error && mine.length < GUIDE_GOAL
 
   // 맨 아래 KNOT 글자가 모이는 정도
   const endRef = useRef(null)
@@ -49,16 +52,49 @@ function HomePage() {
   return (
     <div className={styles.page}>
       <HomeHero contents={contents} graph={heroGraph} loading={loading} error={error} sample={sample} />
-      {sample && (
+      {/* 처음 쓰는 사람에게 할 일과 그 효과를 알린다. 자료가 GUIDE_GOAL건 모이면 사라진다 */}
+      {showGuide && (
         <section className={styles.empty} aria-labelledby="empty-title">
-          <h2 id="empty-title">첫 자료를 추가해 보세요</h2>
+          <h2 id="empty-title">{mine.length === 0 ? "처음이라면 이렇게 해 보세요" : "조금만 더 넣어 보세요"}</h2>
           <p className={styles.emptyCopy}>
-            아직 저장한 자료가 없어서, 아래는 <b>예시 자료 {SAMPLE_CONTENTS.length}건</b>으로 KNOT이 어떻게
-            쓰이는지 보여 줍니다. 자료를 저장하면 하나씩 내 자료로 바뀝니다.
+            같은 주제 자료가 2~3건 모이면 서로 이어지고, 제목을 몰라도 생각나는 말로 찾을 수 있습니다.
+            {sample && (
+              <>
+                {" "}아래는 <b>예시 자료 {SAMPLE_CONTENTS.length}건</b>으로 보여 주는 화면이고, 자료를 저장하면
+                하나씩 내 자료로 바뀝니다.
+              </>
+            )}
           </p>
-          <Link to="/add" className={styles.emptyAction}>
-            자료 추가
-          </Link>
+          <div
+            className={styles.progress}
+            role="progressbar"
+            aria-label="처음 넣을 자료"
+            aria-valuemin={0}
+            aria-valuemax={GUIDE_GOAL}
+            aria-valuenow={mine.length}
+          >
+            <i style={{ width: `${(mine.length / GUIDE_GOAL) * 100}%` }} />
+          </div>
+          <p className={styles.progressText}>
+            지금 {mine.length} / {GUIDE_GOAL}건
+          </p>
+          <ol className={styles.guide}>
+            <li>
+              <Link to="/add" className={styles.guideMain}>
+                <span>1단계</span>최근에 읽은 링크·PDF {GUIDE_GOAL}개 넣기
+              </Link>
+            </li>
+            <li>
+              <Link to="/library">
+                <span>2단계</span>전체 자료에서 기억나는 단어로 찾기
+              </Link>
+            </li>
+            <li>
+              <Link to="/graph">
+                <span>3단계</span>지식 그래프에서 이어진 태그 눌러 보기
+              </Link>
+            </li>
+          </ol>
         </section>
       )}
       {contents.length > 0 && (
