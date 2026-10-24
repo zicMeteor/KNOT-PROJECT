@@ -46,7 +46,11 @@ def clean_tags(tags) -> list[str]:
 
 
 # 주소 끝에 붙어도 같은 페이지인 추적용 값 (utm_로 시작하는 값은 따로 뺀다)
-TRACKING_PARAMS = {"fbclid", "gclid", "igshid", "mc_cid", "mc_eid", "ref_src"}
+# _bhlid·jwt_token: 뉴스레터(beehiiv) 메일 링크의 추적값과 구독자 자동 로그인 값. 메일로 연 주소와 웹 주소가 같은 글이다
+TRACKING_PARAMS = {
+    "fbclid", "gclid", "igshid", "mc_cid", "mc_eid", "ref_src",
+    "msclkid", "dclid", "yclid", "_hsenc", "_hsmi", "mkt_tok", "_bhlid", "jwt_token",
+}
 
 
 def url_key(url: str) -> str:

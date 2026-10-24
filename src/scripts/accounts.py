@@ -12,7 +12,9 @@ import argparse
 import sys
 
 from database.database import SessionLocal
-from database.models import content_class, contenttag_class, users_class, usersession_class
+from sqlalchemy import func
+
+from database.models import content_class, contenttag_class, eventlog_class, users_class, usersession_class
 from services import pdf_store
 from services.auth import ROLE_DEFAULTS, generate_password, hash_password
 
@@ -39,12 +41,16 @@ def _print_password(username, password):
 
 def cmd_list(db, _args):
     rows = db.query(users_class).order_by(users_class.users_id).all()
-    print(f"{'번호':>4}  {'아이디':<12} {'역할':<9} {'AI 상한':<10} {'자료':>4}  상태")
+    print(f"{'번호':>4}  {'아이디':<12} {'역할':<9} {'AI 상한':<10} {'자료':>4}  {'마지막 로그인':<16}  상태")
     for u in rows:
         n = db.query(content_class).filter(content_class.users_id == u.users_id).count()
         limit = f"{u.ai_limit}/{'주' if u.ai_period == 'week' else '일'}" if u.ai_limit is not None else "없음"
         state = "막힘" if u.disabled else ("로그인 가능" if u.password_hash else "비밀번호 없음")
-        print(f"{u.users_id:>4}  {u.username or '-':<12} {u.role or '-':<9} {limit:<10} {n:>4}  {state}")
+        # 로그인에 성공하면 사용 기록에 한 줄씩 남는다
+        last = db.query(func.max(eventlog_class.created_at)).filter(
+            eventlog_class.users_id == u.users_id, eventlog_class.event == "login", eventlog_class.ok.is_(True)).scalar()
+        seen = f"{last:%m-%d %H:%M}" if last else "아직 없음"
+        print(f"{u.users_id:>4}  {u.username or '-':<12} {u.role or '-':<9} {limit:<10} {n:>4}  {seen:<16}  {state}")
 
 
 def cmd_create(db, args):
