@@ -4,6 +4,7 @@ import socket
 from urllib.parse import urljoin, urlsplit
 
 import trafilatura
+import urllib3
 from playwright.sync_api import sync_playwright
 from trafilatura.settings import use_config
 
@@ -32,6 +33,15 @@ def _public_host(host):
     return all(ipaddress.ip_address(info[4][0].split("%")[0]).is_global for info in infos)
 
 
+def _idna(host):
+    """한글 도메인은 접속 라이브러리가 xn--로 바꿔 읽으므로, 비교할 때 같은 모양으로 맞춘다"""
+    host = (host or "").strip("[]").lower().rstrip(".")
+    try:
+        return host.encode("idna").decode("ascii")
+    except UnicodeError:
+        return host
+
+
 def _check_url(url):
     """서버가 사용자 대신 주소를 열기 때문에, 서버 안쪽을 가리키는 주소는 막는다.
     ALLOW_LOCAL_URLS를 켜면 검사하지 않는다 (내 컴퓨터에 띄운 페이지로 시험할 때)"""
@@ -40,6 +50,16 @@ def _check_url(url):
     parts = urlsplit(url or "")
     if parts.scheme not in ("http", "https") or not parts.hostname:
         raise ExtractionError("BLOCKED_URL", "http나 https로 시작하는 웹 주소만 분석할 수 있습니다.")
+    # 검사(urlsplit)와 실제 접속(urllib3)이 같은 주소를 다르게 읽는 틈을 막는다
+    # 예: http://127.0.0.1\@example.com 은 검사에는 example.com, 접속은 127.0.0.1로 간다
+    if "\\" in url or parts.username is not None or parts.password is not None:
+        raise ExtractionError("BLOCKED_URL", "아이디·비밀번호나 역슬래시(\\)가 들어간 주소는 분석할 수 없습니다.")
+    try:
+        fetch_host = urllib3.util.parse_url(url).host or ""
+    except ValueError:
+        fetch_host = ""
+    if _idna(fetch_host) != _idna(parts.hostname):
+        raise ExtractionError("BLOCKED_URL", "주소를 해석할 수 없습니다. 주소를 다시 확인해 주세요.")
     public = _public_host(parts.hostname)
     if public is None:
         raise ExtractionError("FETCH_FAIL", "주소를 찾을 수 없습니다. 도메인을 확인해 주세요.")

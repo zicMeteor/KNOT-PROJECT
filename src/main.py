@@ -96,9 +96,12 @@ async def limit_body(request, call_next):
         # PDF는 파일 상한에 업로드 양식 몫(1MB)을 더한다
         limit = (settings.MAX_PDF_MB + 1) * 1024 * 1024 if pdf else BODY_LIMIT
         size = request.headers.get("content-length")
-        if pdf and size is None:
-            # 크기를 알리지 않는 업로드는 끝까지 받아 봐야 알 수 있어서 받지 않는다 (브라우저는 항상 알린다)
-            return JSONResponse(status_code=411, content={"detail": "파일 크기를 알 수 없습니다."})
+        chunked = "chunked" in request.headers.get("transfer-encoding", "").lower()
+        if size is None and (pdf or chunked):
+            # 크기를 알리지 않는 본문은 끝까지 받아 봐야 알 수 있어서 받지 않는다 (브라우저는 항상 알린다)
+            # PDF가 아니어도 크기를 숨기고(chunked) 보내면 2MB 상한을 건너뛰므로 함께 막는다
+            detail = "파일 크기를 알 수 없습니다." if pdf else "요청 크기를 알 수 없습니다."
+            return JSONResponse(status_code=411, content={"detail": detail})
         if size is not None and (not size.isdigit() or int(size) > limit):
             if pdf:
                 # 화면이 PDF_TOO_BIG 안내를 그대로 보여 주도록 기존과 같은 400으로 답한다
