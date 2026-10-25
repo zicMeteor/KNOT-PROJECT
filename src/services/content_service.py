@@ -201,6 +201,9 @@ def analyze_text(text, title, db, user, short=False):
         try:
             result = analyze_content(text, tag_pool, short=short)
             break
+        except TimeoutError as e:
+            # 시간 초과는 다시 시도하지 않는다 (기다리는 시간이 AI_TIMEOUT의 두 배가 되지 않게)
+            raise RuntimeError(f"LLM 분석 실패: {e}")
         except Exception as e:
             if attempt + 1 >= attempts:
                 raise RuntimeError(f"LLM 분석 실패: {str(e)}")

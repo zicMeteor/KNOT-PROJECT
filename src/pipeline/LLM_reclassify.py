@@ -4,6 +4,8 @@ import logging
 import time
 from dotenv import load_dotenv
 
+import settings
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -201,7 +203,7 @@ def _model_options():
 
 # purpose : 사용자 목적어 문장
 def reclassify_content(contents_in_scope: list[dict], purpose: str, tag_pool: list[str]) -> dict:
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(timeout=settings.AI_TIMEOUT, max_retries=0)
 
     tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
     system = RECLASSIFY_PROMPT.format(tag_pool=tag_pool_str)

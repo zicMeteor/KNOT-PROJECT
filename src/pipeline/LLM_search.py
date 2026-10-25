@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from pipeline.LLM_prompt import CATEGORIES
 from typing import Optional
 
+import settings
+
 load_dotenv()
 
 # 검색어가 아니라 표시 요청인 말 (임의로 고른 목록이라 새는 말이 있을 수 있음)
@@ -33,7 +35,7 @@ SEARCH_PROMPT = """너는 사용자의 검색 질문을 분석해서
 
 
 def analyze_search_query(query, tag_pool: list[str]) -> dict:
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(timeout=settings.AI_TIMEOUT, max_retries=0)
     
     tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
     system = SEARCH_PROMPT.format(tag_pool=tag_pool_str)

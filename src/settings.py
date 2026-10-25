@@ -36,6 +36,8 @@ MAX_TEXT_CHARS = _int("MAX_TEXT_CHARS", 30000)
 MAX_PDF_MB = _int("MAX_PDF_MB", 20)
 # 웹 페이지를 받아 올 때 기다리는 시간 (초)
 FETCH_TIMEOUT = _int("FETCH_TIMEOUT", 15)
+# AI 답을 기다리는 최대 시간 (초). 넘으면 실패로 끝내고 다시 보내지 않는다 (SDK 기본값은 10분 + 재시도 2번)
+AI_TIMEOUT = _int("AI_TIMEOUT", 120)
 # 올린 PDF 원본을 보관하는 폴더. 비우면 저장소의 uploads/pdf (git에 올리지 않는다)
 PDF_DIR = os.getenv("PDF_DIR", "").strip() or os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "pdf"

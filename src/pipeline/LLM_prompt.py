@@ -2,6 +2,8 @@ import anthropic
 import json
 from dotenv import load_dotenv
 
+import settings
+
 load_dotenv()
 
 CATEGORIES = ["학습", "참고", "연구", "아이디어", "도구", "기타"]
@@ -99,8 +101,8 @@ def validate_result(result: dict) -> bool:
 
 def analyze_content(text: str, tag_pool: list[str], short: bool = False) -> dict:
     """short=True면 AI가 쓸 만한 글인지도 판단한다. 아니면 result["insufficient"]가 True"""
-    client = anthropic.Anthropic()
-    
+    client = anthropic.Anthropic(timeout=settings.AI_TIMEOUT, max_retries=0)
+
     tag_pool_str = ", ".join(tag_pool) if tag_pool else "없음"
     system = SYSTEM_PROMPT.format(tag_pool=tag_pool_str)
     if short:
@@ -121,10 +123,14 @@ def analyze_content(text: str, tag_pool: list[str], short: bool = False) -> dict
 
     except json.JSONDecodeError as e:
         raise ValueError(f"JSON 파싱 실패: {e}\n원문: {raw}")
-    
+
+    except anthropic.APITimeoutError as e:
+        # 오래 걸린 요청은 다시 보내도 또 오래 걸리므로, 부르는 쪽이 다시 시도하지 않게 따로 알린다
+        raise TimeoutError(f"AI 응답이 {settings.AI_TIMEOUT}초 안에 오지 않았습니다") from e
+
     except Exception as e:
         raise RuntimeError(f"API 호출실패: {e}")
-    
+
     if isinstance(result, dict) and str(result.get("summary", "")).strip() == INSUFFICIENT:
         return {"insufficient": True}
 
