@@ -17,9 +17,9 @@
   --color-success: #4ade80;
 
   /* 위 메뉴 줄 높이 (홈 첫 화면 높이 계산에 쓴다) */
-  --nav-h: 64px;
+  --nav-h: 58px;
   /* 화면 좌우 여백 */
-  --gut: clamp(20px, 5vw, 72px);
+  --gut: clamp(20px, 4.5vw, 64px);
 
   /* 간격 */
   --space-1: 4px;

@@ -8,7 +8,7 @@
    왼쪽 설명과 입력, 오른쪽 카드 더미, 뒤에 그래프와 색 오라 */
 .hero {
   position: relative;
-  --gut: clamp(24px, 5vw, 72px);
+  --gut: clamp(24px, 4.5vw, 64px);
   --head-w: min(540px, 38%);
   /* 카드 크기와 세로 중심 */
   --ch: clamp(360px, 52svh, 500px);
@@ -125,7 +125,7 @@
   margin: 0;
   font-family: var(--font-serif);
   font-weight: 300;
-  font-size: clamp(48px, 5.4vw, 84px);
+  font-size: clamp(44px, 4.9vw, 84px);
   line-height: 1.06;
   letter-spacing: -0.035em;
   word-break: keep-all;

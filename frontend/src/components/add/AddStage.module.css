@@ -1,6 +1,7 @@
 .stage {
   position: relative;
-  height: 640px;
+  /* 화면 높이에 맞춘다 (보통 데스크톱 화면에서 상자가 한 화면에 들어오게) */
+  height: clamp(440px, calc(100svh - 170px), 640px);
   border-radius: 32px;
   border: 1px solid var(--color-border);
   overflow: hidden;
