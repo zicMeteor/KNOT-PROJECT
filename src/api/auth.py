@@ -29,7 +29,6 @@ def _me(db, user):
         "role": user.role,
         "ai": ai_quota.usage(db, user),
         "source_url": settings.SOURCE_URL,
-        "survey_url": settings.SURVEY_URL or None,
         "failure_assist": settings.FAILURE_ASSIST,
     }
 

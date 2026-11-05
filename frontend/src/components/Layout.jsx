@@ -56,14 +56,9 @@ function Layout() {
             </NavLink>
           ))}
         </div>
-        {/* 로그인을 켠 서버에서만: 설문, AI 사용량, 아이디, 로그아웃 */}
+        {/* 로그인을 켠 서버에서만: AI 사용량, 아이디, 로그아웃 */}
         {me?.auth && (
           <div className={styles.me}>
-            {me.survey_url && (
-              <a className={styles.link} href={me.survey_url} target="_blank" rel="noreferrer">
-                설문
-              </a>
-            )}
             {ai?.limit != null && (
               <span className={styles.usage} title={ai.period === "week" ? "이번 주 AI 사용 횟수" : "오늘 AI 사용 횟수"}>
                 AI {ai.used}/{ai.limit}

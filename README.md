@@ -240,7 +240,6 @@ AUTH_ENABLED=1
 SERVE_FRONTEND=1
 FAILURE_ASSIST=1      # 실패 처리를 켤 때
 COOKIE_SECURE=1       # HTTPS 주소(Tailscale Funnel)로 열 때
-SURVEY_URL=설문_주소   # 상단에 설문 링크를 걸 때
 ```
 
 **② 계정 만들기** (`src/` 폴더에서, 가상환경을 켠 상태로)
