@@ -345,7 +345,7 @@ def analyze_pdf_preview(filename, data, db, user):
         ) as tmp:
             tmp.write(data)
             tmp_path = tmp.name
-        # with 블록이 끝나 핸들이 닫힌 뒤에 pymupdf가 연다
+        # with 블록이 끝나 핸들이 닫힌 뒤에 PDFium이 연다
 
         title = os.path.splitext(os.path.basename(filename))[0]
         return _analyze_pdf_path(tmp_path, title, db, user)

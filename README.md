@@ -44,7 +44,7 @@ AI가 붙인 요약·카테고리·태그는 **사용자가 확인한 뒤에만 
 * **Core**: Python 3.13, FastAPI, Uvicorn
 * **AI**: Anthropic Claude API (분석·검색 `claude-sonnet-4-6`, 재분류 `claude-haiku-5-5`)
 * **DB & ORM**: MySQL, SQLAlchemy 2, PyMySQL
-* **Extraction**: Trafilatura (웹 본문), Playwright Chromium (JS로 그리는 페이지 폴백), PyMuPDF (PDF)
+* **Extraction**: Trafilatura (웹 본문), Playwright Chromium (JS로 그리는 페이지 폴백), pypdfium2 (PDF)
 
 ---
 
@@ -54,7 +54,7 @@ AI가 붙인 요약·카테고리·태그는 **사용자가 확인한 뒤에만 
 URL / PDF 입력
    │
    ▼
-본문 추출 ─ Trafilatura (실패하면 Playwright로 다시 시도) / PyMuPDF
+본문 추출 ─ Trafilatura (실패하면 Playwright로 다시 시도) / pypdfium2
    │        본문이 300자 미만이면 분석하지 않음 (FAILURE_ASSIST=1이면 80자 이상은 "짧은 본문"으로 분석)
    ▼
 AI 분석 ─ Claude: 요약 + 카테고리 + 태그 (기존 태그 목록을 함께 전달)
