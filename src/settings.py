@@ -43,5 +43,5 @@ PDF_DIR = os.getenv("PDF_DIR", "").strip() or os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "pdf"
 )
 
-# 화면에 거는 링크 (AGPL-3.0: 인터넷으로 쓰는 사람에게 소스를 받을 곳을 알린다)
+# 화면에 거는 소스 코드 링크
 SOURCE_URL = os.getenv("SOURCE_URL", "https://github.com/zicMeteor/KNOT-PROJECT").strip()

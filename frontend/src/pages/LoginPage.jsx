@@ -138,7 +138,7 @@ function LoginPage({ onSignIn, expired }) {
           입력한 링크의 본문은 요약·분류를 위해 AI(Anthropic)로 전송됩니다.
           <br />
           <a href={SOURCE_URL} target="_blank" rel="noreferrer">
-            소스 코드 (GitHub · AGPL-3.0)
+            소스 코드 (GitHub · MIT)
           </a>
         </p>
       </form>

@@ -42,7 +42,7 @@ AI가 붙인 요약·카테고리·태그는 **사용자가 확인한 뒤에만 
 
 ### Backend
 * **Core**: Python 3.13, FastAPI, Uvicorn
-* **AI**: Anthropic Claude API (분석·검색 `claude-sonnet-4-6`, 재분류 `claude-haiku-5-5`)
+* **AI**: Anthropic Claude API (분석·검색 `claude-sonnet-5-5` effort low, 재분류 `claude-haiku-5-5`)
 * **DB & ORM**: MySQL, SQLAlchemy 2, PyMySQL
 * **Extraction**: Trafilatura (웹 본문), Playwright Chromium (JS로 그리는 페이지 폴백), pypdfium2 (PDF)
 
@@ -78,7 +78,7 @@ KNOT/
 ├── requirements.txt          # 백엔드 의존성
 ├── .env.example              # 백엔드 환경 변수 예시 (복사해서 .env로 사용)
 ├── start.bat                 # 테스터용 실행 (DB 준비 → 서버 시작, "start.bat build"는 화면 빌드부터)
-├── LICENSE                   # AGPL-3.0
+├── LICENSE                   # MIT
 ├── src/                      # FastAPI 백엔드 — 반드시 src/ 안에서 실행
 │   ├── main.py               # 앱 생성, CORS, 라우터 등록, 테이블 자동 생성, 빌드한 화면 내보내기
 │   ├── settings.py           # .env의 v2 설정 (비우면 v1과 같음)
@@ -123,7 +123,7 @@ KNOT/
 * Python 3.13
 * Node.js 20.19 이상 또는 22.12 이상
 * MySQL 서버
-* Anthropic API 키
+* Anthropic API 키 (또는 Anthropic API와 호환되는 게이트웨이의 키, 예: D:GPT API Gateway)
 
 ### 1. 데이터베이스 준비
 
@@ -165,6 +165,8 @@ DB_USER=root
 DB_PASSWORD=MySQL_비밀번호
 DB_NAME=KNOT
 ```
+
+* 게이트웨이를 거쳐 호출할 때는 `ANTHROPIC_BASE_URL`에 게이트웨이 주소를 넣습니다(예: D:GPT는 `https://gpt-gw.daegu.ac.kr`, 끝에 `/v1`을 붙이지 않음). 게이트웨이가 제공하는 모델에 `claude-sonnet-5-5`와 `claude-haiku-5-5`가 있어야 합니다.
 
 **③ 서버 실행** (반드시 `src/` 폴더에서)
 
@@ -336,8 +338,8 @@ tailscale funnel 8000
 
 ## 📄 라이선스
 
-* 이 프로젝트는 **[AGPL-3.0](LICENSE)** 으로 공개합니다. PDF 추출에 쓰는 PyMuPDF가 AGPL-3.0이기 때문입니다.
-* AGPL-3.0은 서버를 인터넷으로 다른 사람에게 쓰게 할 때도 소스 공개를 요구합니다. 그래서 화면에 소스 링크(`SOURCE_URL`)를 겁니다.
-* 공개 대상은 **소스 코드**입니다. `.env`(API 키, DB 비밀번호)는 코드가 아니라 설정이므로 공개하지 않습니다.
-* 이후 PDF 추출을 MIT 계열 라이브러리(pypdf 등)로 바꾸면 MIT로 옮길 계획입니다.
-* 분석·검색·재분류를 할 때 자료의 본문(또는 제목·요약·태그)이 Anthropic Claude API로 전송됩니다.
+* 이 프로젝트는 **[MIT](LICENSE)** 로 공개합니다.
+* v3까지는 PDF 추출에 쓰던 PyMuPDF가 AGPL-3.0이라 프로젝트도 AGPL-3.0이었습니다. v4에서 PDF 추출을 pypdfium2(Apache-2.0 / BSD-3-Clause)로 바꾸면서 MIT로 옮겼습니다. 이전 버전(`v3` 브랜치까지)은 받을 때의 AGPL-3.0이 그대로 적용됩니다.
+* 사용하는 라이브러리는 각자의 라이선스를 따릅니다. 이 저장소에는 라이브러리 코드를 넣지 않고 `requirements.txt`·`package.json`으로 받아 씁니다.
+* `.env`(API 키, DB 비밀번호)는 코드가 아니라 설정이므로 공개하지 않습니다.
+* 분석·검색·재분류를 할 때 자료의 본문(또는 제목·요약·태그)이 Anthropic Claude API로 전송됩니다. `ANTHROPIC_BASE_URL`로 게이트웨이를 쓰면 그 게이트웨이를 거쳐 전송됩니다.

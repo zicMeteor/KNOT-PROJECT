@@ -117,7 +117,7 @@ function HomePage() {
           <p className={styles.foot}>
             KNOT, 읽은 것을 잇는 개인 지식 그래프 ·{" "}
             <a href="https://github.com/zicMeteor/KNOT-PROJECT" target="_blank" rel="noreferrer">
-              소스 코드 (AGPL-3.0)
+              소스 코드 (MIT)
             </a>
           </p>
           {/* 맨 아래까지 내려온 사람이 바로 다음 일을 고를 수 있게 */}
