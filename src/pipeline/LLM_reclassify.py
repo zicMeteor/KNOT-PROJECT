@@ -15,7 +15,7 @@ CATEGORIES = ["학습", "참고", "연구", "아이디어", "도구", "기타"]
 # - Sonnet 4.6: 평균 16.6초, 형식 오류 0건
 # - Haiku 5.5 생각 켬: 평균 8.6초, 형식 오류 0건, 시연 목적에서 Sonnet과 같은 결과 → 채택
 # - Haiku 5.5 생각 끔: 평균 5.2초지만 3회 중 1회 핵심 항목(8번)이 형식 오류로 제외 → 제외
-# 결과가 이상하면 RECLASSIFY_MODEL만 "claude-sonnet-4-6"으로 바꾸면 된다
+# 결과가 이상하면 RECLASSIFY_MODEL만 "claude-sonnet-5-5"로 바꾸면 된다 (D:GPT 게이트웨이에는 sonnet-4-6이 없다)
 RECLASSIFY_MODEL = "claude-haiku-5-5"
 # 생각(thinking) 설정. None이면 모델 기본값 (Haiku 5.5는 켜짐, Sonnet 4.6은 꺼짐)
 RECLASSIFY_THINKING = None

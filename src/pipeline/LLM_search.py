@@ -1,7 +1,7 @@
 import anthropic
 import json
 from dotenv import load_dotenv
-from pipeline.LLM_prompt import CATEGORIES
+from pipeline.LLM_prompt import ANALYZE_EFFORT, ANALYZE_MODEL, CATEGORIES
 from typing import Optional
 
 import settings
@@ -43,12 +43,13 @@ def analyze_search_query(query, tag_pool: list[str]) -> dict:
     
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=400,
+            model=ANALYZE_MODEL,  # 분석과 같은 모델 (11/28 비교: 검색 중앙 1.2초)
+            max_tokens=1000,  # 생각에 쓰는 토큰도 여기서 나간다
             system=system,
             messages=[{"role": "user", "content": query}],
+            output_config={"effort": ANALYZE_EFFORT},
         )
-        raw_search = response.content[0].text
+        raw_search = next((b.text for b in response.content if b.type == "text"), "")
         raw_search = raw_search.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         result = json.loads(raw_search)
 

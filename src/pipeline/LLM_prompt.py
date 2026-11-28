@@ -8,6 +8,14 @@ load_dotenv()
 
 CATEGORIES = ["학습", "참고", "연구", "아이디어", "도구", "기타"]
 
+# 분석·검색 모델 (11/28 D:GPT 게이트웨이에서 비교, 저장된 자료 13건·검색어 10개)
+# - Sonnet 5.5 effort low: 분석 중앙 2.7초, 기존 태그 재사용 가장 많음 → 채택
+# - Sonnet 5.5 effort high: 분석 2.5초, 결과는 low와 거의 같음
+# - Haiku 5.5 생각 켬(medium): 분석 4.8초로 가장 느리고 새 태그를 더 만듦
+# 게이트웨이에 없는 모델(예: claude-sonnet-4-6)을 넣으면 404로 실패한다
+ANALYZE_MODEL = "claude-sonnet-5-5"
+ANALYZE_EFFORT = "low"
+
 SYSTEM_PROMPT = """당신은 웹 콘텐츠를 분석하고 분류하는 AI입니다.
 주어진 텍스트를 분석하여 반드시 아래 JSON 형식으로만 답하세요.
 다른 설명이나 텍스트는 절대 포함하지 마세요.
@@ -111,12 +119,14 @@ def analyze_content(text: str, tag_pool: list[str], short: bool = False) -> dict
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1000,
+            model=ANALYZE_MODEL,
+            max_tokens=2000,  # 생각에 쓰는 토큰도 여기서 나간다
             system=system,
             messages=[{"role": "user", "content": text}],
+            output_config={"effort": ANALYZE_EFFORT},
         )
-        raw = response.content[0].text
+        # 5.5 모델은 생각 블록이 먼저 올 수 있어 글 블록을 찾아 쓴다
+        raw = next((b.text for b in response.content if b.type == "text"), "")
         raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         # 문자열을 Python dict로 변환
         result = json.loads(raw)
